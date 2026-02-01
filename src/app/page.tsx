@@ -1,7 +1,11 @@
+"use client"
+import {Button} from "@/components/ui/button";
+
+
 export default function Home() {
     return (
         <div>
-            Hello Elicit
+            <Button>开始学习</Button>
         </div>
     );
 }
