@@ -1,3 +1,4 @@
+"use client"
 import {BookOpen, Camera, Lightbulb, Sparkles} from "lucide-react";
 import {Button} from "@/components/ui/button";
 

@@ -1,3 +1,4 @@
+"use client"
 import {House, Menu, Plus, Sparkles, Sun} from "lucide-react";
 import {Button} from "@/components/ui/button";
 
