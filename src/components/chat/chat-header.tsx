@@ -1,6 +1,6 @@
-"use client"
 import {House, Menu, Plus, Sparkles, Sun} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import Link from "next/link";
 
 
 export default function ChatHeader() {
@@ -18,7 +18,9 @@ export default function ChatHeader() {
                 </Button>
                 <Button
                     className="icon-button">
-                    <House className={"small-icon"}/>
+                    <Link href="/">
+                        <House className={"small-icon"}/>
+                    </Link>
                 </Button>
                 <div className="flex items-center gap-2">
                     <div className="flex justify-center items-center h-8 w-8 rounded-full bg-primary">

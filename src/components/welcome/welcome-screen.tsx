@@ -1,6 +1,7 @@
 "use client"
 import {BookOpen, Camera, Lightbulb, Sparkles} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import Link from "next/link";
 
 
 export default function WelcomeScreen() {
@@ -48,7 +49,9 @@ export default function WelcomeScreen() {
             text-primary-foreground font-medium
             text-sm hover:bg-primary/90
             transition-colors shadow-lg shadow-primary/20
-            ">开始学习</Button>
+            ">
+                <Link href="/chat">开始学习</Link>
+            </Button>
             {/* Tip */}
             <p className="mt-6 text-xs text-muted-foreground text-center max-w-xs">
                 上传题目后，我会通过提问的方式引导你思考，帮助你真正理解解题思路

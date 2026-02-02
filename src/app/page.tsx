@@ -1,8 +1,7 @@
-"use client"
-import ChatHeader from "@/components/chat/chat-header";
+import WelcomeScreen from "@/components/welcome/welcome-screen";
 
 export default function Home() {
     return (
-        <ChatHeader/>
+        <WelcomeScreen/>
     )
 }
