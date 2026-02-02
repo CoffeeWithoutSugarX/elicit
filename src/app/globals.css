@@ -128,7 +128,7 @@
 }
 
 .icon-button {
-    @apply h-8 w-8 rounded-full bg-background text-foreground hover:bg-foreground/50 hover:text-background;
+    @apply h-8 w-8 flex justify-center items-center rounded-full bg-background text-foreground hover:bg-foreground/50 hover:text-background;
 }
 
 .small-icon {
