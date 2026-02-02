@@ -1,11 +1,8 @@
 "use client"
-import {Button} from "@/components/ui/button";
-
+import ChatHeader from "@/components/chat/chat-header";
 
 export default function Home() {
     return (
-        <div>
-            <Button>开始学习</Button>
-        </div>
-    );
+        <ChatHeader/>
+    )
 }
