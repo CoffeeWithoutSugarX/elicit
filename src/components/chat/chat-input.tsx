@@ -1,6 +1,6 @@
 "use client"
 
-import {BookImage, Camera} from "lucide-react";
+import {Camera, ImagePlus} from "lucide-react";
 
 export default function ChatInput() {
 
@@ -12,7 +12,7 @@ export default function ChatInput() {
             flex justify-center items-center
             ">
                 <div className={"icon-button"}>
-                    <BookImage className={"small-icon"}/>
+                    <ImagePlus className={"small-icon"}/>
                 </div>
                 <div className={"icon-button"}>
                     <Camera className={"small-icon"}/>
