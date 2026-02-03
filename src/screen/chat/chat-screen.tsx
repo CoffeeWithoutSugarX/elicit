@@ -1,9 +1,9 @@
 "use client"
-import ChatInput from "@/components/chat/chat-input";
-import ChatHeader from "@/components/chat/chat-header";
-import ChatMessage from "@/components/chat/chat-message";
-import ChatMessageProps from "@/components/chat/props/ChatMessageProps";
-import ChatMessageRoleEnum from "@/components/chat/enums/ChatMessageRoleEnum";
+import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
+import ChatMessageRoleEnum from "@/screen/chat/enums/ChatMessageRoleEnum";
+import ChatHeader from "@/screen/chat/chat-header";
+import ChatMessage from "@/screen/chat/chat-message";
+import ChatInput from "@/screen/chat/chat-input";
 
 export default function ChatPage() {
 

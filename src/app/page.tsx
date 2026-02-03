@@ -1,7 +1,8 @@
 "use client"
-import ChatScreen from "@/components/chat/chat-screen";
-import WelcomeScreen from "@/components/welcome/welcome-screen";
+
 import {useShowWelcome} from "@/stores/useShowWelcome";
+import WelcomeScreen from "@/screen/welcome/welcome-screen";
+import ChatScreen from "@/screen/chat/chat-screen";
 
 export default function Home() {
     const showWelcome = useShowWelcome(state => state.showWelcome);
