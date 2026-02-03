@@ -50,7 +50,7 @@ export default function WelcomeScreen() {
             text-sm hover:bg-primary/90
             transition-colors shadow-lg shadow-primary/20
             ">
-                <Link href="/chat">开始学习</Link>
+                <Link href="/page/chat">开始学习</Link>
             </Button>
             {/* Tip */}
             <p className="mt-6 text-xs text-muted-foreground text-center max-w-xs">
