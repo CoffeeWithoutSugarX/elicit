@@ -34,7 +34,7 @@ export default function WelcomeScreen() {
             {/*Feature cards*/}
             <div className="w-full max-w-sm space-y-3 mb-8">
                 {features.map((feature, index) => (
-                    <div key={index} className="flex items-center gap-4 bg-background p-4 rounded-md shadow-md">
+                    <div key={index} className="flex items-center gap-4 bg-background p-4 rounded-md shadow-2xs shadow-foreground border border-border">
                         <feature.icon className="w-5 h-5 text-primary"/>
                         <div>
                             <h3 className="text-lg font-semibold">{feature.title}</h3>
