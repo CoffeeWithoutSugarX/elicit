@@ -10,6 +10,12 @@ type ConversationStore = {
     generateId: () => string
 }
 
+type ChunkMessage = {
+    id: string,
+    type: string,
+    delta: string
+}
+
 export const useConversation = create<ConversationStore>((set, get) => {
 
     const chatMessages: ChatMessageProps[] = [];
@@ -28,11 +34,23 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
         if (!response.body) return;
         const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        const decoder = new TextDecoder("utf-8");
         let result = await reader.read();
         while (!result.done) {
             const text = decoder.decode(result.value, {stream: true});
-            console.log(">" + text + "<");
+            text.split('\n').forEach(line => {
+                line = line.replaceAll("data:", "");
+                if (line.trim() === "") return;
+                const parse: ChunkMessage = JSON.parse(line);
+                if (!get().isStreaming) {
+                    set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, parse.delta)]}));
+                    set({isStreaming: true});
+                } else {
+                    const lastMessage = get().chatMessages[get().chatMessages.length - 1];
+                    set(state => ({chatMessages: [...state.chatMessages.slice(0, -1), new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, lastMessage.content + parse.delta)]}));
+                }
+
+            });
             result = await reader.read();
         }
     }
