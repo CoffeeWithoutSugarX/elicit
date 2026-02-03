@@ -47,7 +47,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
                     set({isStreaming: true});
                 } else {
                     const lastMessage = get().chatMessages[get().chatMessages.length - 1];
-                    set(state => ({chatMessages: [...state.chatMessages.slice(0, -1), new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, lastMessage.content + parse.delta)]}));
+                    set(state => ({chatMessages: [...state.chatMessages.slice(0, -1), new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, lastMessage.message + parse.delta)]}));
                 }
 
             });

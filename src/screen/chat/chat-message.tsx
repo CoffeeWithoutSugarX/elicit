@@ -3,9 +3,9 @@ import {Bot, User} from "lucide-react";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 
-export default function ChatMessage({role, content}: ChatMessageProps) {
+export default function ChatMessage({role, message}: ChatMessageProps) {
     const avatar = role === ChatMessageRoleEnum.USER ? <User/> : <Bot/>
-    const messageLines = content.split("\n");
+    const messageLines = message.split("\n");
     return (
         <div
             className={"flex items-center gap-4 w-full pt-4 pb-4 pl-15 pr-15" + (role === ChatMessageRoleEnum.USER ? " flex-row-reverse" : "")}>
