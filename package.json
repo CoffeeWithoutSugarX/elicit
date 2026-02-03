@@ -9,8 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/langchain": "^2.0.73",
     "@langchain/core": "^1.1.18",
+    "@langchain/deepseek": "^1.0.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "ai": "^6.0.68",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "langchain": "^1.2.16",

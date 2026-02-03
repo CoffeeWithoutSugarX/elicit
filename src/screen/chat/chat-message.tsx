@@ -1,6 +1,6 @@
 "use client"
 import {Bot, User} from "lucide-react";
-import ChatMessageRoleEnum from "@/screen/chat/enums/ChatMessageRoleEnum";
+import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 
 export default function ChatMessage({role, content}: ChatMessageProps) {

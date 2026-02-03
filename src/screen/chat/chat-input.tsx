@@ -6,16 +6,16 @@ import {Button} from "@/components/ui/button";
 import {useState} from "react";
 import {useConversation} from "@/stores/useConversation";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
-import ChatMessageRoleEnum from "@/screen/chat/enums/ChatMessageRoleEnum";
+import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 
 export default function ChatInput() {
 
     const [message, setMessage] = useState("")
-    const {addMessage, generateId} = useConversation(state => state);
+    const {sendMessage, generateId} = useConversation(state => state);
 
-    const sendMessage = () => {
+    const handleSendMessage = () => {
         if (message.trim() === "") return;
-        addMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
+        sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
         setMessage("");
     }
 
@@ -38,7 +38,7 @@ export default function ChatInput() {
                        onChange={(e) => setMessage(e.target.value)}/>
                 <Button disabled={message.trim() === ""}
                         className={"w-10 h-10 rounded-full flex justify-center items-center cursor-pointer"}
-                        onClick={sendMessage}
+                        onClick={handleSendMessage}
                 >
                     <Send className={"small-icon text-background"}/>
                 </Button>

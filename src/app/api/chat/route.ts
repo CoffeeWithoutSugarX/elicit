@@ -1,13 +1,16 @@
 import {chatModel} from "@/agents/model/deppseek-model";
+import {ChatMessageRequest} from "@/request/ChatMessageRequest";
+import {NextRequest} from "next/server";
+import {createUIMessageStreamResponse} from "ai";
+import {toUIMessageStream} from "@ai-sdk/langchain";
 
-export async function POST() {
-    const conversation = [
-        {role: "system", content: "You are a helpful assistant that translates English to French."},
-        {role: "user", content: "Translate: I love programming."},
-        {role: "assistant", content: "J'adore la programmation."},
-        {role: "user", content: "Translate: I love building applications."},
-    ];
 
-    const response = await chatModel.invoke(conversation);
-    return Response.json(response.content)
+export async function POST(request: NextRequest) {
+    const body = (await request.json()) as ChatMessageRequest;
+    console.log(JSON.stringify(body))
+    const stream = await chatModel.stream([{role: body.role, content: body.message}]);
+
+    return createUIMessageStreamResponse({
+        stream: toUIMessageStream(stream),
+    });
 }

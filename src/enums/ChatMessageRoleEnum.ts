@@ -1,7 +1,6 @@
-
 enum ChatMessageRoleEnum {
-    USER,
-    ASSISTANT
+    USER = 'user',
+    ASSISTANT = 'assistant'
 }
 
 export default ChatMessageRoleEnum;
