@@ -1,9 +1,13 @@
-import {House, Menu, Plus, Sparkles, Sun} from "lucide-react";
+"use client"
+import {House, Menu, Moon, Plus, Sparkles, Sun} from "lucide-react";
 import {Button} from "@/components/ui/button";
-import Link from "next/link";
+import {useThemeFlag} from "@/stores/useThemeFlag";
+import {useShowWelcome} from "@/stores/useShowWelcome";
 
 
 export default function ChatHeader() {
+    const {isDark, themeToggle} = useThemeFlag(state => state);
+    const toggleWelcomeScreen = useShowWelcome(state => state.toggleWelcome);
     return (
         <header className="
             w-full h-15 pl-5 flex items-center justify-between
@@ -16,11 +20,8 @@ export default function ChatHeader() {
                     className="icon-button">
                     <Menu className="small-icon"/>
                 </Button>
-                <Button
-                    className="icon-button">
-                    <Link href="/">
-                        <House className={"small-icon"}/>
-                    </Link>
+                <Button className="icon-button" onClick={toggleWelcomeScreen}>
+                    <House className={"small-icon"}/>
                 </Button>
                 <div className="flex items-center gap-2">
                     <div className="flex justify-center items-center h-8 w-8 rounded-full bg-primary">
@@ -34,8 +35,8 @@ export default function ChatHeader() {
             </div>
 
             <div className="flex justify-end items-center">
-                <Button className="icon-button">
-                    <Sun className="small-icon"/>
+                <Button className="icon-button" onClick={themeToggle}>
+                    {isDark ? <Moon className="small-icon"/> : <Sun className="small-icon"/>}
                 </Button>
                 <Button className="icon-button">
                     <Plus className="small-icon"/>
