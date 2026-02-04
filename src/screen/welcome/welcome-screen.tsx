@@ -1,4 +1,3 @@
-"use client"
 import {BookOpen, Camera, Lightbulb, Sparkles} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useShowWelcome} from "@/stores/useShowWelcome";
@@ -52,6 +51,7 @@ export default function WelcomeScreen() {
             text-primary-foreground font-medium
             text-sm hover:bg-primary/90
             transition-colors shadow-lg shadow-primary/20
+            cursor-pointer
             " onClick={toggleWelcomeScreen}>
                 开始学习
             </Button>
