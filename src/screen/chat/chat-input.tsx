@@ -5,12 +5,17 @@ import {Button} from "@/components/ui/button";
 import {useConversation} from "@/stores/useConversation";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
-import React, {useState} from "react";
+import React, {useState, useRef} from "react";
+import Image from "next/image";
 
 export default function ChatInput() {
 
-    const [message, setMessage] = useState("")
+    const [message, setMessage] = useState("");
+    const cameraInputRef = useRef<HTMLInputElement | null>(null);
+    const albumInputRef = useRef<HTMLInputElement | null>(null);
     const {sendMessage, generateId} = useConversation(state => state);
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState("");
 
     const handleSendMessage = () => {
         if (message.trim() === "") return;
@@ -23,19 +28,42 @@ export default function ChatInput() {
         }
     }
 
+    const handleImageSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        // 关键：清空 value，否则同一张图再次选择不会触发 onChange（iOS/部分安卓常见）
+        e.target.value = "";
+    };
+
+
     return (
         <div className={"pl-5 pr-5"}>
+            {
+                imagePreview && (
+                    <div className="max-w-2xl mx-auto h-20
+                                  border-border border-t rounded-t-2xl bg-background"
+                        >
+                        <Image  src={imagePreview} alt={"预览"} className={"w-auto h-20 rounded-lg"}/>
+                    </div>
+                )
+            }
             <div className="
             max-w-2xl mx-auto h-20
             border-border border-t rounded-t-2xl bg-background
             flex justify-center items-center
             ">
-                <div className={"icon-button"}>
+                <Button className={"icon-button"} onClick={() => albumInputRef.current?.click()}>
                     <ImagePlus className={"small-icon"}/>
-                </div>
-                <div className={"icon-button mr-2"}>
+                </Button>
+                <Button className={"icon-button mr-2"} onClick={() => cameraInputRef.current?.click()}>
                     <Camera className={"small-icon"}/>
-                </div>
+                </Button>
                 <Input className={"max-w-[70%] text-sm mr-2 bg-muted"}
                        placeholder={"请输入你的想法或问题..."}
                        value={message}
@@ -48,6 +76,24 @@ export default function ChatInput() {
                 >
                     <Send className={"small-icon text-background"}/>
                 </Button>
+                {/* 隐藏 input：相机 */}
+                <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleImageSelected}
+                />
+
+                {/* 隐藏 input：相册 */}
+                <input
+                    ref={albumInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSelected}
+                />
             </div>
         </div>
     )
