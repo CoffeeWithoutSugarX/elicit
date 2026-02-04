@@ -41,13 +41,19 @@ export const useConversation = create<ConversationStore>((set, get) => {
             text.split('\n').forEach(line => {
                 line = line.replaceAll("data:", "");
                 if (line.trim() === "") return;
-                const parse: ChunkMessage = JSON.parse(line);
-                if (!get().isStreaming) {
-                    set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, parse.delta)]}));
-                    set({isStreaming: true});
-                } else {
-                    const lastMessage = get().chatMessages[get().chatMessages.length - 1];
-                    set(state => ({chatMessages: [...state.chatMessages.slice(0, -1), new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, lastMessage.message + parse.delta)]}));
+                try {
+                    const parse: ChunkMessage = JSON.parse(line);
+                    if (!parse.delta || parse.delta.trim() === "") return;
+                    if (!get().isStreaming) {
+                        set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(parse.id, ChatMessageRoleEnum.ASSISTANT, parse.delta)]}));
+                        set({isStreaming: true});
+                    } else {
+                        const lastMessage = get().chatMessages[get().chatMessages.length - 1];
+                        lastMessage.message += parse.delta;
+                        set(state => ({chatMessages: [...state.chatMessages.slice(0, -1), lastMessage]}));
+                    }
+                } catch (error) {
+                    console.warn("Error parsing chunk message:", error);
                 }
 
             });
