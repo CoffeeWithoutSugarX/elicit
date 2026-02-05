@@ -7,8 +7,6 @@ import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import React, {useState, useRef} from "react";
 import Image from "next/image";
-import {OssUploadSignInfo} from "@/body/response/OssUploadSignInfo";
-import {BaseResponse} from "@/body/response/BaseResponse";
 import {ossRequest} from "@/request/OssRequest";
 
 export default function ChatInput() {
@@ -17,30 +15,25 @@ export default function ChatInput() {
     const cameraInputRef = useRef<HTMLInputElement | null>(null);
     const albumInputRef = useRef<HTMLInputElement | null>(null);
     const {sendMessage, generateId} = useConversation(state => state);
-    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState("");
 
     const handleSendMessage = async () => {
-        if (message.trim() === "" && selectedImage === null) return;
+        if (message.trim() === "") return;
         if (message.trim()) {
             sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
             setMessage("");
         }
-        if (selectedImage) {
-            const uploadUrl = await ossRequest.uploadImageToOss(selectedImage, "conversationId");
-            console.log(">" + uploadUrl + "")
-        }
     }
     const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
-           await handleSendMessage();
+            await handleSendMessage();
         }
     }
 
     const handleImageSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        setSelectedImage(file);
         const reader = new FileReader();
         reader.onloadend = () => {
             setImagePreview(reader.result as string);
@@ -48,6 +41,12 @@ export default function ChatInput() {
         reader.readAsDataURL(file);
         // 关键：清空 value，否则同一张图再次选择不会触发 onChange（iOS/部分安卓常见）
         e.target.value = "";
+        try {
+            const uploadUrl = await ossRequest.uploadImageToOss(file, "conversationId");
+            setSelectedImage(uploadUrl);
+        } catch (e) {
+            console.error("上传图片失败", e);
+        }
     };
 
     const handleImageRemove = () => {
