@@ -1,7 +1,7 @@
-import OSS, {Credentials} from 'ali-oss'
-import {getStandardRegion} from "ali-oss/lib/common/utils/getStandardRegion";
-import {getCredential} from 'ali-oss/lib/common/signUtils';
-import {policy2Str} from "ali-oss/lib/common/utils/policy2Str";
+import OSS, { Credentials } from 'ali-oss';
+import { getStandardRegion } from "ali-oss/lib/common/utils/getStandardRegion";
+import { getCredential } from 'ali-oss/lib/common/signUtils';
+import { policy2Str } from "ali-oss/lib/common/utils/policy2Str";
 
 const sts = new OSS.STS({
     accessKeyId: process.env.OSS_ACCESS_KEY_ID!,  // 从环境变量中获取RAM用户的AccessKey ID
@@ -72,13 +72,13 @@ export async function GET() {
 
     // 创建policy
     // 示例policy表单域只列举必填字段，如有其他需求可参考文档：https://help.aliyun.com/zh/oss/developer-reference/signature-version-4-recommend
-    const policy = {
+    const policy: { expiration: string; conditions: unknown[] } = {
         expiration: expirationDate.toISOString(),
         conditions: [
-            {'bucket': 'muzi-elicit'}, // 替换为目标bucket名称
-            {'x-oss-credential': credential},
-            {'x-oss-signature-version': 'OSS4-HMAC-SHA256'},
-            {'x-oss-date': formattedDate},
+            { 'bucket': 'muzi-elicit' }, // 替换为目标bucket名称
+            { 'x-oss-credential': credential },
+            { 'x-oss-signature-version': 'OSS4-HMAC-SHA256' },
+            { 'x-oss-date': formattedDate },
         ],
     };
 
