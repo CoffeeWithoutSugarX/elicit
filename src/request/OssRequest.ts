@@ -6,7 +6,6 @@ class OssRequest {
 
 
     uploadImageToOss = async (imageFile: File, conversationId: string): Promise<string> => {
-
         const response: BaseResponse<OssUploadSignInfo> = await fetch(`/api/oss/sign-for-upload/${conversationId}`, {method: "GET"})
             .then((response) => {
                 if (!response.ok) {

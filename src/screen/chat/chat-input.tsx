@@ -1,5 +1,5 @@
 "use client"
-import {Camera, ImagePlus, Send, X} from "lucide-react";
+import {Camera, ImagePlus, Loader2, Send, X} from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {useConversation} from "@/stores/useConversation";
@@ -17,9 +17,10 @@ export default function ChatInput() {
     const {sendMessage, generateId} = useConversation(state => state);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState("");
+    const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle');
 
     const handleSendMessage = async () => {
-        if (message.trim() === "") return;
+        if (uploadStatus === 'uploading' || uploadStatus === 'error') return;
         if (message.trim()) {
             sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
             setMessage("");
@@ -41,17 +42,21 @@ export default function ChatInput() {
         reader.readAsDataURL(file);
         // 关键：清空 value，否则同一张图再次选择不会触发 onChange（iOS/部分安卓常见）
         e.target.value = "";
+        setUploadStatus('uploading');
         try {
             const uploadUrl = await ossRequest.uploadImageToOss(file, "conversationId");
             setSelectedImage(uploadUrl);
+            setUploadStatus('idle');
         } catch (e) {
             console.error("上传图片失败", e);
+            setUploadStatus('error');
         }
     };
 
     const handleImageRemove = () => {
         setSelectedImage(null);
         setImagePreview("");
+        setUploadStatus('idle');
     }
 
 
@@ -60,8 +65,21 @@ export default function ChatInput() {
             {
                 imagePreview && (
                     <div className="max-w-2xl mx-auto h-20 border-border border-t rounded-t-2xl bg-background p-5 relative">
-                        <Image src={imagePreview} alt={"预览"} className={"rounded-lg"} width={100} height={100}
-                               objectFit={"cover"}/>
+                        <div className="relative w-25 h-16.25">
+                            <Image src={imagePreview} alt={"预览"} className={"rounded-lg object-cover"} fill/>
+                            {uploadStatus === 'uploading' && (
+                                <div
+                                    className="absolute inset-0 bg-black/30 rounded-lg flex items-center justify-center">
+                                    <Loader2 className="w-5 h-5 text-white animate-spin"/>
+                                </div>
+                            )}
+                            {uploadStatus === 'error' && (
+                                <div
+                                    className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center text-white text-[10px] text-center px-1">
+                                    上传失败
+                                </div>
+                            )}
+                        </div>
                         <Button className={"icon-button absolute left-25 top-2"} onClick={handleImageRemove}><X
                             className={"small-icon"}/></Button>
                     </div>
@@ -81,7 +99,7 @@ export default function ChatInput() {
                        onChange={(e) => setMessage(e.target.value)}
                        onKeyDown={handleKeyDown}
                 />
-                <Button disabled={message.trim() === ""}
+                <Button disabled={message.trim() === "" || uploadStatus === 'uploading'}
                         className={"w-10 h-10 rounded-full flex justify-center items-center cursor-pointer"}
                         onClick={handleSendMessage}
                 >
