@@ -7,6 +7,8 @@ import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import React, {useState, useRef} from "react";
 import Image from "next/image";
+import {OssUploadSignInfo} from "@/response/OssUploadSignInfo";
+import {BaseResponse} from "@/response/BaseResponse";
 
 export default function ChatInput() {
 
@@ -18,9 +20,51 @@ export default function ChatInput() {
     const [imagePreview, setImagePreview] = useState("");
 
     const handleSendMessage = () => {
-        if (message.trim() === "") return;
-        sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
-        setMessage("");
+        if (message.trim() === "" && selectedImage === null) return;
+        if (message.trim()) {
+            sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
+            setMessage("");
+        }
+        if (selectedImage) {
+            fetch("/api/oss/sign-for-upload", { method: "GET" })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("获取签名失败");
+                    }
+                    return response.json();
+                })
+                .then((response: BaseResponse<OssUploadSignInfo>) => {
+                    if (response.isSuccess()) {
+                        const data = response.data;
+                        const formData = new FormData();
+                        formData.append("success_action_status", "200");
+                        formData.append("policy", data.policy);
+                        formData.append("x-oss-signature", data.signature);
+                        formData.append("x-oss-signature-version", data.xOssSignatureVersion);
+                        formData.append("x-oss-credential", data.xOssCredential);
+                        formData.append("x-oss-date", data.xOssDate);
+                        formData.append("key", data.dir + selectedImage.name); // 文件名
+                        formData.append("x-oss-security-token", data.securityToken);
+                        formData.append("file", selectedImage); // file 必须为最后一个表单域
+
+                        return fetch(data.host, {
+                            method: "POST",
+                            body: formData
+                        });
+                    }
+                })
+                .then((response) => {
+                    if (response && response.ok) {
+                        console.log("上传成功");
+                        console.log(response);
+                    } else {
+                        console.log("上传失败", response);
+                    }
+                })
+                .catch((error) => {
+                    console.error("发生错误:", error);
+                });
+        }
     }
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
@@ -51,14 +95,13 @@ export default function ChatInput() {
         <div className={"pl-5 pr-5"}>
             {
                 imagePreview && (
-                    <div className="max-w-2xl mx-auto h-20 pt-5 pl-5 border-border border-t rounded-t-2xl bg-background relative">
-                        <Image src={imagePreview} alt={"预览"} className={"rounded-lg"} width={100} height={100}/>
-                        <Button className={"w-6 h-6 min-w-6 min-h-6 rounded-full absolute top-2 left-26.25 cursor-pointer"} onClick={handleImageRemove}><X/></Button>
+                    <div className="max-w-2xl mx-auto h-20 border-border border-t rounded-t-2xl bg-background p-5 relative">
+                        <Image  src={imagePreview} alt={"预览"} className={"rounded-lg"} width={100} height={100} objectFit={"cover"}/>
+                        <Button className={"icon-button absolute left-25 top-2"} onClick={handleImageRemove}><X className={"small-icon"}/></Button>
                     </div>
                 )
             }
-            <div
-                className={"max-w-2xl mx-auto h-20 border-border bg-background flex justify-center items-center " + (imagePreview.trim() ? "" : "border-t rounded-t-2xl")}>
+            <div className={"max-w-2xl mx-auto h-20 border-border bg-background flex justify-center items-center " + (imagePreview ? "" : "border-t rounded-t-2xl")}>
                 <Button className={"icon-button"} onClick={() => albumInputRef.current?.click()}>
                     <ImagePlus className={"small-icon"}/>
                 </Button>
