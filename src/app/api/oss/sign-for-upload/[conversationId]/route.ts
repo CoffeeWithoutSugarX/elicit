@@ -1,11 +1,13 @@
 import {ossService} from "@/services/OssService";
-import {BaseResponse} from "@/response/BaseResponse";
+import {BaseResponse} from "@/body/response/BaseResponse";
+import {NextRequest} from "next/server";
 
 
-export async function GET() {
+export async function GET(request: NextRequest, context: { params: Promise<{ conversationId: string }> }) {
     console.log('Generating OSS upload sign info for conversation-1')
     try {
-        const signInfo = await ossService.getUploadSignInfo('conversation-1')
+        const {conversationId} = await context.params
+        const signInfo = await ossService.getUploadSignInfo(conversationId)
         return Response.json(BaseResponse.ofSuccess(signInfo));
     } catch (error) {
         console.error(error);

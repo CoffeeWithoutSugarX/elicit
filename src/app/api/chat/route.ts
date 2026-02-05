@@ -1,5 +1,5 @@
 import {chatModel} from "@/agents/model/deppseek-model";
-import {ChatMessageRequest} from "@/request/ChatMessageRequest";
+import {ChatMessageRequest} from "@/body/request/ChatMessageRequest";
 import {NextRequest} from "next/server";
 import {createUIMessageStreamResponse} from "ai";
 import {toUIMessageStream} from "@ai-sdk/langchain";

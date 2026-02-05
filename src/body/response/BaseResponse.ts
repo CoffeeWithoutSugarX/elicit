@@ -17,7 +17,7 @@ export class BaseResponse<T> {
         return new BaseResponse(-1, message, null);
     }
 
-    isSuccess(): boolean {
-        return this.status === 200;
+    static isSuccess<T>(response: BaseResponse<T>): boolean {
+        return response.status === 200;
     }
 }
