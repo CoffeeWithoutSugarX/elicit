@@ -18,9 +18,48 @@ export default function ChatInput() {
     const [imagePreview, setImagePreview] = useState("");
 
     const handleSendMessage = () => {
-        if (message.trim() === "") return;
-        sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
-        setMessage("");
+        if (message.trim() === "" && selectedImage === null) return;
+        if (message.trim()) {
+            sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
+            setMessage("");
+        }
+        if (selectedImage) {
+            fetch("/api/oss/sign-for-upload", { method: "GET" })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error("获取签名失败");
+                    }
+                    return response.json();
+                })
+                .then((data) => {
+                    const formData = new FormData();
+                    formData.append("success_action_status", "200");
+                    formData.append("policy", data.policy);
+                    formData.append("x-oss-signature", data.signature);
+                    formData.append("x-oss-signature-version", "OSS4-HMAC-SHA256");
+                    formData.append("x-oss-credential", data.x_oss_credential);
+                    formData.append("x-oss-date", data.x_oss_date);
+                    formData.append("key", data.dir + selectedImage.name); // 文件名
+                    formData.append("x-oss-security-token", data.security_token);
+                    formData.append("file", selectedImage); // file 必须为最后一个表单域
+
+                    return fetch(data.host, {
+                        method: "POST",
+                        body: formData
+                    });
+                })
+                .then((response) => {
+                    if (response.ok) {
+                        console.log("上传成功");
+                        console.log(response);
+                    } else {
+                        console.log("上传失败", response);
+                    }
+                })
+                .catch((error) => {
+                    console.error("发生错误:", error);
+                });
+        }
     }
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {

@@ -1,19 +1,17 @@
-import OSS from 'ali-oss'
+import OSS, {Credentials} from 'ali-oss'
 import {getStandardRegion} from "ali-oss/lib/common/utils/getStandardRegion";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 import {getCredential} from 'ali-oss/lib/common/signUtils';
 import {policy2Str} from "ali-oss/lib/common/utils/policy2Str";
 
 const sts = new OSS.STS({
-    accessKeyId: process.env.OSS_ACCESS_KEY_ID,  // 从环境变量中获取RAM用户的AccessKey ID
-    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET // 从环境变量中获取RAM用户的AccessKey Secret
+    accessKeyId: process.env.OSS_ACCESS_KEY_ID!,  // 从环境变量中获取RAM用户的AccessKey ID
+    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET! // 从环境变量中获取RAM用户的AccessKey Secret
 });
 
 export async function GET() {
 
     // 调用assumeRole接口获取STS临时访问凭证
-    const result = await sts.assumeRole(process.env.OSS_STS_ROLE_ARN, '', 3600, 'ElicitUploadQuestionImage');
+    const result = await sts.assumeRole(process.env.OSS_STS_ROLE_ARN!, '', 3600, 'ElicitUploadQuestionImage');
 
     // 提取临时访问凭证中的AccessKeyId、AccessKeySecret和SecurityToken
     const accessKeyId = result.credentials.AccessKeyId;
@@ -29,8 +27,12 @@ export async function GET() {
         stsToken: securityToken,
         refreshSTSTokenInterval: 0,
         refreshSTSToken: async () => {
-            const { accessKeyId, accessKeySecret, securityToken } = await client.getCredential();
-            return { accessKeyId, accessKeySecret, stsToken: securityToken };
+            const credential: Credentials = await client.getCredential();
+            return {
+                accessKeyId: credential.AccessKeyId,
+                accessKeySecret: credential.AccessKeySecret,
+                stsToken: credential.SecurityToken
+            };
         },
     });
 
@@ -43,11 +45,11 @@ export async function GET() {
     expirationDate.setMinutes(date.getMinutes() + 10);
 
     // 格式化日期为符合ISO 8601标准的UTC时间字符串格式
-    function padTo2Digits(num) {
+    function padTo2Digits(num: number): string {
         return num.toString().padStart(2, '0');
     }
 
-    function formatDateToUTC(date) {
+    function formatDateToUTC(date: Date): string {
         return (
             date.getUTCFullYear() +
             padTo2Digits(date.getUTCMonth() + 1) +
@@ -99,7 +101,7 @@ export async function GET() {
         x_oss_credential: credential,
         x_oss_date: formattedDate,
         signature: signature,
-        dir: 'user-dir', // 指定上传到OSS的文件前缀
+        dir: 'user-dir/', // 指定上传到OSS的文件前缀
         security_token: client.options.stsToken
     });
 }
