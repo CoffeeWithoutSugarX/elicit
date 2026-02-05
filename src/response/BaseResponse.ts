@@ -16,4 +16,8 @@ export class BaseResponse<T> {
     static ofError(message: string): BaseResponse<null> {
         return new BaseResponse(-1, message, null);
     }
+
+    isSuccess(): boolean {
+        return this.status === 200;
+    }
 }

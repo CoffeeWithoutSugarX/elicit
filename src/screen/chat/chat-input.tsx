@@ -7,6 +7,8 @@ import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import React, {useState, useRef} from "react";
 import Image from "next/image";
+import {OssUploadSignInfo} from "@/response/OssUploadSignInfo";
+import {BaseResponse} from "@/response/BaseResponse";
 
 export default function ChatInput() {
 
@@ -31,25 +33,28 @@ export default function ChatInput() {
                     }
                     return response.json();
                 })
-                .then((data) => {
-                    const formData = new FormData();
-                    formData.append("success_action_status", "200");
-                    formData.append("policy", data.policy);
-                    formData.append("x-oss-signature", data.signature);
-                    formData.append("x-oss-signature-version", "OSS4-HMAC-SHA256");
-                    formData.append("x-oss-credential", data.x_oss_credential);
-                    formData.append("x-oss-date", data.x_oss_date);
-                    formData.append("key", data.dir + selectedImage.name); // 文件名
-                    formData.append("x-oss-security-token", data.security_token);
-                    formData.append("file", selectedImage); // file 必须为最后一个表单域
+                .then((response: BaseResponse<OssUploadSignInfo>) => {
+                    if (response.isSuccess()) {
+                        const data = response.data;
+                        const formData = new FormData();
+                        formData.append("success_action_status", "200");
+                        formData.append("policy", data.policy);
+                        formData.append("x-oss-signature", data.signature);
+                        formData.append("x-oss-signature-version", data.xOssSignatureVersion);
+                        formData.append("x-oss-credential", data.xOssCredential);
+                        formData.append("x-oss-date", data.xOssDate);
+                        formData.append("key", data.dir + selectedImage.name); // 文件名
+                        formData.append("x-oss-security-token", data.securityToken);
+                        formData.append("file", selectedImage); // file 必须为最后一个表单域
 
-                    return fetch(data.host, {
-                        method: "POST",
-                        body: formData
-                    });
+                        return fetch(data.host, {
+                            method: "POST",
+                            body: formData
+                        });
+                    }
                 })
                 .then((response) => {
-                    if (response.ok) {
+                    if (response && response.ok) {
                         console.log("上传成功");
                         console.log(response);
                     } else {
