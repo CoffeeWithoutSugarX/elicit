@@ -1,5 +1,5 @@
 "use client"
-import {Camera, ImagePlus, Send} from "lucide-react";
+import {Camera, ImagePlus, Send, X} from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {useConversation} from "@/stores/useConversation";
@@ -41,23 +41,23 @@ export default function ChatInput() {
         e.target.value = "";
     };
 
+    const handleImageRemove = () => {
+        setSelectedImage(null);
+        setImagePreview("");
+    }
+
 
     return (
         <div className={"pl-5 pr-5"}>
             {
                 imagePreview && (
-                    <div className="max-w-2xl mx-auto h-20
-                                  border-border border-t rounded-t-2xl bg-background"
-                        >
-                        <Image  src={imagePreview} alt={"预览"} className={"w-auto h-20 rounded-lg"}/>
+                    <div className="max-w-2xl mx-auto h-20 border-border border-t rounded-t-2xl bg-background p-5 relative">
+                        <Image  src={imagePreview} alt={"预览"} className={"rounded-lg"} width={100} height={100} objectFit={"cover"}/>
+                        <Button className={"icon-button absolute left-25 top-2"} onClick={handleImageRemove}><X className={"small-icon"}/></Button>
                     </div>
                 )
             }
-            <div className="
-            max-w-2xl mx-auto h-20
-            border-border border-t rounded-t-2xl bg-background
-            flex justify-center items-center
-            ">
+            <div className={"max-w-2xl mx-auto h-20 border-border bg-background flex justify-center items-center " + (imagePreview ? "" : "border-t rounded-t-2xl")}>
                 <Button className={"icon-button"} onClick={() => albumInputRef.current?.click()}>
                     <ImagePlus className={"small-icon"}/>
                 </Button>

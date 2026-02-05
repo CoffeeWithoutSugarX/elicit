@@ -9,11 +9,7 @@ export default function ChatHeader() {
     const {isDark, themeToggle} = useThemeFlag(state => state);
     const toggleWelcomeScreen = useShowWelcome(state => state.toggleWelcome);
     return (
-        <header className="w-full h-15 pl-5 flex items-center justify-between
-            px-4 py-3
-            border-b border-border bg-card/80
-            backdrop-blur-sm sticky top-0 z-10
-        ">
+        <header className="w-full h-15 pl-5 flex items-center justify-between px-4 py-3 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex justify-between items-center gap-4">
                 <Button
                     className="icon-button">
