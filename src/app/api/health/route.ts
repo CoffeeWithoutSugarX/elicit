@@ -1,4 +1,3 @@
-
 export async function GET() {
-    return Response.json({ content: 'Health' })
+    return Response.json('Health')
 }
