@@ -99,7 +99,7 @@ export default function ChatInput() {
                        onChange={(e) => setMessage(e.target.value)}
                        onKeyDown={handleKeyDown}
                 />
-                <Button disabled={message.trim() === "" || uploadStatus === 'uploading'}
+                <Button disabled={(message.trim() === "" && selectedImage === null) || uploadStatus === 'uploading'}
                         className={"w-10 h-10 rounded-full flex justify-center items-center cursor-pointer"}
                         onClick={handleSendMessage}
                 >
