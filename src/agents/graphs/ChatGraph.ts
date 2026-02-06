@@ -1,9 +1,9 @@
 import {END, START, StateGraph} from "@langchain/langgraph";
 import {llmNode} from "@/agents/nodes/ChatNode";
-import {chatSchema, ChatSchema} from "@/agents/schemas/ChatSchema";
+import {chatSchema} from "@/agents/schemas/ChatSchema";
 
 
-const chatStatGraph = new StateGraph<ChatSchema>({
+const chatStatGraph = new StateGraph({
     state: chatSchema
 });
 
