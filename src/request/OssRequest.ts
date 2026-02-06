@@ -31,14 +31,12 @@ class OssRequest {
                 body: formData
             });
 
-            if (!uploadResponse.ok) {
-                throw new Error("上传失败");
+            if (uploadResponse.ok) {
+                return data.host + "/" + data.dir + imageFile.name;
             }
-
-            return data.host+ "/" + data.dir + imageFile.name;
         }
 
-        throw new Error("签名获取失败");
+        throw new Error("上传失败");
     }
 }
 
