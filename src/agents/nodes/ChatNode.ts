@@ -2,7 +2,6 @@ import {ChatSchema} from "@/agents/schemas/ChatSchema";
 import {
     ChatPromptTemplate,
     HumanMessagePromptTemplate,
-    MessagesPlaceholder,
     SystemMessagePromptTemplate
 } from "@langchain/core/prompts";
 import {chatModel} from "@/agents/models/deppseek-model";
