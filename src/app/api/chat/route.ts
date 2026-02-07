@@ -4,23 +4,20 @@ import {createUIMessageStreamResponse} from "ai";
 import {toUIMessageStream} from "@ai-sdk/langchain";
 import {compiledChatGraph} from "@/agents/graphs/ChatGraph";
 import {HumanMessage} from "@langchain/core/messages";
-import {ChatSchema} from "@/agents/schemas/ChatSchema";
-import {uuid} from "zod";
 
-const chatSchema: ChatSchema = {
-    messages: []
-}
+const threadId = "conversationId:test";
 
 export async function POST(request: NextRequest) {
     const body = (await request.json()) as ChatMessageRequest;
-    chatSchema.messages.push(new HumanMessage(body.message));
 
     const stream = await compiledChatGraph.stream(
-        chatSchema,
+        {
+            messages: [new HumanMessage(body.message)]
+        },
         {
             streamMode: ["values", "messages"],
             configurable: {
-                thread_id: uuid()
+                thread_id: threadId
             }
         }
     );

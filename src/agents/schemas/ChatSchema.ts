@@ -5,7 +5,10 @@ import {registry} from "@langchain/langgraph/zod";
 
 
 export const chatSchema = z.object({
-    messages: z.array(z.custom<BaseMessage>()).register(registry, MessagesZodMeta)
+    messages: z.array(z.custom<BaseMessage>()).register(registry, {
+        ...MessagesZodMeta,
+        default: () => []
+    })
 })
 
 export type ChatSchema = z.infer<typeof chatSchema>
