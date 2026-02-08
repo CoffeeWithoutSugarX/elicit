@@ -163,6 +163,50 @@ export type Database = {
         }
         Relationships: []
       }
+      elicit_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: number
+          message_id: string
+          role: string
+          type: number
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id?: string
+          created_at?: string
+          id?: number
+          message_id?: string
+          role: string
+          type: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: number
+          message_id?: string
+          role?: string
+          type?: number
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elicit_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "elicit_conversations"
+            referencedColumns: ["conversation_id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

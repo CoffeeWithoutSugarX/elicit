@@ -10,7 +10,8 @@
     "supabase:start": "npx supabase start",
     "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset",
-    "supabase:diff": "npx supabase db diff --use-migra --schema public -f init_schema"
+    "supabase:diff": "npx supabase db diff --use-migra --schema public -f init_schema",
+    "supabaseLtype": "npx supabase gen types typescript --local > src/db/supabase/type.ts"
   },
   "dependencies": {
     "@ai-sdk/langchain": "^2.0.73",
