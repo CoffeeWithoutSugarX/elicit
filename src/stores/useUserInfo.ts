@@ -36,7 +36,7 @@ export const useUserInfo = create<UserInfoStore>((set,get) => {
     const whoAmI = async () => {
         const {data, error} = await supabase.auth.getUser()
         if (error) {
-            console.error('Whoami error:', error.message);
+            console.error('Who am i error:', error.message);
             return null;
         }
         set({userInfo: data.user})
