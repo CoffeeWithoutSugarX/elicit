@@ -7,8 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "supabase:start": "supabase start",
-    "supabase:stop": "supabase stop",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
     "supabase:reset": "npx supabase db reset",
     "supabase:diff": "npx supabase db diff --use-migra --schema public -f init_schema"
   },
@@ -19,6 +19,7 @@
     "@langchain/langgraph-checkpoint-postgres": "^1.0.0",
     "@langchain/openai": "^1.2.5",
     "@radix-ui/react-slot": "^1.2.4",
+    "@supabase/auth-js": "^2.95.3",
     "@supabase/supabase-js": "^2.95.3",
     "ai": "^6.0.73",
     "ali-oss": "^6.23.0",

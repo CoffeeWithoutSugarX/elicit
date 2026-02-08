@@ -7,7 +7,7 @@ type ShowWelcomeStore = {
 
 export const useShowWelcome = create<ShowWelcomeStore>((set)=> {
     return {
-        showWelcome: false,
+        showWelcome: true,
         toggleWelcome: () => set(state => ({showWelcome: !state.showWelcome}))
     }
 })

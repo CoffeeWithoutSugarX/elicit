@@ -1,11 +1,15 @@
 import {BookOpen, Camera, Lightbulb, Sparkles} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useShowWelcome} from "@/stores/useShowWelcome";
+import {useState} from "react";
+import LoginScreen from "@/screen/auth/login-screen";
+import {useUserInfo} from "@/stores/useUserInfo";
 
 
 export default function WelcomeScreen() {
-
     const toggleWelcomeScreen = useShowWelcome(state => state.toggleWelcome);
+    const whoAmIQuery = useUserInfo(state => state.whoAmI);
+    const [loginOpen, setLoginOpen] = useState(false);
 
     const features = [
         {
@@ -24,6 +28,26 @@ export default function WelcomeScreen() {
             description: "关联相关知识，举一反三",
         },
     ];
+
+    const handleStartLearning = async () => {
+        const userInfo = await whoAmIQuery();
+        if (!userInfo) {
+            setLoginOpen(true);
+            return;
+        }
+        toggleWelcomeScreen();
+        return;
+    };
+
+    const closeLogin = () => {
+        setLoginOpen(false);
+    };
+
+    const handleLoginSuccess = () => {
+        setLoginOpen(false);
+        toggleWelcomeScreen();
+    };
+
     return (
         <div className="flex flex-col items-center justify-center h-screen">
             <div
@@ -52,13 +76,18 @@ export default function WelcomeScreen() {
             text-sm hover:bg-primary/90
             transition-colors shadow-lg shadow-primary/20
             cursor-pointer
-            " onClick={toggleWelcomeScreen}>
+            " onClick={handleStartLearning}>
                 开始学习
             </Button>
             {/* Tip */}
             <p className="mt-6 text-xs text-muted-foreground text-center max-w-xs">
                 上传题目后，我会通过提问的方式引导你思考，帮助你真正理解解题思路
             </p>
+            <LoginScreen
+                open={loginOpen}
+                onClose={closeLogin}
+                onSuccess={handleLoginSuccess}
+            />
         </div>
     );
 
