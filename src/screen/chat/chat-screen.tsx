@@ -5,6 +5,7 @@ import ChatInput from "@/screen/chat/chat-input";
 import {useConversation} from "@/stores/useConversation";
 import {useEffect, useRef} from "react";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
+import ChatHistoryConversation from "@/screen/chat/chat-history-conversation";
 
 export default function ChatPage() {
 
@@ -22,6 +23,7 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col justify-between h-screen bg-muted">
             <ChatHeader/>
+            <ChatHistoryConversation/>
             <div ref={listRef} className={"h-full max-w-2xl mx-auto flex flex-col flex-1 overflow-y-auto"}>
                 {
                     chatMessageProps.map(message => <ChatMessage key={message.id} {...message}/>)

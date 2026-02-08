@@ -3,16 +3,19 @@ import {House, Menu, Moon, Plus, Sparkles, Sun} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useThemeFlag} from "@/stores/useThemeFlag";
 import {useShowWelcome} from "@/stores/useShowWelcome";
+import {useHistoryConversation} from "@/stores/useHistoryConversation";
 
 
 export default function ChatHeader() {
     const {isDark, themeToggle} = useThemeFlag(state => state);
     const toggleWelcomeScreen = useShowWelcome(state => state.toggleWelcome);
+    const openHistoryConversation = useHistoryConversation(state => state.open);
     return (
         <header className="w-full h-15 pl-5 flex items-center justify-between px-4 py-3 border-b border-border bg-background backdrop-blur-sm sticky top-0 z-10">
             <div className="flex justify-between items-center gap-4">
                 <Button
-                    className="icon-button">
+                    className="icon-button"
+                    onClick={openHistoryConversation}>
                     <Menu className="small-icon"/>
                 </Button>
                 <Button className="icon-button" onClick={toggleWelcomeScreen}>
