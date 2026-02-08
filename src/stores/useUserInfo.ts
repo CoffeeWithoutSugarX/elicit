@@ -1,5 +1,5 @@
 import {create} from "zustand";
-import {supabase} from "@/db/supabase";
+import {supabase} from "@/db/supabase/supabase";
 import {User} from "@supabase/auth-js";
 
 type UserInfoStore = {

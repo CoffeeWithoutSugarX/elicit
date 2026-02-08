@@ -1,6 +1,7 @@
 import {create} from "zustand";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
+import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
 
 
 type ConversationStore = {
@@ -20,6 +21,8 @@ type ChunkMessage = {
 export const useConversation = create<ConversationStore>((set, get) => {
 
     const chatMessages: ChatMessageProps[] = [];
+
+    const chatConversation: ChatConversationProps[] = [];
 
     const isStreaming = false;
     const isWaitingFirstChunk = false;
