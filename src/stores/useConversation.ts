@@ -2,7 +2,8 @@ import {create} from "zustand";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
-
+import {v4 as uuid} from "uuid";
+import {supabase} from "@/db/supabase/supabase";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],
@@ -48,8 +49,14 @@ export const useConversation = create<ConversationStore>((set, get) => {
     const sendMessage = async (message: ChatMessageProps) => {
         set(state => ({chatMessages: [...state.chatMessages, message]}));
         set({isWaitingFirstChunk: true});
+
+        const {data: {session}} = await supabase.auth.getSession();
+
         const response = await fetch('/api/chat', {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify(message)
         })
 
@@ -84,7 +91,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
         }
         set({isStreaming: false, isWaitingFirstChunk: false});
     }
-    const generateId = () => "conv-1-" + (get().chatMessages.length + 1);
+    const generateId = () => uuid();
 
     return {
         currentConversationId,

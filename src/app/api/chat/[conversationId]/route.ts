@@ -1,23 +1,25 @@
 import {ChatMessageRequest} from "@/body/request/ChatMessageRequest";
-import {NextRequest} from "next/server";
 import {createUIMessageStreamResponse} from "ai";
 import {toUIMessageStream} from "@ai-sdk/langchain";
 import {compiledChatGraph} from "@/agents/graphs/ChatGraph";
 import {HumanMessage} from "@langchain/core/messages";
+import {withAuth} from "@/lib/auth";
 
-const threadId = "conversationId:test";
 
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async (request, {params, user}) => {
     const body = (await request.json()) as ChatMessageRequest;
+    const {conversationId} = await params as { conversationId: string };
 
     const stream = await compiledChatGraph.stream(
         {
-            messages: [new HumanMessage(body.message)]
+            messages: [new HumanMessage(body.message)],
+            userId: user.id,
+            conversationId: conversationId,
         },
         {
             streamMode: ["values", "messages"],
             configurable: {
-                thread_id: threadId
+                thread_id: conversationId
             }
         }
     );
@@ -26,4 +28,4 @@ export async function POST(request: NextRequest) {
         stream: toUIMessageStream(stream)
     });
 
-}
+})

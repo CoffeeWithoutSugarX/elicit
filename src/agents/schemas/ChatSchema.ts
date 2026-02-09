@@ -8,7 +8,9 @@ export const chatSchema = z.object({
     messages: z.array(z.custom<BaseMessage>()).register(registry, {
         ...MessagesZodMeta,
         default: () => []
-    })
+    }),
+    userId: z.string(),
+    conversationId: z.string()
 })
 
 export type ChatSchema = z.infer<typeof chatSchema>
