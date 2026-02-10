@@ -3,7 +3,7 @@ import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
 import {v4 as uuid} from "uuid";
-import {supabase} from "@/db/supabase/supabase";
+import {supabase} from "@/db/browers/supabase/supabase";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],
@@ -29,7 +29,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
     const isStreaming = false;
     const isWaitingFirstChunk = false;
-    const currentConversationId = "conversation:1";
+    const currentConversationId = "";
 
     const defaultMessage = new ChatMessageProps("conv-1-1", ChatMessageRoleEnum.ASSISTANT, "你好呀！我是引思助手\n\n遇到不会的题目了吗？把题目拍照发给我，我会一步步引导你思考，帮你找到解题思路！\n\n记住：我不会直接给你答案，但我会陪你一起分析，让你真正学会解题方法");
     chatMessages.push(defaultMessage);
@@ -52,7 +52,11 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
         const {data: {session}} = await supabase.auth.getSession();
 
-        const response = await fetch('/api/chat', {
+        if (currentConversationId === "") {
+            set({currentConversationId: generateId()})
+        }
+
+        const response = await fetch(`/api/chat/${get().currentConversationId}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${session?.access_token}`

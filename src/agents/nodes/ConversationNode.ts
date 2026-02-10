@@ -1,5 +1,6 @@
 import {ChatSchema} from "@/agents/schemas/ChatSchema";
 import {conversationMapper} from "@/db/server/mapper/ConversationMapper";
+import {getWriter} from "@langchain/langgraph";
 
 
 export const shouldCreateConversation = async (state: ChatSchema): Promise<'create' | 'skip'> => {
@@ -15,6 +16,11 @@ export const createConversationNode = async (state: ChatSchema) => {
         title = message.text.substring(0, 10);
     }
     const conversation = await conversationMapper.create(state.conversationId, state.userId, title);
+
+    const writer = getWriter();
+    if (writer) {
+        writer({conversationId: conversation.conversationId, title: conversation.title})
+    }
 
     return {
         conversationId: conversation.conversationId

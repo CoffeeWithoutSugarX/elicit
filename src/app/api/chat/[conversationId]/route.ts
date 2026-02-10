@@ -9,15 +9,16 @@ import {withAuth} from "@/lib/auth";
 export const POST = withAuth(async (request, {params, user}) => {
     const body = (await request.json()) as ChatMessageRequest;
     const {conversationId} = await params as { conversationId: string };
+    console.log(body);
 
-    const stream = await compiledChatGraph.stream(
+    const stream = compiledChatGraph.streamEvents(
         {
             messages: [new HumanMessage(body.message)],
             userId: user.id,
             conversationId: conversationId,
         },
         {
-            streamMode: ["values", "messages"],
+            version: "v2",
             configurable: {
                 thread_id: conversationId
             }
