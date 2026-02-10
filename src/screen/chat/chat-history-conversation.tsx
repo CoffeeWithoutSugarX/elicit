@@ -3,6 +3,7 @@ import {Button} from "@/components/ui/button";
 import {useHistoryConversation} from "@/stores/useHistoryConversation";
 import ChatConversation from "@/screen/chat/chat-conversation";
 import {useConversation} from "@/stores/useConversation";
+import {useEffect} from "react";
 
 export default function ChatHistoryConversation() {
     const {isOpen, close} = useHistoryConversation(state => state);
@@ -12,7 +13,11 @@ export default function ChatHistoryConversation() {
         isOpen ? "w-65" : "w-0 pointer-events-none"
     ].join(" ");
 
-    const {setCurrentConversationId, chatConversation} = useConversation(state => state)
+    const {setCurrentConversationId, chatConversation, loadAllConversation} = useConversation(state => state)
+
+    useEffect( () => {
+       loadAllConversation().then(() => {})
+    }, [loadAllConversation])
 
 
     const handleOpenNewConversation = () => {

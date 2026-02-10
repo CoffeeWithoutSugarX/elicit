@@ -4,6 +4,9 @@ import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
 import {v4 as uuid} from "uuid";
 import {supabase} from "@/db/browers/supabase/supabase";
+import {loadAllChatConversation} from "@/db/browers/ChatConversation";
+import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/browers/ChatMessage";
+import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],
@@ -13,7 +16,8 @@ type ConversationStore = {
     isStreaming: boolean,
     isWaitingFirstChunk: boolean,
     sendMessage: (message: ChatMessageProps) => void,
-    generateId: () => string
+    generateId: () => string,
+    loadAllConversation: () => Promise<boolean>
 }
 
 type ChunkMessage = {
@@ -36,10 +40,18 @@ export const useConversation = create<ConversationStore>((set, get) => {
     const isWaitingFirstChunk = false;
     const currentConversationId = "";
 
-    const defaultMessage = new ChatMessageProps("conv-1-1", ChatMessageRoleEnum.ASSISTANT, "你好呀！我是引思助手\n\n遇到不会的题目了吗？把题目拍照发给我，我会一步步引导你思考，帮你找到解题思路！\n\n记住：我不会直接给你答案，但我会陪你一起分析，让你真正学会解题方法");
+    const defaultMessage = new ChatMessageProps("conv-1-1", "conv-1", ChatMessageRoleEnum.ASSISTANT, "你好呀！我是引思助手\n\n遇到不会的题目了吗？把题目拍照发给我，我会一步步引导你思考，帮你找到解题思路！\n\n记住：我不会直接给你答案，但我会陪你一起分析，让你真正学会解题方法", ChatMessageTypeEnum.TEXT);
     chatMessages.push(defaultMessage);
 
-    const setCurrentConversationId = (id: string) => set({currentConversationId: id});
+    const setCurrentConversationId = async (id: string) => {
+        set({currentConversationId: id});
+        if (id === "") {
+            set({chatMessages: [defaultMessage]});
+            return
+        }
+        const chatMessageList = await loadChatMessagesByConversationId(id);
+        set({chatMessages: [defaultMessage, ...chatMessageList]});
+    };
 
     const upsetChatMessage = (message: ChunkMessage) => {
         const lastChatMessage = get().chatMessages[get().chatMessages.length - 1]
@@ -47,19 +59,21 @@ export const useConversation = create<ConversationStore>((set, get) => {
             lastChatMessage.message += message.delta;
             set(state => ({chatMessages: [...state.chatMessages.slice(0, get().chatMessages.length - 1), lastChatMessage]}));
         } else {
-            set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(message.id, ChatMessageRoleEnum.ASSISTANT, message.delta)]}));
+            set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(message.id, get().currentConversationId, ChatMessageRoleEnum.ASSISTANT, message.delta, ChatMessageTypeEnum.TEXT)]}));
         }
     }
 
     const sendMessage = async (message: ChatMessageProps) => {
+        if (currentConversationId === "") {
+            set({currentConversationId: generateId()})
+            message.conversationId = get().currentConversationId;
+        }
         set(state => ({chatMessages: [...state.chatMessages, message]}));
         set({isWaitingFirstChunk: true});
 
         const {data: {session}} = await supabase.auth.getSession();
 
-        if (currentConversationId === "") {
-            set({currentConversationId: generateId()})
-        }
+
 
         const response = await fetch(`/api/chat/${get().currentConversationId}`, {
             method: 'POST',
@@ -87,6 +101,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
                     const parse: ChunkMessage = JSON.parse(line);
                     if (parse.type === 'data-custom' && parse.data?.conversationId === get().currentConversationId) {
                         set({chatConversation: [...get().chatConversation, new ChatConversationProps(parse.data.conversationId, parse.data.title, new Date())]});
+                        insertChatMessage(message);
                     }
                     if (!parse.delta || parse.delta.trim() === "") return;
                     if (!receivedFirstChunk) {
@@ -101,9 +116,23 @@ export const useConversation = create<ConversationStore>((set, get) => {
             });
             result = await reader.read();
         }
+        await insertChatMessage(get().chatMessages[get().chatMessages.length - 1]);
         set({isStreaming: false, isWaitingFirstChunk: false});
     }
     const generateId = () => uuid();
+
+    const loadAllConversation = async () => {
+        try {
+            const conversations = await loadAllChatConversation()
+            if (conversations) {
+                set({chatConversation: conversations})
+            }
+        } catch (error) {
+            console.error("Failed to load all conversations:", error);
+            return false
+        }
+        return true
+    }
 
     return {
         currentConversationId,
@@ -114,5 +143,6 @@ export const useConversation = create<ConversationStore>((set, get) => {
         chatMessages,
         sendMessage,
         generateId,
+        loadAllConversation
     }
 })

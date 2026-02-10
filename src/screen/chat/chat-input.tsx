@@ -8,13 +8,14 @@ import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import React, {useState, useRef} from "react";
 import Image from "next/image";
 import {ossRequest} from "@/request/OssRequest";
+import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
 
 export default function ChatInput() {
 
     const [message, setMessage] = useState("");
     const cameraInputRef = useRef<HTMLInputElement | null>(null);
     const albumInputRef = useRef<HTMLInputElement | null>(null);
-    const {sendMessage, generateId} = useConversation(state => state);
+    const {sendMessage, generateId, currentConversationId} = useConversation(state => state);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState("");
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle');
@@ -22,7 +23,7 @@ export default function ChatInput() {
     const handleSendMessage = async () => {
         if (uploadStatus === 'uploading' || uploadStatus === 'error') return;
         if (message.trim()) {
-            sendMessage(new ChatMessageProps(generateId(), ChatMessageRoleEnum.USER, message));
+            sendMessage(new ChatMessageProps(generateId(),currentConversationId, ChatMessageRoleEnum.USER, message, ChatMessageTypeEnum.TEXT));
             setMessage("");
         }
     }
