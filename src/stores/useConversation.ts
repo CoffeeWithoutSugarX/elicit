@@ -2,11 +2,11 @@ import {create} from "zustand";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
-import {v4 as uuid} from "uuid";
 import {supabase} from "@/db/browers/supabase/supabase";
 import {loadAllChatConversation} from "@/db/browers/ChatConversation";
 import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/browers/ChatMessage";
 import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
+import {generateId} from "@/lib/utils";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],
@@ -16,7 +16,6 @@ type ConversationStore = {
     isStreaming: boolean,
     isWaitingFirstChunk: boolean,
     sendMessage: (message: ChatMessageProps) => void,
-    generateId: () => string,
     loadAllConversation: () => Promise<boolean>
 }
 
@@ -119,7 +118,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
         await insertChatMessage(get().chatMessages[get().chatMessages.length - 1]);
         set({isStreaming: false, isWaitingFirstChunk: false});
     }
-    const generateId = () => uuid();
+
 
     const loadAllConversation = async () => {
         try {
@@ -142,7 +141,6 @@ export const useConversation = create<ConversationStore>((set, get) => {
         isWaitingFirstChunk,
         chatMessages,
         sendMessage,
-        generateId,
         loadAllConversation
     }
 })
