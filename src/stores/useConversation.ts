@@ -7,6 +7,7 @@ import {supabase} from "@/db/browers/supabase/supabase";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],
+    chatConversation: ChatConversationProps[],
     currentConversationId: string,
     setCurrentConversationId: (id: string) => void,
     isStreaming: boolean,
@@ -18,7 +19,11 @@ type ConversationStore = {
 type ChunkMessage = {
     id: string,
     type: string,
-    delta: string
+    delta: string,
+    data?: {
+        conversationId: string,
+        title: string
+    }
 }
 
 export const useConversation = create<ConversationStore>((set, get) => {
@@ -80,6 +85,9 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 if (line.trim() === "") return;
                 try {
                     const parse: ChunkMessage = JSON.parse(line);
+                    if (parse.type === 'data-custom' && parse.data?.conversationId === get().currentConversationId) {
+                        set({chatConversation: [...get().chatConversation, new ChatConversationProps(parse.data.conversationId, parse.data.title, new Date())]});
+                    }
                     if (!parse.delta || parse.delta.trim() === "") return;
                     if (!receivedFirstChunk) {
                         receivedFirstChunk = true;
@@ -99,6 +107,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
     return {
         currentConversationId,
+        chatConversation,
         setCurrentConversationId,
         isStreaming,
         isWaitingFirstChunk,

@@ -11,14 +11,14 @@ export const POST = withAuth(async (request, {params, user}) => {
     const {conversationId} = await params as { conversationId: string };
     console.log(body);
 
-    const stream = compiledChatGraph.streamEvents(
+    const stream = await compiledChatGraph.stream(
         {
             messages: [new HumanMessage(body.message)],
             userId: user.id,
             conversationId: conversationId,
         },
         {
-            version: "v2",
+            streamMode: ["values", "messages", "custom"],
             configurable: {
                 thread_id: conversationId
             }
