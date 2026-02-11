@@ -67,6 +67,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
         if (get().currentConversationId === "") {
             set({currentConversationId: generateId()})
             message.conversationId = get().currentConversationId;
+        } else {
+            await insertChatMessage(message);
         }
         set(state => ({chatMessages: [...state.chatMessages, message]}));
         set({isStreaming: true, isWaitingFirstChunk: true});
@@ -74,7 +76,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
         try {
             for await (const chunk of await chatRequest.getChatResponse(message)) {
                 if (chunk.type === 'data-custom' && chunk.data?.conversationId === get().currentConversationId) {
-                    set({chatConversation: [...get().chatConversation, new ChatConversationProps(chunk.data.conversationId, chunk.data.title, new Date())]});
+                    set({chatConversation: [new ChatConversationProps(chunk.data.conversationId, chunk.data.title, new Date()), ...get().chatConversation]});
                     await insertChatMessage(message);
                 }
                 if (!chunk.delta || chunk.delta.trim() === "") continue;
