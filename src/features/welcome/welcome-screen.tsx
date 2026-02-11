@@ -2,7 +2,7 @@ import {BookOpen, Camera, Lightbulb, Sparkles} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useShowWelcome} from "@/stores/useShowWelcome";
 import {useState} from "react";
-import LoginScreen from "@/screen/auth/login-screen";
+import LoginScreen from "@/features/auth/login-screen";
 import {useUserInfo} from "@/stores/useUserInfo";
 
 

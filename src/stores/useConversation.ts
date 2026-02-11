@@ -1,12 +1,12 @@
 import {create} from "zustand";
-import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
-import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
-import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
-import {loadAllChatConversation} from "@/db/browers/ChatConversation";
-import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/browers/ChatMessage";
-import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
+import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
+import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import ChatConversationProps from "@/features/chat/props/ChatConversationProps";
+import {loadAllChatConversation} from "@/db/models/ChatConversation";
+import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/models/ChatMessage";
+import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
 import {generateId} from "@/lib/utils";
-import {chatRequest} from "@/request/ChatRequest";
+import {chatRequest} from "@/services/api-client/ChatRequest";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],

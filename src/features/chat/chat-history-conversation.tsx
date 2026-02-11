@@ -1,7 +1,7 @@
 import {Plus, X} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {useHistoryConversation} from "@/stores/useHistoryConversation";
-import ChatConversation from "@/screen/chat/chat-conversation";
+import ChatConversation from "@/features/chat/chat-conversation";
 import {useConversation} from "@/stores/useConversation";
 import {useEffect} from "react";
 

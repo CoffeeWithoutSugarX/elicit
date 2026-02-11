@@ -1,4 +1,4 @@
-import {ChatMessageRequest} from "@/body/request/ChatMessageRequest";
+import {ChatMessageRequest} from "@/types/request/ChatMessageRequest";
 import {createUIMessageStreamResponse} from "ai";
 import {toUIMessageStream} from "@ai-sdk/langchain";
 import {compiledChatGraph} from "@/agents/graphs/ChatGraph";

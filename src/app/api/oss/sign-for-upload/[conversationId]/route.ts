@@ -1,5 +1,5 @@
 import {ossService} from "@/services/OssService";
-import {BaseResponse} from "@/body/response/BaseResponse";
+import {BaseResponse} from "@/types/response/BaseResponse";
 import {NextRequest} from "next/server";
 
 

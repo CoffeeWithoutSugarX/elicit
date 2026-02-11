@@ -1,6 +1,6 @@
-import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
-import {supabase} from "@/db/browers/supabase/supabase";
-import ChatMessageRoleEnum, {isValidRole} from "@/enums/ChatMessageRoleEnum";
+import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
+import {supabase} from "@/db/supabase/supabase";
+import ChatMessageRoleEnum, {isValidRole} from "@/types/enums/ChatMessageRoleEnum";
 
 
 export const insertChatMessage = async (message: ChatMessageProps) => {

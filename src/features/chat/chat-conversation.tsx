@@ -1,4 +1,4 @@
-import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
+import ChatConversationProps from "@/features/chat/props/ChatConversationProps";
 import {useConversation} from "@/stores/useConversation";
 import {Button} from "@/components/ui/button";
 

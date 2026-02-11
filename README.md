@@ -33,7 +33,7 @@ Create a `.env.local` in the project root with the following keys:
 
 ```bash
 # DeepSeek
-DEEPSEEK_API_KEY=...               # required (used in src/agents/models/deppseek-model.ts)
+DEEPSEEK_API_KEY=...               # required (used in src/agents/models/deepseek-model.ts)
 
 # Supabase (browser client; see src/db/browers/supabase/supabase.ts)
 NEXT_PUBLIC_SUPABASE_URL=...

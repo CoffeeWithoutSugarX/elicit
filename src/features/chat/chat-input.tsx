@@ -3,12 +3,12 @@ import {Camera, ImagePlus, Loader2, Send, X} from "lucide-react";
 import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {useConversation} from "@/stores/useConversation";
-import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
-import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
+import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
+import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
 import React, {useState, useRef} from "react";
 import Image from "next/image";
-import {ossRequest} from "@/request/OssRequest";
-import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
+import {ossRequest} from "@/services/api-client/OssRequest";
+import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
 import {generateId} from "@/lib/utils";
 
 export default function ChatInput() {

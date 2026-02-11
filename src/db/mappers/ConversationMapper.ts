@@ -1,6 +1,6 @@
 import 'server-only'
-import {db} from "@/db/server";
-import {elicitConversations} from "@/db/server/schema/conversation";
+import {db} from "@/db";
+import {elicitConversations} from "@/db/schema/conversation";
 import {eq} from "drizzle-orm";
 
 class ConversationMapper {

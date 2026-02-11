@@ -1,12 +1,12 @@
 "use client"
-import ChatHeader from "@/screen/chat/chat-header";
-import ChatMessage from "@/screen/chat/chat-message";
-import ChatInput from "@/screen/chat/chat-input";
+import ChatHeader from "@/features/chat/chat-header";
+import ChatMessage from "@/features/chat/chat-message";
+import ChatInput from "@/features/chat/chat-input";
 import {useConversation} from "@/stores/useConversation";
 import {useEffect, useRef} from "react";
-import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
-import ChatHistoryConversation from "@/screen/chat/chat-history-conversation";
-import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
+import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import ChatHistoryConversation from "@/features/chat/chat-history-conversation";
+import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
 
 export default function ChatPage() {
 

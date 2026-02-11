@@ -1,4 +1,4 @@
-import {OssUploadSignInfo} from "@/body/response/OssUploadSignInfo";
+import {OssUploadSignInfo} from "@/types/response/OssUploadSignInfo";
 import OSS, {Credentials} from 'ali-oss';
 import {getStandardRegion} from "ali-oss/lib/common/utils/getStandardRegion";
 import {getCredential} from 'ali-oss/lib/common/signUtils';

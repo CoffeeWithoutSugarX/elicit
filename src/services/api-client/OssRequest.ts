@@ -1,5 +1,5 @@
-import {OssUploadSignInfo} from "@/body/response/OssUploadSignInfo";
-import {BaseResponse} from "@/body/response/BaseResponse";
+import {OssUploadSignInfo} from "@/types/response/OssUploadSignInfo";
+import {BaseResponse} from "@/types/response/BaseResponse";
 
 
 class OssRequest {

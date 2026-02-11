@@ -1,5 +1,5 @@
 import {ChatSchema} from "@/agents/schemas/ChatSchema";
-import {conversationMapper} from "@/db/server/mapper/ConversationMapper";
+import {conversationMapper} from "@/db/mappers/ConversationMapper";
 import {getWriter} from "@langchain/langgraph";
 
 

@@ -1,5 +1,5 @@
-import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
-import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
+import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
 
 export default class ChatMessageProps {
     id: string;

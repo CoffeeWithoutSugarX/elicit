@@ -1,5 +1,5 @@
-import {supabase} from "@/db/browers/supabase/supabase";
-import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
+import {supabase} from "@/db/supabase/supabase";
+import ChatConversationProps from "@/features/chat/props/ChatConversationProps";
 
 
 export const loadAllChatConversation = async () => {
@@ -21,4 +21,3 @@ export const loadAllChatConversation = async () => {
         return new ChatConversationProps(conversation.conversation_id, conversation.title ?? '', createdAtDate);
     }) ?? [];
 }
-

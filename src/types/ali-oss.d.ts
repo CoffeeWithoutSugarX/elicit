@@ -21,6 +21,7 @@ declare module "ali-oss" {
 
     const OSSConstructor: {
         new(options: OSS.Options): OSSInstance;
+        (options: OSS.Options): OSSInstance;
         STS: typeof OSS.STS;
     };
 

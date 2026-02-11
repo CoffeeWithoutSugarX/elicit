@@ -1,4 +1,4 @@
-import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
+import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
 
 export class ChatMessageRequest {
 

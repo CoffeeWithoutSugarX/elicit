@@ -1,7 +1,7 @@
 
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import * as conversationSchema from "@/db/server/schema/conversation";
+import * as conversationSchema from "@/db/schema/conversation";
 
 // 注意：在服务端使用连接池端口 6543 或直接连接 5432
 const connectionString = process.env.POSTGRES_URL!;

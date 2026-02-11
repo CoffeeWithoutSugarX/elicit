@@ -1,5 +1,5 @@
-import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
-import {supabase} from "@/db/browers/supabase/supabase";
+import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
+import {supabase} from "@/db/supabase/supabase";
 import {streamIterator} from "@/lib/utils";
 
 
