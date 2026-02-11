@@ -2,11 +2,10 @@ import {create} from "zustand";
 import ChatMessageProps from "@/screen/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/enums/ChatMessageRoleEnum";
 import ChatConversationProps from "@/screen/chat/props/ChatConversationProps";
-import {supabase} from "@/db/browers/supabase/supabase";
 import {loadAllChatConversation} from "@/db/browers/ChatConversation";
 import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/browers/ChatMessage";
 import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
-import {generateId, streamIterator} from "@/lib/utils";
+import {generateId} from "@/lib/utils";
 import {chatRequest} from "@/request/ChatRequest";
 
 type ConversationStore = {
@@ -109,10 +108,10 @@ export const useConversation = create<ConversationStore>((set, get) => {
     return {
         currentConversationId,
         chatConversation,
-        setCurrentConversationId,
         isStreaming,
         isWaitingFirstChunk,
         chatMessages,
+        setCurrentConversationId,
         sendMessage,
         loadAllConversation
     }
