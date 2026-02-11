@@ -4,12 +4,14 @@ import {getWriter} from "@langchain/langgraph";
 
 
 export const shouldCreateConversation = async (state: ChatSchema): Promise<'create' | 'skip'> => {
-    const conversation = await conversationMapper.findById(state.userId);
+    const conversation = await conversationMapper.findById(state.conversationId);
+    console.log('shouldCreateConversation invoked with conversation:', conversation)
     return conversation ? 'skip' : 'create';
 
 }
 
 export const createConversationNode = async (state: ChatSchema) => {
+    console.log('createConversationNode invoked with messages:', state.messages)
     const message = state.messages[0];
     let title = message.text;
     if (message.text.length > 10) {
@@ -22,6 +24,7 @@ export const createConversationNode = async (state: ChatSchema) => {
         writer({conversationId: conversation.conversationId, title: conversation.title})
     }
 
+    console.log('createConversationNode created conversation:', conversation)
     return {
         conversationId: conversation.conversationId
     };

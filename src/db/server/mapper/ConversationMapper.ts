@@ -15,7 +15,12 @@ class ConversationMapper {
     }
 
     async findById(conversationId: string) {
-        const result = await db.select().from(elicitConversations).where(eq(elicitConversations.conversationId, conversationId)).limit(1);
+        console.log('ConversationMapper.findById invoked with conversationId:', conversationId)
+        const result = await db.select()
+            .from(elicitConversations)
+            .where(eq(elicitConversations.conversationId, conversationId))
+            .limit(1);
+        console.log('ConversationMapper.findById result:', result)
         return result[0];
     }
 

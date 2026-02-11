@@ -6,7 +6,8 @@ import {supabase} from "@/db/browers/supabase/supabase";
 import {loadAllChatConversation} from "@/db/browers/ChatConversation";
 import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/browers/ChatMessage";
 import ChatMessageTypeEnum from "@/enums/ChatMessageTypeEnum";
-import {generateId} from "@/lib/utils";
+import {generateId, streamIterator} from "@/lib/utils";
+import {chatRequest} from "@/request/ChatRequest";
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[],
@@ -19,7 +20,7 @@ type ConversationStore = {
     loadAllConversation: () => Promise<boolean>
 }
 
-type ChunkMessage = {
+export type ChunkMessage = {
     id: string,
     type: string,
     delta: string,
@@ -63,60 +64,30 @@ export const useConversation = create<ConversationStore>((set, get) => {
     }
 
     const sendMessage = async (message: ChatMessageProps) => {
-        if (currentConversationId === "") {
+        if (get().currentConversationId === "") {
             set({currentConversationId: generateId()})
             message.conversationId = get().currentConversationId;
         }
         set(state => ({chatMessages: [...state.chatMessages, message]}));
-        set({isWaitingFirstChunk: true});
-
-        const {data: {session}} = await supabase.auth.getSession();
-
-
-
-        const response = await fetch(`/api/chat/${get().currentConversationId}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${session?.access_token}`
-            },
-            body: JSON.stringify(message)
-        })
-
-        if (!response.body) {
-            set({isWaitingFirstChunk: false});
-            return;
-        }
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let result = await reader.read();
         set({isStreaming: true, isWaitingFirstChunk: true});
         let receivedFirstChunk = false;
-        while (!result.done) {
-            const text = decoder.decode(result.value, {stream: true});
-            text.split('\n').forEach(line => {
-                line = line.replaceAll("data:", "");
-                if (line.trim() === "") return;
-                try {
-                    const parse: ChunkMessage = JSON.parse(line);
-                    if (parse.type === 'data-custom' && parse.data?.conversationId === get().currentConversationId) {
-                        set({chatConversation: [...get().chatConversation, new ChatConversationProps(parse.data.conversationId, parse.data.title, new Date())]});
-                        insertChatMessage(message);
-                    }
-                    if (!parse.delta || parse.delta.trim() === "") return;
-                    if (!receivedFirstChunk) {
-                        receivedFirstChunk = true;
-                        set({isWaitingFirstChunk: false});
-                    }
-                    upsetChatMessage(parse);
-                } catch (ignore) {
-
+        try {
+            for await (const chunk of await chatRequest.getChatResponse(message)) {
+                if (chunk.type === 'data-custom' && chunk.data?.conversationId === get().currentConversationId) {
+                    set({chatConversation: [...get().chatConversation, new ChatConversationProps(chunk.data.conversationId, chunk.data.title, new Date())]});
+                    await insertChatMessage(message);
                 }
-
-            });
-            result = await reader.read();
+                if (!chunk.delta || chunk.delta.trim() === "") continue;
+                if (!receivedFirstChunk) {
+                    receivedFirstChunk = true;
+                    set({isWaitingFirstChunk: false});
+                }
+                upsetChatMessage(chunk);
+            }
+            await insertChatMessage(get().chatMessages[get().chatMessages.length - 1]);
+        } finally {
+            set({isStreaming: false, isWaitingFirstChunk: false});
         }
-        await insertChatMessage(get().chatMessages[get().chatMessages.length - 1]);
-        set({isStreaming: false, isWaitingFirstChunk: false});
     }
 
 
