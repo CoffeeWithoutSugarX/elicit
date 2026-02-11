@@ -3,7 +3,7 @@ import OSS, {Credentials} from 'ali-oss';
 import {getStandardRegion} from "ali-oss/lib/common/utils/getStandardRegion";
 import {getCredential} from 'ali-oss/lib/common/signUtils';
 import {policy2Str} from "ali-oss/lib/common/utils/policy2Str";
-import {formatDateToUTC} from "@/lib/DateTimeUtils";
+import {formatDateToUTC} from "@/lib/date";
 
 const sts = new OSS.STS({
     accessKeyId: process.env.OSS_ACCESS_KEY_ID!,  // 从环境变量中获取RAM用户的AccessKey ID
