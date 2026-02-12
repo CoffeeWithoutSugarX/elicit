@@ -71,7 +71,6 @@ export const useConversation = create<ConversationStore>((set, get) => {
         }
         set(state => ({chatMessages: [...state.chatMessages, message]}));
         set({isStreaming: true, isWaitingFirstChunk: true});
-        let receivedFirstChunk = false;
         try {
             for await (const chunk of await chatRequest.getChatResponse(message)) {
                 if (chunk.type === 'data-custom' && chunk.data?.conversationId === get().currentConversationId) {
@@ -79,8 +78,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
                     await insertChatMessage(message);
                 }
                 if (!chunk.delta || chunk.delta.trim() === "") continue;
-                if (!receivedFirstChunk) {
-                    receivedFirstChunk = true;
+                if (get().isWaitingFirstChunk) {
                     set({isWaitingFirstChunk: false});
                 }
                 upsetChatMessage(chunk);
