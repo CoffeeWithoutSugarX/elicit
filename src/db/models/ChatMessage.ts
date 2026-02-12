@@ -3,7 +3,7 @@ import {supabase} from "@/db/supabase/supabase";
 import ChatMessageRoleEnum, {isValidRole} from "@/types/enums/ChatMessageRoleEnum";
 
 
-export const insertChatMessage = async (message: ChatMessageProps) => {
+export const insertChatMessageRequest = async (message: ChatMessageProps) => {
     const {error} = await supabase.from('elicit_messages')
         .insert({
             message_id: message.id,
@@ -19,7 +19,7 @@ export const insertChatMessage = async (message: ChatMessageProps) => {
     return true;
 }
 
-export const loadChatMessagesByConversationId = async (conversationId: string) => {
+export const loadChatMessagesByConversationIdRequest = async (conversationId: string) => {
     const {data, error} = await supabase.from('elicit_messages')
         .select(`
             *

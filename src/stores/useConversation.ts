@@ -3,7 +3,7 @@ import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
 import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
 import ChatConversationProps from "@/features/chat/props/ChatConversationProps";
 import {loadAllChatConversation} from "@/db/models/ChatConversation";
-import {insertChatMessage, loadChatMessagesByConversationId} from "@/db/models/ChatMessage";
+import {insertChatMessageRequest, loadChatMessagesByConversationIdRequest} from "@/db/models/ChatMessage";
 import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
 import {generateId} from "@/lib/utils";
 import {chatRequest} from "@/services/api-client/ChatRequest";
@@ -48,7 +48,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
             set({chatMessages: [defaultMessage]});
             return
         }
-        const chatMessageList = await loadChatMessagesByConversationId(id);
+        const chatMessageList = await loadChatMessagesByConversationIdRequest(id);
         set({chatMessages: [defaultMessage, ...chatMessageList]});
     };
 
@@ -67,7 +67,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
             set({currentConversationId: generateId()})
             message.conversationId = get().currentConversationId;
         } else {
-            await insertChatMessage(message);
+            await insertChatMessageRequest(message);
         }
         set(state => ({chatMessages: [...state.chatMessages, message]}));
         set({isStreaming: true, isWaitingFirstChunk: true});
@@ -75,7 +75,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
             for await (const chunk of await chatRequest.getChatResponse(message)) {
                 if (chunk.type === 'data-custom' && chunk.data?.conversationId === get().currentConversationId) {
                     set({chatConversation: [new ChatConversationProps(chunk.data.conversationId, chunk.data.title, new Date()), ...get().chatConversation]});
-                    await insertChatMessage(message);
+                    await insertChatMessageRequest(message);
                 }
                 if (!chunk.delta || chunk.delta.trim() === "") continue;
                 if (get().isWaitingFirstChunk) {
@@ -83,7 +83,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 }
                 upsetChatMessage(chunk);
             }
-            await insertChatMessage(get().chatMessages[get().chatMessages.length - 1]);
+            await insertChatMessageRequest(get().chatMessages[get().chatMessages.length - 1]);
         } finally {
             set({isStreaming: false, isWaitingFirstChunk: false});
         }
