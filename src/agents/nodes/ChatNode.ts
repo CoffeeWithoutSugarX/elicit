@@ -10,3 +10,5 @@ export const chatNode = async (state: ElicitGraphState) => {
         messages: [result]
     }
 }
+
+export const chatNodeName = 'chatNode'

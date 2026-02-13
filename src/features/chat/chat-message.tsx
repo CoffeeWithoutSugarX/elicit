@@ -73,6 +73,7 @@ export default function ChatMessage({role, message, imgUrl}: ChatMessageProps) {
                                 fill
                                 sizes="(max-width: 768px) 70vw, 320px"
                                 className="object-cover"
+                                unoptimized
                             />
                         ) : (
                             <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
