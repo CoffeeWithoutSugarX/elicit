@@ -1,7 +1,7 @@
 import {ChatMessageRequest} from "@/types/request/ChatMessageRequest";
 import {createUIMessageStreamResponse} from "ai";
 import {toUIMessageStream} from "@ai-sdk/langchain";
-import {compiledChatGraph} from "@/agents/graphs/ChatGraph";
+import {compiledElicitGraph} from "@/agents/graphs/ChatGraph";
 import {HumanMessage} from "@langchain/core/messages";
 import {withAuth} from "@/lib/auth";
 
@@ -11,7 +11,7 @@ export const POST = withAuth(async (request, {params, user}) => {
     const {conversationId} = await params as { conversationId: string };
     console.log(body);
 
-    const stream = await compiledChatGraph.stream(
+    const stream = await compiledElicitGraph.stream(
         {
             messages: [new HumanMessage(body.message)],
             userId: user.id,

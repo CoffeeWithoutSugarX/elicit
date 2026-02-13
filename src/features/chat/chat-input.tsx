@@ -24,7 +24,12 @@ export default function ChatInput() {
     const handleSendMessage = async () => {
         if (uploadStatus === 'uploading' || uploadStatus === 'error') return;
         if (message.trim()) {
-            sendMessage(new ChatMessageProps(generateId(),currentConversationId, ChatMessageRoleEnum.USER, message, ChatMessageTypeEnum.TEXT));
+            const chatMessageProps = new ChatMessageProps(generateId(), currentConversationId, ChatMessageRoleEnum.USER, message, ChatMessageTypeEnum.TEXT);
+            if (selectedImage) {
+                chatMessageProps.imgUrl = selectedImage;
+                setSelectedImage(null);
+            }
+            sendMessage(chatMessageProps);
             setMessage("");
         }
     }

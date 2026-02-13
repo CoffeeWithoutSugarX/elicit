@@ -4,13 +4,14 @@ import {MessagesZodMeta} from "@langchain/langgraph";
 import {registry} from "@langchain/langgraph/zod";
 
 
-export const chatSchema = z.object({
+export const ElicitGraphStateSchema = z.object({
     messages: z.array(z.custom<BaseMessage>()).register(registry, {
         ...MessagesZodMeta,
         default: () => []
     }),
     userId: z.string(),
-    conversationId: z.string()
+    conversationId: z.string(),
+    questionImgUrl: z.string().optional()
 })
 
-export type ChatSchema = z.infer<typeof chatSchema>
+export type ElicitGraphState = z.infer<typeof ElicitGraphStateSchema>

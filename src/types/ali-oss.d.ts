@@ -15,8 +15,12 @@ declare module "ali-oss" {
 
     interface OSSInstance extends OSS {
         options: OSS.Options;
+
         getCredential(): Promise<OSS.Credentials>;
+
         signPostObjectPolicyV4(policy: unknown, date: Date): string;
+
+        signatureUrlV4(method: string, expired: number, options: OSS.SignatureUrlOptions, fileName: string): Promise<string>
     }
 
     const OSSConstructor: {
@@ -26,5 +30,5 @@ declare module "ali-oss" {
     };
 
     export default OSSConstructor;
-    export type { Credentials, Options, STSOptions } from 'ali-oss';
+    export type {Credentials, Options, STSOptions} from 'ali-oss';
 }

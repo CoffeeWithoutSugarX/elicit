@@ -10,6 +10,18 @@ const sts = new OSS.STS({
     accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET! // 从环境变量中获取RAM用户的AccessKey Secret
 });
 
+const ossClient = new OSS({
+    // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
+    accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+    bucket: process.env.OSS_BUCKET,
+    // yourregion填写Bucket所在地域。以华东1（杭州）为例，Region填写为oss-cn-hangzhou。
+    region: process.env.OSS_REGION,
+    // 设置secure为true，使用HTTPS，避免生成的下载链接被浏览器拦截
+    secure: true,
+    authorizationV4: true
+})
+
 
 const buildTempOssClient = async ()=> {
     // 调用assumeRole接口获取STS临时访问凭证
@@ -22,8 +34,8 @@ const buildTempOssClient = async ()=> {
 
     // 初始化OSS Client
     const client = new OSS({
-        bucket: 'muzi-elicit', // 请替换为目标Bucket名称
-        region: 'cn-shanghai', // 请替换为标Bucket所在地域
+        bucket: process.env.OSS_BUCKET, // 请替换为目标Bucket名称
+        region: process.env.OSS_REGION, // 请替换为标Bucket所在地域
         accessKeyId,
         accessKeySecret,
         stsToken: securityToken,
@@ -90,6 +102,12 @@ class OssService {
             conversationId + '/' + formattedDate.split('T')[0] + '/',
             client.options.stsToken
         );
+    }
+
+    getSignedUrl = async (fileName: string) => {
+        return await ossClient.signatureUrlV4('GET', 3600, {
+            headers: {} // 请根据实际发送的请求头设置此处的请求头
+        }, fileName)
     }
 }
 

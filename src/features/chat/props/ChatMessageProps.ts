@@ -6,13 +6,16 @@ export default class ChatMessageProps {
     conversationId: string;
     role: ChatMessageRoleEnum;
     message: string;
-    type: ChatMessageTypeEnum
+    type: ChatMessageTypeEnum;
+    imgUrl?: string | null;
 
-    constructor(id: string, conversationId: string, role: ChatMessageRoleEnum, message: string, type: ChatMessageTypeEnum) {
+
+    constructor(id: string, conversationId: string, role: ChatMessageRoleEnum, message: string, type: ChatMessageTypeEnum, imgUrl?: string | null) {
         this.id = id;
         this.conversationId = conversationId;
         this.role = role;
         this.message = message;
         this.type = type;
+        this.imgUrl = imgUrl;
     }
 }

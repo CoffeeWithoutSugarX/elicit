@@ -169,6 +169,7 @@ export type Database = {
           conversation_id: string
           created_at: string
           id: number
+          img_url: string | null
           message_id: string
           role: string
           type: number
@@ -180,6 +181,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: number
+          img_url?: string | null
           message_id?: string
           role: string
           type: number
@@ -191,6 +193,7 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: number
+          img_url?: string | null
           message_id?: string
           role?: string
           type?: number
@@ -348,3 +351,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

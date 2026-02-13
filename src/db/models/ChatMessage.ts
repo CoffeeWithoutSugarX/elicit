@@ -10,7 +10,8 @@ export const insertChatMessageRequest = async (message: ChatMessageProps) => {
             conversation_id: message.conversationId,
             role: message.role,
             content: message.message,
-            type: message.type
+            type: message.type,
+            img_url: message.imgUrl
         })
     if (error) {
         console.error("Failed to insert chat message:", error);
@@ -35,6 +36,7 @@ export const loadChatMessagesByConversationIdRequest = async (conversationId: st
         message.conversation_id,
         isValidRole(message.role) ? message.role : ChatMessageRoleEnum.USER,
         message.content,
-        message.type
+        message.type,
+        message.img_url
     )) ?? [];
 }
