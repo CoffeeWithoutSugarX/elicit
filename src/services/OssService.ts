@@ -23,7 +23,7 @@ const ossClient = new OSS({
 })
 
 
-const buildTempOssClient = async ()=> {
+const buildTempOssClient = async () => {
     // 调用assumeRole接口获取STS临时访问凭证
     const result = await sts.assumeRole(process.env.OSS_STS_ROLE_ARN!, '', 3600, 'ElicitUploadQuestionImage');
 
@@ -52,7 +52,6 @@ const buildTempOssClient = async ()=> {
 
     return client;
 }
-
 
 
 class OssService {
@@ -93,7 +92,7 @@ class OssService {
         const policyBase64 = Buffer.from(policy2Str(policy), 'utf8').toString('base64');
 
         return new OssUploadSignInfo(
-            `https://${client.options.bucket}.oss-${client.options.region}.aliyuncs.com`,
+            `https://${client.options.bucket}.${client.options.region}.aliyuncs.com`,
             policyBase64,
             "OSS4-HMAC-SHA256",
             credential,
@@ -104,10 +103,19 @@ class OssService {
         );
     }
 
-    getSignedUrl = async (fileName: string) => {
+    getSignedUrl = async (fileNameOrUrl: string) => {
         return await ossClient.signatureUrlV4('GET', 3600, {
             headers: {} // 请根据实际发送的请求头设置此处的请求头
-        }, fileName)
+        }, fileNameOrUrl)
+    }
+
+    private normalizeObjectName = (fileNameOrUrl: string) => {
+        try {
+            const url = new URL(fileNameOrUrl);
+            return url.pathname.replace(/^\/+/, "");
+        } catch {
+            return fileNameOrUrl.replace(/^\/+/, "");
+        }
     }
 }
 

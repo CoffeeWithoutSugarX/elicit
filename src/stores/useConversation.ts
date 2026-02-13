@@ -12,7 +12,9 @@ type ConversationStore = {
     chatMessages: ChatMessageProps[],
     chatConversation: ChatConversationProps[],
     currentConversationId: string,
+    tempConversationId: string,
     setCurrentConversationId: (id: string) => void,
+    setTempConversationId: () => string,
     isStreaming: boolean,
     isWaitingFirstChunk: boolean,
     sendMessage: (message: ChatMessageProps) => void,
@@ -38,6 +40,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
     const isStreaming = false;
     const isWaitingFirstChunk = false;
     const currentConversationId = "";
+    const tempConversationId = "";
 
     const defaultMessage = new ChatMessageProps("conv-1-1", "conv-1", ChatMessageRoleEnum.ASSISTANT, "你好呀！我是引思助手\n\n遇到不会的题目了吗？把题目拍照发给我，我会一步步引导你思考，帮你找到解题思路！\n\n记住：我不会直接给你答案，但我会陪你一起分析，让你真正学会解题方法", ChatMessageTypeEnum.TEXT);
     chatMessages.push(defaultMessage);
@@ -52,6 +55,15 @@ export const useConversation = create<ConversationStore>((set, get) => {
         set({chatMessages: [defaultMessage, ...chatMessageList]});
     };
 
+    const setTempConversationId = () => {
+        if (get().currentConversationId.trim() === "") {
+            set({tempConversationId: generateId()});
+        } else {
+            set({tempConversationId: get().currentConversationId});
+        }
+        return get().tempConversationId
+    }
+
     const upsetChatMessage = (message: ChunkMessage) => {
         const lastChatMessage = get().chatMessages[get().chatMessages.length - 1]
         if (lastChatMessage.id === message.id) {
@@ -64,7 +76,11 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
     const sendMessage = async (message: ChatMessageProps) => {
         if (get().currentConversationId === "") {
-            set({currentConversationId: generateId()})
+            if (get().tempConversationId) {
+                set({currentConversationId: get().tempConversationId})
+            } else {
+                set({currentConversationId: generateId()})
+            }
             message.conversationId = get().currentConversationId;
         } else {
             await insertChatMessageRequest(message);
@@ -105,11 +121,13 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
     return {
         currentConversationId,
+        tempConversationId,
         chatConversation,
         isStreaming,
         isWaitingFirstChunk,
         chatMessages,
         setCurrentConversationId,
+        setTempConversationId,
         sendMessage,
         loadAllConversation
     }

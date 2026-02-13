@@ -16,7 +16,7 @@ export default function ChatInput() {
     const [message, setMessage] = useState("");
     const cameraInputRef = useRef<HTMLInputElement | null>(null);
     const albumInputRef = useRef<HTMLInputElement | null>(null);
-    const {sendMessage, currentConversationId} = useConversation(state => state);
+    const {sendMessage, currentConversationId, setTempConversationId} = useConversation(state => state);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [imagePreview, setImagePreview] = useState("");
     const [uploadStatus, setUploadStatus] = useState<'idle' | 'uploading' | 'error'>('idle');
@@ -28,6 +28,7 @@ export default function ChatInput() {
             if (selectedImage) {
                 chatMessageProps.imgUrl = selectedImage;
                 setSelectedImage(null);
+                setImagePreview("");
             }
             sendMessage(chatMessageProps);
             setMessage("");
@@ -51,7 +52,8 @@ export default function ChatInput() {
         e.target.value = "";
         setUploadStatus('uploading');
         try {
-            const uploadUrl = await ossRequest.uploadImageToOss(file, "conversationId");
+            const conversationId = setTempConversationId();
+            const uploadUrl = await ossRequest.uploadImageToOss(file, conversationId);
             setSelectedImage(uploadUrl);
             setUploadStatus('idle');
         } catch (e) {

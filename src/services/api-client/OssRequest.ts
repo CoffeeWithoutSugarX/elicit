@@ -32,11 +32,33 @@ class OssRequest {
             });
 
             if (uploadResponse.ok) {
-                return data.host + "/" + data.dir + imageFile.name;
+                return data.dir + imageFile.name;
             }
         }
 
         throw new Error("上传失败");
+    }
+
+    signImageForPreview = async (url: string): Promise<string> => {
+        console.log('Signing OSS preview url for', url)
+        const response: BaseResponse<string> = await fetch("/api/oss/sign-for-preview", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({url})
+        }).then((response) => {
+            if (!response.ok) {
+                throw new Error("获取预览签名失败");
+            }
+            return response.json();
+        });
+
+        if (BaseResponse.isSuccess(response)) {
+            return response.data;
+        }
+
+        throw new Error("获取预览签名失败");
     }
 }
 
