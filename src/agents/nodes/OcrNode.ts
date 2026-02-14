@@ -10,5 +10,7 @@ export const shouldOcr =  (state: ElicitGraphState): string[] => {
 export const ocrNodeName = 'ocrNode'
 
 export const ocrNode = async (state: ElicitGraphState) => {
+    return {
 
+    }
 }

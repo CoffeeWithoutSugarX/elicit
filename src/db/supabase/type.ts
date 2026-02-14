@@ -182,7 +182,7 @@ export type Database = {
           created_at?: string
           id?: number
           img_url?: string | null
-          message_id?: string
+          message_id: string
           role: string
           type: number
           updated_at?: string | null
