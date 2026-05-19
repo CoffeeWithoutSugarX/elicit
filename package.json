@@ -7,11 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "supabase:start": "npx supabase start",
-    "supabase:stop": "npx supabase stop",
-    "supabase:reset": "npx supabase db reset",
-    "supabase:diff": "npx supabase db diff --use-migra --schema public -f init_schema",
-    "supabase:type": "npx supabase gen types typescript --local > src/db/supabase/type.ts"
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:diff": "supabase db diff --use-migra --schema public -f init_schema",
+    "supabase:type": "supabase gen types typescript --local > src/db/supabase/type.ts"
   },
   "dependencies": {
     "@ai-sdk/langchain": "^2.0.73",
