@@ -36,13 +36,13 @@ alter table public.elicit_conversations
   alter column "title" type varchar(64);
 
 -- ============================================================
--- 5. check 约束：PolyaPhase / ProblemType 枚举白名单
+-- 5. check 约束：PolyaPhase 枚举白名单
+-- 注意：problem_type 不加 DB check（最可能演化扩展，避免每加一个题型都要 alter table；
+--       仅 TS Zod / ProblemTypeEnum 守门；见 §10 C13）
 -- ============================================================
 alter table public.elicit_conversations
   add constraint elicit_conversations_current_phase_check
-    check (current_phase in (0, 1, 2, 3, 4)),
-  add constraint elicit_conversations_problem_type_check
-    check (problem_type is null or problem_type in (0, 1, 2, 3));
+    check (current_phase in (0, 1, 2, 3, 4));
 
 -- ============================================================
 -- 6. updated_at 触发器（before update）
