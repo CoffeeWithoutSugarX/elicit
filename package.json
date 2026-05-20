@@ -11,7 +11,10 @@
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset",
     "supabase:diff": "supabase db diff --use-migra --schema public -f init_schema",
-    "supabase:type": "supabase gen types typescript --local > src/db/supabase/type.ts"
+    "supabase:type": "supabase gen types typescript --local > src/db/supabase/type.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint",
+    "verify": "pnpm check"
   },
   "dependencies": {
     "@ai-sdk/langchain": "^2.0.73",

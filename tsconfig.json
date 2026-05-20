@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "ali-oss/lib/common/utils/policy2Str": ["./src/types/oss-modules/policy2Str.d.ts"]
     }
   },
   "include": [
