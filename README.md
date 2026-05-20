@@ -28,7 +28,13 @@ Elicit is a Next.js 16 + React 19 TypeScript web app that guides learners throug
 pnpm install
 ```
 
-### 2. Environment Variables
+### 2. Install Git Hooks
+```bash
+bash scripts/install-hooks.sh
+```
+This installs a pre-commit hook that runs `pnpm typecheck` and `pnpm lint` before every commit.
+
+### 3. Environment Variables
 Create a `.env.local` file in the project root by copying `.env.example` (TODO: Create a `.env.example` file) and add the following keys:
 
 ```bash
@@ -51,7 +57,7 @@ OSS_REGION=...
 ```
 - If you use different LLM providers, update the model configurations in `src/agents/models/`.
 
-### 3. Start Services (Optional)
+### 4. Start Services (Optional)
 If you are using the local Supabase stack for development:
 ```bash
 # Start the local Supabase services (Postgres, etc.)
@@ -59,7 +65,7 @@ pnpm supabase:start
 ```
 This launches the local stack based on the configuration in `supabase/config.toml`.
 
-### 4. Run the Application
+### 5. Run the Application
 ```bash
 # Run the development server
 pnpm dev

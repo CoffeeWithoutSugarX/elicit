@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fp=$(jq -r '.tool_input.file_path // empty'); echo \"$fp\" | grep -q '/src/db/schema/' && jq -nc '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"ask\",permissionDecisionReason:\"⚠️ src/db/schema/ 改动检测：本次编辑必须配套 ① 同步改 supabase/migrations/* 写新迁移；② 跑 pnpm supabase:type 重生成 src/db/supabase/type.ts。参见测试验证 ADR §9.1。\"}}' || true",
+            "timeout": 5,
+            "statusMessage": "checking schema-file hook…"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd=$(jq -r '.tool_input.command // empty'); echo \"$cmd\" | grep -qE -- '(--no-verify|--no-gpg-sign|--no-gpg($|[[:space:]]))' && jq -nc '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:\"🚫 ADR §9.1 禁止 Claude subagent 用 --no-verify / --no-gpg-sign 跳 hook。如确需绕过，用户须在 prompt 中显式授权当次。\"}}' || true",
+            "timeout": 5,
+            "statusMessage": "checking --no-verify guard…"
+          },
+          {
+            "type": "command",
+            "command": "jq -nc '{hookSpecificOutput:{hookEventName:\"PreToolUse\",additionalContext:\"📝 即将 git commit。.git/hooks/pre-commit 将自动跑 pnpm typecheck + pnpm lint；失败则阻断 commit（ADR §9.1）。如果尚未确认 pnpm verify 全绿，停下来先跑。\"}}'",
+            "if": "Bash(git commit*)",
+            "timeout": 5,
+            "statusMessage": "git commit reminder…"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "REPO=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$REPO\" 2>/dev/null || exit 0; git status --porcelain 2>/dev/null | awk '{print $NF}' | grep -qE '\\.(ts|tsx|sql)$' && jq -nc '{systemMessage:\"⚠️ working tree 有未确认验证的 .ts/.tsx/.sql 改动。ADR §9.1 hard gate 要求 subagent 落地前跑 pnpm verify 全绿。请确认验证。\"}' || true",
+            "timeout": 5,
+            "statusMessage": "checking unverified tree…"
+          }
+        ]
+      }
+    ]
+  }
+}
