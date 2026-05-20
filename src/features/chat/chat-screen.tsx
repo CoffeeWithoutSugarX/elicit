@@ -4,9 +4,9 @@ import ChatMessage from "@/features/chat/chat-message";
 import ChatInput from "@/features/chat/chat-input";
 import {useConversation} from "@/stores/useConversation";
 import {useEffect, useRef} from "react";
-import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import { ChatMessageRole } from "@/types/enums/chatMessageRole.enum";
 import ChatHistoryConversation from "@/features/chat/chat-history-conversation";
-import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
+import { ChatMessageType } from "@/types/enums/chatMessageType.enum";
 
 export default function ChatPage() {
 
@@ -31,7 +31,7 @@ export default function ChatPage() {
                 }
                 {
                     isWaitingFirstChunk && (
-                        <ChatMessage id="thinking-card" role={ChatMessageRoleEnum.ASSISTANT} message="正在思考..." type={ChatMessageTypeEnum.TEXT} conversationId={"conversationId"}/>
+                        <ChatMessage id="thinking-card" role={ChatMessageRole.ASSISTANT} message="正在思考..." type={ChatMessageType.TEXT} conversationId={"conversationId"}/>
                     )
                 }
             </div>

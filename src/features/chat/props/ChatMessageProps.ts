@@ -1,16 +1,15 @@
-import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
-import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
+import { ChatMessageRole } from "@/types/enums/chatMessageRole.enum";
+import { ChatMessageType } from "@/types/enums/chatMessageType.enum";
 
 export default class ChatMessageProps {
     id: string;
     conversationId: string;
-    role: ChatMessageRoleEnum;
+    role: ChatMessageRole;
     message: string;
-    type: ChatMessageTypeEnum;
+    type: ChatMessageType;
     imgUrl?: string | null;
 
-
-    constructor(id: string, conversationId: string, role: ChatMessageRoleEnum, message: string, type: ChatMessageTypeEnum, imgUrl?: string | null) {
+    constructor(id: string, conversationId: string, role: ChatMessageRole, message: string, type: ChatMessageType, imgUrl?: string | null) {
         this.id = id;
         this.conversationId = conversationId;
         this.role = role;

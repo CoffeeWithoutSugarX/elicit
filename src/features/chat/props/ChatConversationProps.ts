@@ -1,11 +1,9 @@
 export default class ChatConversationProps {
     id: string;
     title: string;
-    createdAt: Date;
 
-    constructor(id: string, title: string, createdAt: Date) {
+    constructor(id: string, title: string) {
         this.id = id;
         this.title = title;
-        this.createdAt = createdAt;
     }
 }

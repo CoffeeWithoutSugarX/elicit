@@ -1,13 +1,13 @@
 "use client"
 import {Bot, User} from "lucide-react";
-import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import { ChatMessageRole } from "@/types/enums/chatMessageRole.enum";
 import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
 import Image from "next/image";
 import {useEffect, useRef, useState} from "react";
 import {ossRequest} from "@/services/api-client/OssRequest";
 
 export default function ChatMessage({role, message, imgUrl}: ChatMessageProps) {
-    const avatar = role === ChatMessageRoleEnum.USER ? <User/> : <Bot/>
+    const avatar = role === ChatMessageRole.USER ? <User/> : <Bot/>
     const messageLines = message.split("\n");
     const imageWrapperRef = useRef<HTMLDivElement | null>(null);
     const [isInView, setIsInView] = useState(false);
@@ -52,7 +52,7 @@ export default function ChatMessage({role, message, imgUrl}: ChatMessageProps) {
     }, [imgUrl, isInView, signedImageUrl]);
     return (
         <div
-            className={"flex gap-4 w-full pt-4 pb-4 pl-15 pr-15" + (role === ChatMessageRoleEnum.USER ? " flex-row-reverse" : "")}>
+            className={"flex gap-4 w-full pt-4 pb-4 pl-15 pr-15" + (role === ChatMessageRole.USER ? " flex-row-reverse" : "")}>
             <div
                 className={"min-w-10 min-h-10 w-10 h-10 flex items-center justify-center rounded-full bg-foreground text-background"}>
                 {avatar}

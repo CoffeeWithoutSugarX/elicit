@@ -1,12 +1,14 @@
-import { pgTable, bigint, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, boolean, smallint } from "drizzle-orm/pg-core";
+import { commonAuditFields } from "./_common";
 
 export const elicitConversations = pgTable("elicit_conversations", {
-    // id 是自增的 bigint
-    id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
-    // 业务层面的 UUID
-    conversationId: uuid("conversation_id").defaultRandom().notNull(),
-    userId: uuid("user_id").notNull(),
-    title: varchar("title"),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+    ...commonAuditFields,
+
+    conversationId: uuid("conversation_id").defaultRandom().unique().notNull(),
+    userId:         uuid("user_id").notNull(),
+
+    title:        varchar("title", { length: 64 }), // 首条用户消息前 10 字
+    hasResolved:  boolean("has_resolved").notNull().default(false),
+    currentPhase: smallint("current_phase").notNull().default(0),
+    problemType:  smallint("problem_type"), // null 直到 ClassifyNode 写入
 });

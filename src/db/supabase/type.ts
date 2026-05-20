@@ -140,26 +140,44 @@ export type Database = {
         Row: {
           conversation_id: string
           created_at: string
+          current_phase: number
+          ext_info: Json
+          has_resolved: boolean
           id: number
+          is_deleted: boolean
+          problem_type: number | null
           title: string | null
           updated_at: string | null
           user_id: string
+          version: number
         }
         Insert: {
           conversation_id?: string
           created_at?: string
+          current_phase?: number
+          ext_info?: Json
+          has_resolved?: boolean
           id?: number
+          is_deleted?: boolean
+          problem_type?: number | null
           title?: string | null
           updated_at?: string | null
           user_id?: string
+          version?: number
         }
         Update: {
           conversation_id?: string
           created_at?: string
+          current_phase?: number
+          ext_info?: Json
+          has_resolved?: boolean
           id?: number
+          is_deleted?: boolean
+          problem_type?: number | null
           title?: string | null
           updated_at?: string | null
           user_id?: string
+          version?: number
         }
         Relationships: []
       }
@@ -168,37 +186,52 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          ext_info: Json
           id: number
           img_url: string | null
+          is_deleted: boolean
           message_id: string
-          role: string
+          metadata: Json
+          phase: number | null
+          role: number
           type: number
           updated_at: string | null
-          user_id: string | null
+          user_id: string
+          version: number
         }
         Insert: {
           content: string
-          conversation_id?: string
+          conversation_id: string
           created_at?: string
+          ext_info?: Json
           id?: number
           img_url?: string | null
-          message_id: string
-          role: string
+          is_deleted?: boolean
+          message_id?: string
+          metadata?: Json
+          phase?: number | null
+          role: number
           type: number
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
+          version?: number
         }
         Update: {
           content?: string
           conversation_id?: string
           created_at?: string
+          ext_info?: Json
           id?: number
           img_url?: string | null
+          is_deleted?: boolean
           message_id?: string
-          role?: string
+          metadata?: Json
+          phase?: number | null
+          role?: number
           type?: number
           updated_at?: string | null
-          user_id?: string | null
+          user_id?: string
+          version?: number
         }
         Relationships: [
           {

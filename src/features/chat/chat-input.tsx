@@ -4,11 +4,11 @@ import {Input} from "@/components/ui/input";
 import {Button} from "@/components/ui/button";
 import {useConversation} from "@/stores/useConversation";
 import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
-import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import { ChatMessageRole } from "@/types/enums/chatMessageRole.enum";
 import React, {useState, useRef} from "react";
 import Image from "next/image";
 import {ossRequest} from "@/services/api-client/OssRequest";
-import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
+import { ChatMessageType } from "@/types/enums/chatMessageType.enum";
 import {generateId} from "@/lib/utils";
 
 export default function ChatInput() {
@@ -24,7 +24,7 @@ export default function ChatInput() {
     const handleSendMessage = async () => {
         if (uploadStatus === 'uploading' || uploadStatus === 'error') return;
         if (message.trim()) {
-            const chatMessageProps = new ChatMessageProps(generateId(), currentConversationId, ChatMessageRoleEnum.USER, message, ChatMessageTypeEnum.TEXT);
+            const chatMessageProps = new ChatMessageProps(generateId(), currentConversationId, ChatMessageRole.USER, message, ChatMessageType.TEXT);
             if (selectedImage) {
                 chatMessageProps.imgUrl = selectedImage;
                 setSelectedImage(null);

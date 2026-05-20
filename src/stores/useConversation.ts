@@ -1,10 +1,10 @@
 import {create} from "zustand";
 import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
-import ChatMessageRoleEnum from "@/types/enums/ChatMessageRoleEnum";
+import { ChatMessageRole } from "@/types/enums/chatMessageRole.enum";
 import ChatConversationProps from "@/features/chat/props/ChatConversationProps";
 import {loadAllChatConversation} from "@/db/models/ChatConversation";
 import {insertChatMessageRequest, loadChatMessagesByConversationIdRequest} from "@/db/models/ChatMessage";
-import ChatMessageTypeEnum from "@/types/enums/ChatMessageTypeEnum";
+import { ChatMessageType } from "@/types/enums/chatMessageType.enum";
 import {generateId} from "@/lib/utils";
 import {chatRequest} from "@/services/api-client/ChatRequest";
 
@@ -42,7 +42,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
     const currentConversationId = "";
     const tempConversationId = "";
 
-    const defaultMessage = new ChatMessageProps("conv-1-1", "conv-1", ChatMessageRoleEnum.ASSISTANT, "你好呀！我是引思助手\n\n遇到不会的题目了吗？把题目拍照发给我，我会一步步引导你思考，帮你找到解题思路！\n\n记住：我不会直接给你答案，但我会陪你一起分析，让你真正学会解题方法", ChatMessageTypeEnum.TEXT);
+    const defaultMessage = new ChatMessageProps("conv-1-1", "conv-1", ChatMessageRole.ASSISTANT, "你好呀！我是引思助手\n\n遇到不会的题目了吗？把题目拍照发给我，我会一步步引导你思考，帮你找到解题思路！\n\n记住：我不会直接给你答案，但我会陪你一起分析，让你真正学会解题方法", ChatMessageType.TEXT);
     chatMessages.push(defaultMessage);
 
     const setCurrentConversationId = async (id: string) => {
@@ -70,7 +70,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
             lastChatMessage.message += message.delta;
             set(state => ({chatMessages: [...state.chatMessages.slice(0, get().chatMessages.length - 1), lastChatMessage]}));
         } else {
-            set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(message.id, get().currentConversationId, ChatMessageRoleEnum.ASSISTANT, message.delta, ChatMessageTypeEnum.TEXT)]}));
+            set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(message.id, get().currentConversationId, ChatMessageRole.ASSISTANT, message.delta, ChatMessageType.TEXT)]}));
         }
     }
 
@@ -90,7 +90,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
         try {
             for await (const chunk of await chatRequest.getChatResponse(message)) {
                 if (chunk.type === 'data-custom' && chunk.data?.conversationId === get().currentConversationId) {
-                    set({chatConversation: [new ChatConversationProps(chunk.data.conversationId, chunk.data.title, new Date()), ...get().chatConversation]});
+                    set({chatConversation: [new ChatConversationProps(chunk.data.conversationId, chunk.data.title), ...get().chatConversation]});
                     await insertChatMessageRequest(message);
                 }
                 if (!chunk.delta || chunk.delta.trim() === "") continue;

@@ -1,32 +1,37 @@
 import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
-import {supabase} from "@/db/supabase/supabase";
-import ChatMessageRoleEnum, {isValidRole} from "@/types/enums/ChatMessageRoleEnum";
-
+import { supabase } from "@/db/supabase/supabase";
+import { ChatMessageRole, ChatMessageRoleEnum } from "@/types/enums/chatMessageRole.enum";
+import { ChatMessageType, ChatMessageTypeEnum } from "@/types/enums/chatMessageType.enum";
 
 export const insertChatMessageRequest = async (message: ChatMessageProps) => {
-    const {error} = await supabase.from('elicit_messages')
+    const { error } = await supabase.from('elicit_messages')
         .insert({
-            message_id: message.id,
+            message_id:      message.id,
             conversation_id: message.conversationId,
-            role: message.role,
-            content: message.message,
-            type: message.type,
-            img_url: message.imgUrl
-        })
+            role:            message.role,
+            content:         message.message,
+            type:            message.type,
+            img_url:         message.imgUrl
+        });
     if (error) {
         console.error("Failed to insert chat message:", error);
         return false;
     }
     return true;
-}
+};
 
 export const loadChatMessagesByConversationIdRequest = async (conversationId: string) => {
-    const {data, error} = await supabase.from('elicit_messages')
+    const { data, error } = await supabase.from('elicit_messages')
         .select(`
-            *
+            message_id,
+            conversation_id,
+            role,
+            content,
+            type,
+            img_url
         `)
         .eq('conversation_id', conversationId)
-        .order('created_at', {ascending: true});
+        .order('created_at', { ascending: true });
     if (error) {
         console.error("Failed to load chat messages:", error);
         return [];
@@ -34,9 +39,9 @@ export const loadChatMessagesByConversationIdRequest = async (conversationId: st
     return data?.map((message) => new ChatMessageProps(
         message.message_id,
         message.conversation_id,
-        isValidRole(message.role) ? message.role : ChatMessageRoleEnum.USER,
+        ChatMessageRoleEnum.fromCode(message.role)?.code ?? ChatMessageRole.USER,
         message.content,
-        message.type,
+        ChatMessageTypeEnum.fromCode(message.type)?.code ?? ChatMessageType.TEXT,
         message.img_url
     )) ?? [];
-}
+};
