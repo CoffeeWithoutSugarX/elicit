@@ -73,6 +73,8 @@ pnpm dev
 The application will be available at `http://localhost:3000`.
 
 ## NPM Scripts
+
+**Currently available**:
 - `pnpm dev`: Starts the Next.js development server.
 - `pnpm build`: Creates a production-ready build.
 - `pnpm start`: Starts the production server.
@@ -82,6 +84,15 @@ The application will be available at `http://localhost:3000`.
 - `pnpm supabase:reset`: Resets the local Supabase database (destructive).
 - `pnpm supabase:diff`: Creates a new database migration file based on schema changes.
 - `pnpm supabase:type`: Generates TypeScript types from your Supabase schema and saves them to `src/db/supabase/type.ts`.
+
+**Testing & validation scripts** (rolled out by Phase per `doc/测试验证/测试验证策略_v0.1_MVP.md`):
+- `pnpm typecheck` — L1 type check via `tsc --noEmit` (Phase 1).
+- `pnpm test` / `pnpm test:cov` — L3 unit tests with coverage (Phase 2; baseline 90/90).
+- `pnpm demo:chat` — L4 fake-model end-to-end ChatGraph demo (Phase 2).
+- `pnpm integration` / `pnpm smoke` — L5 integration & smoke tests (Phase 3).
+- `pnpm evals` — L6 Agent behavior evals; observational only, **does not block PRs** (Phase 3).
+- `pnpm check` — L1+L2+L3+lint all green (unit layer).
+- `pnpm verify` — Full L1–L5 validation; **subagents must run this green before returning**.
 
 ## API Routes
 - `POST /api/chat/[conversationId]`: Handles chat message processing via the LangGraph agent.
@@ -114,11 +125,18 @@ src/
 supabase/              # Supabase CLI configuration and migrations
 ```
 
-## Testing
-There are currently no automated tests configured in this repository.
-- **TODO**: Choose and configure a test runner (e.g., Vitest, Jest).
-- **TODO**: Add unit tests for critical business logic and API routes.
-- **TODO**: Add end-to-end tests with Playwright or Cypress for user flows.
+## Testing & Validation
+
+The single source of truth for testing strategy is `doc/测试验证/测试验证策略_v0.1_MVP.md` (the ADR). Highlights:
+
+- **Six-layer validation**: L1 Type → L2 Schema → L3 Unit → L4 Demo → L5 Integration & Smoke → L6 Agent Behavior Evals.
+- **L1–L5 are PR-blocking (hard gate)**; **L6 is observational only** (LLM judging is non-deterministic and must not gate merges).
+- **Unit coverage baseline**: 90% line / 90% branch across all module layers, enforced from Phase 2 onward (no warm-up grace period).
+- **Phase rollout** aligned to project stages (detailed design → impl early → impl mid → pre-launch); see ADR §8.
+- **Hard gate hooks** are configured in `.claude/settings.json` to enforce typecheck + lint at commit time, and to reject `--no-verify` bypass unless explicitly authorized.
+- **L6 evals**: ~10 dialogue scenarios scoring Pólya four-phase behavior contracts (PRD §8) via LLM-as-judge against a muzi-curated golden set.
+
+Frameworks (introduced per Phase, not all installed yet): `vitest`, `@vitest/coverage-v8`, `@testing-library/react` + `jsdom`, `msw`, `tsx`.
 
 ## License
 This project is licensed under the MIT License. See the `LICENSE` file for details.

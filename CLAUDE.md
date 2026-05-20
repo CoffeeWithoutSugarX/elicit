@@ -7,11 +7,20 @@
 - `pnpm dev` — 启动 Next.js 开发服务器，地址 `http://localhost:3000`。
 - `pnpm build` / `pnpm start` — 生产构建 / 启动生产服务。
 - `pnpm lint` — 运行 ESLint（flat 配置在 `eslint.config.mjs`）。
+- `pnpm typecheck` — `tsc --noEmit` 类型检查（**Phase 1 起启用**，见测试验证 ADR §5.1）。
 - `pnpm supabase:start` / `:stop` / `:reset` — 启停 / 重置本地 Supabase 栈（Postgres 等），配置见 `supabase/config.toml`。
 - `pnpm supabase:diff` — 根据本地 schema 漂移生成新的迁移文件（写入 `supabase/migrations/`，文件名为 `init_schema`）。
 - `pnpm supabase:type` — 从本地数据库重新生成 `src/db/supabase/type.ts`。任何 schema 变更后都需要执行。
 
-仓库未配置任何测试运行器，也没有独立的 typecheck 脚本；类型校验请依赖 `next build` 或 `tsc --noEmit`。
+**测试与验证相关命令**（按 Phase 推进逐步启用，详见 `doc/测试验证/测试验证策略_v0.1_MVP.md`）：
+
+- `pnpm typecheck` — L1 类型检查（Phase 1）
+- `pnpm test` / `pnpm test:cov` — L3 单元测试 + 覆盖率（Phase 2，基线 90/90）
+- `pnpm demo:chat` — L4 fake-model 跑通 ChatGraph 端到端闭环（Phase 2）
+- `pnpm integration` / `pnpm smoke` — L5 集成 / 冒烟测试（Phase 3）
+- `pnpm evals` — L6 Agent 行为评测，**不阻断 PR**（Phase 3）
+- `pnpm check` — L1+L2+L3+lint 全绿（单测层）
+- `pnpm verify` — L1–L5 全工程验证；**subagent 完成代码落地前必须跑这个全绿才返回**
 
 ## 架构
 
@@ -72,3 +81,20 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 - Graph 节点统一使用 `console.log('NodeName invoked with ...')` 的日志格式，便于 grep，请保持一致。
 - 代码中大量使用中文注释——编辑已有代码时请保留这些注释。
 - 启用了 React Compiler（devDeps 里的 `babel-plugin-react-compiler`），除非性能分析显示有需要，否则不要手动写 `useMemo` / `useCallback`。
+
+## 测试与验证体系
+
+**唯一权威文档**：`doc/测试验证/测试验证策略_v0.1_MVP.md`（六层验证 + Phase 推进表 + Hard Gate + L6 Agent Behavior Evals）。
+
+硬约束（按 Phase 启用，详见 ADR）：
+
+- **L1–L5 PR 阻断级，L6 仅观察分**（避免 LLM 随机性误伤）
+- **单测覆盖率 90/90**（行 / 分支），Phase 2 启用时即按此水位验收，无入门宽松期
+- **禁手改 `src/db/supabase/type.ts`**（必须 `pnpm supabase:type` 重生成）
+- **禁单元测试调真实 DeepSeek / Qwen-VL / OSS**（一律 mock 或 fake model）
+- **禁 L6 evals 分数作 PR gating**
+- **禁 Claude subagent 用 `--no-verify` 跳 hook**（除非 muzi 显式授权当次）
+- **写测试代码也属于"落地代码"**——必须派 Sonnet subagent 写，主线程只评审
+- **subagent prompt 模版必须包含**："禁止编写仅为提升覆盖率的无效断言；完成后跑 `pnpm verify` 全绿才返回"
+
+新建任何 `tests/` 顶层目录 / `src/__tests__/` / `src/agents/demo/` 等，必须先在本文件登记。
