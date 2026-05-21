@@ -10,6 +10,12 @@
             "command": "fp=$(jq -r '.tool_input.file_path // empty'); echo \"$fp\" | grep -q '/src/db/schema/' && jq -nc '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"ask\",permissionDecisionReason:\"⚠️ src/db/schema/ 改动检测：本次编辑必须配套 ① 同步改 supabase/migrations/* 写新迁移；② 跑 pnpm supabase:type 重生成 src/db/supabase/type.ts。参见测试验证 ADR §9.1。\"}}' || true",
             "timeout": 5,
             "statusMessage": "checking schema-file hook…"
+          },
+          {
+            "type": "command",
+            "command": "fp=$(jq -r '.tool_input.file_path // empty'); echo \"$fp\" | grep -q 'src/db/supabase/type.ts' && jq -nc '{hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"deny\",permissionDecisionReason:\"🚫 CLAUDE.md 硬约束：src/db/supabase/type.ts 是 pnpm supabase:type 的生成产物，禁止手改。请改 src/db/schema/ 或 supabase/migrations/ 后跑 pnpm supabase:type 重生成。\"}}' || true",
+            "timeout": 5,
+            "statusMessage": "checking type.ts protection…"
           }
         ]
       },

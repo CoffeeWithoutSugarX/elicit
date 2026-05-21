@@ -81,6 +81,7 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 - Graph 节点统一使用 `console.log('NodeName invoked with ...')` 的日志格式，便于 grep，请保持一致。
 - 代码中大量使用中文注释——编辑已有代码时请保留这些注释。
 - 启用了 React Compiler（devDeps 里的 `babel-plugin-react-compiler`），除非性能分析显示有需要，否则不要手动写 `useMemo` / `useCallback`。
+- **新版本 API 先查 context7**：本项目用的 LangGraph 1.x / LangChain 1.x / AI SDK v6 / Next.js 16 / React 19 都是 2025 末才稳的版本，训练数据可能滞后。涉及这些库的 API 用法（如 `getWriter()` / `PostgresSaver` / `toUIMessageStream` / `data-custom` chunk / Server Actions / React Compiler 行为）**先调 `mcp__claude_ai_Context7__query-docs` 查权威文档**，不要凭记忆写。
 
 ## 测试与验证体系
 
