@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 子项目独立工作流（doc/UI设计/SPEC.md §0），不进主项目 typecheck / lint
+    "doc/UI设计/**",
   ]),
 ]);
 

@@ -107,12 +107,16 @@
 ```
 doc/UI设计/
 ├── SPEC.md                         ← 本文件
-├── PLAN.md                         ← 实施计划（紧随其后产出）
+├── PLAN.md                         ← 实施计划
 ├── README.md                       ← 跑法 + 17 scenario 手测 checklist + 与主项目映射
 ├── package.json
 ├── pnpm-lock.yaml
+├── pnpm-workspace.yaml             ← packages:['.'] 切断主项目 workspace 上溯 + allowBuilds:esbuild
+├── .npmrc                          ← registry 锁 npmmirror.com（国内拉 rollup darwin-arm64 二进制不稳）
 ├── vite.config.ts
 ├── tsconfig.json
+├── tsconfig.app.json               ← Vite 6 标准分层（src/ TS 配置）
+├── tsconfig.node.json              ← vite.config.ts 用
 ├── index.html
 ├── public/
 │   └── mock-images/                ← 题目截图 fixtures（占位 SVG 或自绘）
@@ -358,3 +362,4 @@ type AgentResponse = {
 | 版本   | 日期       | 修订人 | 摘要                                       |
 | ------ | ---------- | ------ | ------------------------------------------ |
 | v0.1   | 2026-05-21 | Claude | 首版草稿；17 scenario 范围 + 方案 A 落地    |
+| v0.1.1 | 2026-05-21 | Claude | Batch 1 落地反馈：§5 目录树补 `pnpm-workspace.yaml`（切断主项目 workspace 上溯）+ `.npmrc`（registry 锁 npmmirror）+ `tsconfig.app.json`（Vite 6 分层）。`@vitejs/plugin-react` 锁 `^5`（与 Vite 6.x 兼容；`@latest` 会装到 6.x 需要 Vite 7） |

@@ -1,0 +1,29 @@
+{
+  "name": "elicit-ui-hifi",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router": "^7",
+    "zustand": "^5",
+    "katex": "latest",
+    "lucide-react": "latest"
+  },
+  "devDependencies": {
+    "vite": "^6",
+    "@vitejs/plugin-react": "^5",
+    "typescript": "^5",
+    "tailwindcss": "^4",
+    "@tailwindcss/vite": "^4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/katex": "latest"
+  }
+}

@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme inline {
+  /*
+   * 颜色系统 — 现代温暖学习风
+   *
+   * 主色 (primary)：暖橙系，来自学习场景的积极感。
+   *   #F97316 是 Tailwind orange-500 档位，活力但不刺眼。
+   *
+   * 辅色 (accent)：青绿系，与暖橙形成清爽互补。
+   *   #0EA5E9 是 sky-500，代表冷静思考、洞见。
+   *
+   * 背景与文字：偏暖的中性灰，避免纯冷白带来的距离感。
+   *   bg-canvas:   #FAFAF9  (stone-50 调暖)
+   *   bg-elevated: #FFFFFF  (卡片浮层用纯白)
+   *   text-primary: #1C1917 (stone-900，接近黑但偏暖)
+   *   text-muted:   #78716C (stone-500，次要信息)
+   *   border-subtle: #E7E5E4 (stone-200)
+   *
+   * Pólya 阶段色：四色象征学习阶段进展
+   *   UNDERSTAND → 天蓝 (sky-600)   — 探索、提问
+   *   PLAN       → 紫罗兰 (violet-600) — 规划、结构
+   *   EXECUTE    → 橙色 (orange-600) — 行动、执行
+   *   REVIEW     → 翠绿 (emerald-600) — 回顾、收敛
+   *
+   * 信号色：五个 Agent 信号的语义色
+   *   COMPLETED  → emerald (任务完成)
+   *   STAY       → amber   (待机观察)
+   *   ESCALATE   → orange  (升级处理)
+   *   DONE       → sky     (知识点done)
+   *   BLOCKED    → rose    (受阻)
+   */
+
+  /* 主色调 */
+  --color-primary: #F97316;
+  --color-accent: #0EA5E9;
+
+  /* 背景与文字 */
+  --color-bg-canvas: #FAFAF9;
+  --color-bg-elevated: #FFFFFF;
+  --color-text-primary: #1C1917;
+  --color-text-muted: #78716C;
+  --color-border-subtle: #E7E5E4;
+
+  /* 信号色 */
+  --color-signal-completed: #059669;
+  --color-signal-stay: #D97706;
+  --color-signal-escalate: #EA580C;
+  --color-signal-done: #0284C7;
+  --color-signal-blocked: #E11D48;
+
+  /* Pólya 阶段色 */
+  --color-phase-understand: #0284C7;
+  --color-phase-plan: #7C3AED;
+  --color-phase-execute: #EA580C;
+  --color-phase-review: #059669;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.10), 0 2px 4px -2px rgb(0 0 0 / 0.10);
+  --shadow-overlay: 0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.10);
+
+  /* 字阶 */
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+}
