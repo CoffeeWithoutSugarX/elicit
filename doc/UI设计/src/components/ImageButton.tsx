@@ -1,11 +1,11 @@
 /**
  * 图片按钮三态：
- * - active：可点击，朱砂色
- * - triggers-P106：可点击但会触发换题浮层（朱砂 + hover tooltip）
+ * - active：可点击，灰色图标 + hover 浅底
+ * - triggers-P106：可点击但会触发换题浮层（深墨色 + hover tooltip）
  * - disabled：灰化 + 不可点
  *
- * 纸面调性：无背景填充，仅图标色区分状态。
- * Batch 4：图标从 ImagePlus 改为 Camera，更贴近"拍照上传"的交互意图。
+ * 纸面调性：圆形小图标，无 border，无朱砂色，融入新盒子容器风格。
+ * Batch 4+：图标 Camera size 16，圆形 w-8 h-8，hover 浅底灰色。
  */
 import { Camera } from 'lucide-react'
 import { cn } from '@/lib/classNames'
@@ -31,14 +31,16 @@ export function ImageButton({ state, onClick }: Props) {
           : '上传题目（拍照 / 相册）'
       }
       className={cn(
-        'inline-flex items-center justify-center w-9 h-9 rounded-sm',
-        'transition-colors',
+        'w-8 h-8 rounded-full inline-flex items-center justify-center',
+        'bg-transparent transition-colors',
         state === 'disabled'
-          ? 'text-ink-muted opacity-40 cursor-not-allowed bg-transparent'
-          : 'text-vermilion hover:bg-paper-deep cursor-pointer',
+          ? 'text-ink-muted opacity-40 cursor-not-allowed'
+          : state === 'triggers-P106'
+          ? 'text-ink-deep hover:bg-paper-deep cursor-pointer'
+          : 'text-ink-secondary hover:text-ink-primary hover:bg-paper-deep cursor-pointer',
       )}
     >
-      <Camera size={18} />
+      <Camera size={16} />
     </button>
   )
 }

@@ -8,7 +8,7 @@
  * colors                  — 向后兼容导出，默认指向 warm-ai（默认主题）
  */
 
-export type ThemeKey = 'notebook' | 'notebook-pro' | 'minimal' | 'warm-ai' | 'dark-scholar'
+export type ThemeKey = 'notebook' | 'notebook-pro' | 'minimal' | 'warm-ai' | 'dark-scholar' | 'warm-ink-green' | 'cool-mist' | 'violet-quiet'
 
 export interface ThemeTokenSet {
   colors: {
@@ -186,6 +186,93 @@ export const themeTokens: Record<ThemeKey, ThemeTokenSet> = {
       },
     },
     radius: { sm: '3px', md: '4px', lg: '6px' },
+  },
+
+  // T5：暖墨绿
+  'warm-ink-green': {
+    colors: {
+      paperCanvas:   '#F7F5F0',
+      paperSurface:  '#FFFFFF',
+      paperDeep:     '#EDE9E0',
+      inkPrimary:    '#1A1F1B',
+      inkSecondary:  '#4D584F',
+      inkMuted:      '#8E948A',
+      inkLine:       '#E5E0D5',
+      inkDeep:       '#3F5847',
+      vermilion:     '#A04A3F',
+      signal: {
+        completed: '#5A7060',
+        stay:      '#B89055',
+        escalate:  '#A04A3F',
+        done:      '#5A7595',
+        blocked:   '#8B4A40',
+      },
+      phase: {
+        understand: '#6B8FAA',
+        plan:       '#8B7AA8',
+        execute:    '#A04A3F',
+        review:     '#5A7060',
+      },
+    },
+    radius: { sm: '6px', md: '10px', lg: '14px' },
+  },
+
+  // T6：雾青
+  'cool-mist': {
+    colors: {
+      paperCanvas:   '#F5F7F8',
+      paperSurface:  '#FFFFFF',
+      paperDeep:     '#E8ECEE',
+      inkPrimary:    '#15212A',
+      inkSecondary:  '#4A5560',
+      inkMuted:      '#8590A0',
+      inkLine:       '#DDE3E8',
+      inkDeep:       '#4A6B7A',
+      vermilion:     '#C9986F',
+      signal: {
+        completed: '#5E8378',
+        stay:      '#B89055',
+        escalate:  '#C9986F',
+        done:      '#4A6B7A',
+        blocked:   '#A85745',
+      },
+      phase: {
+        understand: '#6B8FAA',
+        plan:       '#8B7AA8',
+        execute:    '#C9986F',
+        review:     '#5E8378',
+      },
+    },
+    radius: { sm: '6px', md: '10px', lg: '14px' },
+  },
+
+  // T7：紫罗兰静谧
+  'violet-quiet': {
+    colors: {
+      paperCanvas:   '#F8F5F8',
+      paperSurface:  '#FFFFFF',
+      paperDeep:     '#EFE9F0',
+      inkPrimary:    '#1F1A23',
+      inkSecondary:  '#534D5C',
+      inkMuted:      '#8E8995',
+      inkLine:       '#E5DFE6',
+      inkDeep:       '#6B5B95',
+      vermilion:     '#D4A574',
+      signal: {
+        completed: '#5A7A55',
+        stay:      '#B89055',
+        escalate:  '#D4A574',
+        done:      '#5A7595',
+        blocked:   '#A85745',
+      },
+      phase: {
+        understand: '#6B8FAA',
+        plan:       '#8B7AA8',
+        execute:    '#D4A574',
+        review:     '#7A9070',
+      },
+    },
+    radius: { sm: '6px', md: '10px', lg: '14px' },
   },
 }
 

@@ -51,6 +51,9 @@ const THEME_OPTIONS: { value: ThemeKey; label: string }[] = [
   { value: 'notebook-pro', label: '笔记本 Pro' },
   { value: 'minimal', label: '极简白' },
   { value: 'dark-scholar', label: '深色学术' },
+  { value: 'warm-ink-green', label: '暖墨绿' },
+  { value: 'cool-mist', label: '雾青' },
+  { value: 'violet-quiet', label: '紫罗兰' },
 ]
 
 /** 便签夹 section 标题 */

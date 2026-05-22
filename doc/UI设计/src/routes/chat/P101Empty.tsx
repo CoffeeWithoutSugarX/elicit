@@ -4,56 +4,64 @@
  * 对应 PRD P-101 空态。
  */
 import { useState } from 'react'
-import { Image } from 'lucide-react'
+import { Image, Camera, ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/classNames'
 
-/** 极简 ChatInput 空态版（无需 scenario 支持） */
+/** 极简 ChatInput 空态版（无需 scenario 支持，与正版保持相同盒子布局） */
 function EmptyChatInput({ onImageClick }: { onImageClick: () => void }) {
   return (
-    <div
-      className={cn(
-        'flex items-end gap-2 px-4 py-3',
-        'bg-paper-surface border-t border-ink-line',
-      )}
-    >
-      {/* 图片按钮 active 态 */}
-      <button
-        type="button"
-        onClick={onImageClick}
-        className={cn(
-          'flex-shrink-0 w-9 h-9 inline-flex items-center justify-center',
-          'rounded-sm border border-ink-line',
-          'bg-paper-canvas text-ink-secondary',
-          'hover:border-ink-secondary hover:text-ink-primary',
-          'transition-colors',
-        )}
-        title="上传题目图片"
-        aria-label="上传题目图片"
-      >
-        <Image size={16} />
-      </button>
+    /* 外层容器：bg-paper-canvas，无 border-t，与对话区无硬切 */
+    <div className="bg-paper-canvas px-4 py-4">
+      {/* 内层限宽居中 */}
+      <div className="max-w-[768px] mx-auto">
+        {/* 盒子：圆角、border、shadow */}
+        <div
+          className={cn(
+            'flex flex-col',
+            'bg-paper-surface border border-ink-line rounded-2xl shadow-paper-sm',
+          )}
+        >
+          {/* 上区：占位 div（不可输入） */}
+          <div
+            className="px-4 pt-3 pb-1 text-base text-ink-muted min-h-[44px]"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            先上传一张题目图片…
+          </div>
 
-      {/* 输入框 */}
-      <div
-        className={cn(
-          'flex-1 px-3 py-2.5 text-sm',
-          'bg-paper-canvas border border-ink-line rounded-sm',
-          'text-ink-muted',
-        )}
-        style={{ fontFamily: 'var(--font-body)' }}
-      >
-        先上传一张题目图片…
+          {/* 下区：操作行 */}
+          <div className="flex items-center justify-between px-2 pb-2">
+            {/* 左侧：图片按钮 active 态 */}
+            <button
+              type="button"
+              onClick={onImageClick}
+              className={cn(
+                'w-8 h-8 rounded-full inline-flex items-center justify-center',
+                'bg-transparent text-ink-secondary hover:text-ink-primary hover:bg-paper-deep',
+                'transition-colors cursor-pointer',
+              )}
+              title="上传题目图片"
+              aria-label="上传题目图片"
+            >
+              <Camera size={16} />
+            </button>
+
+            {/* 右侧：发送按钮（始终禁用，灰显保持轮廓） */}
+            <button
+              type="button"
+              disabled
+              className="w-8 h-8 rounded-full flex items-center justify-center cursor-not-allowed opacity-60"
+              style={{
+                backgroundColor: 'var(--color-paper-deep)',
+                color: 'var(--color-ink-muted)',
+              }}
+              aria-label="发送"
+            >
+              <ArrowUp size={16} />
+            </button>
+          </div>
+        </div>
       </div>
-
-      {/* 发送按钮（禁用） */}
-      <button
-        type="button"
-        disabled
-        className="flex-shrink-0 px-4 py-2.5 rounded-md text-sm bg-paper-deep border border-ink-line text-ink-muted opacity-50 cursor-not-allowed"
-        style={{ fontFamily: 'var(--font-display)' }}
-      >
-        发送
-      </button>
     </div>
   )
 }

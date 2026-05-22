@@ -1,12 +1,17 @@
 /**
- * 聊天输入框：textarea + 图片按钮 + 发送按钮。
- * 回车发送，Shift+Enter 换行。
- * disabled 时整个 input 灰化，禁止双发。
+ * 聊天输入框：现代 AI chat 单盒子风格。
+ * 整个输入区是一个统一的圆角大盒子，内部上下分区：
+ * - 上区：textarea（无 border / 无 outline），充分 padding
+ * - 下区：左下 ImageButton（圆形小图标）+ 右下 ArrowUp 发送按钮（圆形填色）
  *
- * 纸面调性：象牙白输入框 + 深墨蓝发送按钮 + Fraunces 衬线。
+ * 外层 bg-paper-canvas 无 border-t，输入区与对话区无硬切。
+ * 聚焦时盒子 border 加深（focus-within），不给 textarea 加 ring。
+ * 回车发送，Shift+Enter 换行；disabled 时整体灰化。
+ *
+ * 纸面调性：象牙白背景 + 深墨蓝发送按钮 + Fraunces 衬线。
  */
 import { useState, useRef } from 'react'
-import { Send } from 'lucide-react'
+import { ArrowUp } from 'lucide-react'
 import { cn } from '@/lib/classNames'
 import { ImageButton } from './ImageButton'
 
@@ -48,57 +53,79 @@ export function ChatInput({
 
   function handleInput(e: React.FormEvent<HTMLTextAreaElement>) {
     const el = e.currentTarget
-    // 自适应高度（最多约 4 行）
+    // 自适应高度（最多 200px）
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 120)}px`
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }
 
+  const canSend = !!text.trim() && !disabled
+
   return (
-    <div
-      className={cn(
-        'flex items-end gap-2 p-3',
-        'bg-paper-surface border-t border-ink-line',
-        disabled && 'opacity-60 pointer-events-none',
-      )}
-    >
-      <ImageButton state={imageButtonState} onClick={onImageClick} />
+    /* 外层容器：bg-paper-canvas，无 border-t，与对话区无硬切 */
+    <div className={cn('bg-paper-canvas px-4 py-4', disabled && 'opacity-60 pointer-events-none')}>
+      {/* 内层限宽居中 */}
+      <div className="max-w-[768px] mx-auto">
+        {/* 盒子：圆角、border、shadow，focus-within 时 border 加深 */}
+        <div
+          className={cn(
+            'flex flex-col',
+            'bg-paper-surface border border-ink-line rounded-2xl shadow-paper-sm',
+            'focus-within:border-ink-secondary transition-colors',
+          )}
+        >
+          {/* 上区：textarea */}
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onInput={handleInput}
+            placeholder={placeholder}
+            rows={1}
+            disabled={disabled}
+            className={cn(
+              'w-full bg-transparent outline-none resize-none',
+              'px-4 pt-3 pb-1',
+              'text-base text-ink-primary placeholder:text-ink-muted',
+              'min-h-[44px] max-h-[200px] overflow-y-auto',
+            )}
+            style={{ fontFamily: 'var(--font-body)' }}
+          />
 
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={handleKeyDown}
-        onInput={handleInput}
-        placeholder={placeholder}
-        rows={1}
-        disabled={disabled}
-        className={cn(
-          'flex-1 resize-none px-3 py-2 text-base',
-          'rounded-sm bg-paper-canvas',
-          'border border-ink-line',
-          'text-ink-primary placeholder:text-ink-muted',
-          'focus:outline-none focus:border-ink-secondary',
-          'min-h-[40px] max-h-[120px] overflow-y-auto',
-        )}
-        style={{ fontFamily: 'var(--font-body)' }}
-      />
+          {/* 下区：操作行 */}
+          <div className="flex items-center justify-between px-2 pb-2">
+            {/* 左侧：图片按钮 */}
+            <ImageButton state={imageButtonState} onClick={onImageClick} />
 
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={disabled || !text.trim()}
-        className={cn(
-          'inline-flex items-center justify-center w-9 h-9 rounded-md',
-          'transition-colors',
-          text.trim() && !disabled
-            ? 'bg-ink-deep text-paper-surface hover:opacity-90 cursor-pointer'
-            : 'bg-paper-deep text-ink-muted cursor-not-allowed',
-        )}
-        style={{ fontFamily: 'var(--font-display)' }}
-        aria-label="发送"
-      >
-        <Send size={16} />
-      </button>
+            {/* 右侧：发送按钮（圆形，ArrowUp） */}
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!canSend}
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center transition-all',
+                canSend
+                  ? 'hover:opacity-90 active:scale-95 cursor-pointer'
+                  : 'cursor-not-allowed opacity-60',
+              )}
+              style={
+                canSend
+                  ? {
+                      backgroundColor: 'var(--color-ink-deep)',
+                      color: 'var(--color-paper-surface)',
+                    }
+                  : {
+                      backgroundColor: 'var(--color-paper-deep)',
+                      color: 'var(--color-ink-muted)',
+                    }
+              }
+              aria-label="发送"
+            >
+              <ArrowUp size={16} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

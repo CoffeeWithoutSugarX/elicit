@@ -371,3 +371,111 @@ body::before {
 [data-theme="dark-scholar"] .image-preview-container {
   border-color: var(--color-vermilion);
 }
+
+/* ═══════════════════════════════════════════════════════
+   T5  warm-ink-green — 暖墨绿
+   ═══════════════════════════════════════════════════════ */
+[data-theme="warm-ink-green"] {
+  --color-paper-canvas:   #F7F5F0;
+  --color-paper-surface:  #FFFFFF;
+  --color-paper-deep:     #EDE9E0;
+
+  --color-ink-primary:    #1A1F1B;
+  --color-ink-secondary:  #4D584F;
+  --color-ink-muted:      #8E948A;
+  --color-ink-line:       #E5E0D5;
+
+  --color-ink-deep:       #3F5847;
+  --color-vermilion:      #A04A3F;
+
+  --color-phase-understand: #6B8FAA;
+  --color-phase-plan:       #8B7AA8;
+  --color-phase-execute:    #A04A3F;
+  --color-phase-review:     #5A7060;
+
+  --color-signal-completed: #5A7060;
+  --color-signal-stay:      #B89055;
+  --color-signal-escalate:  #A04A3F;
+  --color-signal-done:      #5A7595;
+  --color-signal-blocked:   #8B4A40;
+
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+
+  --font-display: "Inter", -apple-system, sans-serif;
+  --font-body:    "Inter", -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+}
+
+/* ═══════════════════════════════════════════════════════
+   T6  cool-mist — 雾青
+   ═══════════════════════════════════════════════════════ */
+[data-theme="cool-mist"] {
+  --color-paper-canvas:   #F5F7F8;
+  --color-paper-surface:  #FFFFFF;
+  --color-paper-deep:     #E8ECEE;
+
+  --color-ink-primary:    #15212A;
+  --color-ink-secondary:  #4A5560;
+  --color-ink-muted:      #8590A0;
+  --color-ink-line:       #DDE3E8;
+
+  --color-ink-deep:       #4A6B7A;
+  --color-vermilion:      #C9986F;
+
+  --color-phase-understand: #6B8FAA;
+  --color-phase-plan:       #8B7AA8;
+  --color-phase-execute:    #C9986F;
+  --color-phase-review:     #5E8378;
+
+  --color-signal-completed: #5E8378;
+  --color-signal-stay:      #B89055;
+  --color-signal-escalate:  #C9986F;
+  --color-signal-done:      #4A6B7A;
+  --color-signal-blocked:   #A85745;
+
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+
+  --font-display: "Inter", -apple-system, sans-serif;
+  --font-body:    "Inter", -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+}
+
+/* ═══════════════════════════════════════════════════════
+   T7  violet-quiet — 紫罗兰静谧
+   ═══════════════════════════════════════════════════════ */
+[data-theme="violet-quiet"] {
+  --color-paper-canvas:   #F8F5F8;
+  --color-paper-surface:  #FFFFFF;
+  --color-paper-deep:     #EFE9F0;
+
+  --color-ink-primary:    #1F1A23;
+  --color-ink-secondary:  #534D5C;
+  --color-ink-muted:      #8E8995;
+  --color-ink-line:       #E5DFE6;
+
+  --color-ink-deep:       #6B5B95;
+  --color-vermilion:      #D4A574;
+
+  --color-phase-understand: #6B8FAA;
+  --color-phase-plan:       #8B7AA8;
+  --color-phase-execute:    #D4A574;
+  --color-phase-review:     #7A9070;
+
+  --color-signal-completed: #5A7A55;
+  --color-signal-stay:      #B89055;
+  --color-signal-escalate:  #D4A574;
+  --color-signal-done:      #5A7595;
+  --color-signal-blocked:   #A85745;
+
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+
+  --font-display: "Inter", -apple-system, sans-serif;
+  --font-body:    "Inter", -apple-system, sans-serif;
+  --font-mono:    "JetBrains Mono", monospace;
+}
