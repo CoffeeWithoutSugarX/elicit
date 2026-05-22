@@ -1,51 +1,60 @@
 /**
- * 设计 token TS 镜像
+ * 设计 token TS 镜像 — 数学笔记本 × 钢笔批改风
  * 与 globals.css @theme inline 块保持一致；组件直接 import 使用。
  */
 
 export const colors = {
-  primary: '#F97316',
-  accent: '#0EA5E9',
-  bgCanvas: '#FAFAF9',
-  bgElevated: '#FFFFFF',
-  textPrimary: '#1C1917',
-  textMuted: '#78716C',
-  borderSubtle: '#E7E5E4',
+  /* 纸面 */
+  paperCanvas:   '#F8F4ED',
+  paperSurface:  '#FCFAF4',
+  paperDeep:     '#E8E2D6',
+
+  /* 墨色系 */
+  inkPrimary:    '#1A1818',
+  inkSecondary:  '#5C5852',
+  inkMuted:      '#8B8278',
+  inkLine:       '#D8D2C8',
+
+  /* 主色强调 */
+  inkDeep:       '#1B2A3A',
+  vermilion:     '#C13B2A',
+
   signal: {
-    completed: '#059669',
-    stay: '#D97706',
-    escalate: '#EA580C',
-    done: '#0284C7',
-    blocked: '#E11D48',
+    completed: '#3D5A3D',
+    stay:      '#A88532',
+    escalate:  '#C13B2A',
+    done:      '#3E5C7A',
+    blocked:   '#8B2C1F',
   },
   phase: {
-    understand: '#0284C7',
-    plan: '#7C3AED',
-    execute: '#EA580C',
-    review: '#059669',
+    understand: '#7A9CB8',
+    plan:       '#6B5B95',
+    execute:    '#C13B2A',
+    review:     '#5A7548',
   },
 } as const
 
 export const radius = {
-  sm: '4px',
-  md: '8px',
-  lg: '16px',
+  sm:   '2px',
+  md:   '4px',
+  lg:   '6px',
   pill: '9999px',
 } as const
 
 export const shadow = {
-  sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-  md: '0 4px 6px -1px rgb(0 0 0 / 0.10), 0 2px 4px -2px rgb(0 0 0 / 0.10)',
-  overlay: '0 20px 25px -5px rgb(0 0 0 / 0.10), 0 8px 10px -6px rgb(0 0 0 / 0.10)',
+  paperSm: '0 1px 0 rgb(26 24 24 / 0.04), 0 1px 2px rgb(26 24 24 / 0.06)',
+  paperMd: '0 1px 0 rgb(26 24 24 / 0.06), 0 4px 12px rgb(26 24 24 / 0.08)',
+  paperLg: '0 1px 0 rgb(26 24 24 / 0.08), 0 12px 32px rgb(26 24 24 / 0.10)',
 } as const
 
 export const fontSize = {
-  xs: '0.75rem',
-  sm: '0.875rem',
+  xs:   '0.75rem',
+  sm:   '0.875rem',
   base: '1rem',
-  lg: '1.125rem',
-  xl: '1.25rem',
-  '2xl': '1.5rem',
+  lg:   '1.125rem',
+  xl:   '1.375rem',
+  '2xl': '1.75rem',
+  '3xl': '2.25rem',
 } as const
 
 /** Pólya 阶段 → 中文标签 */

@@ -70,9 +70,12 @@
 | 状态           | Zustand 5.x                                                           | ✅                                                          |
 | 路由           | React Router v7（SPA 模式）                                            | 主项目用 Next.js App Router；这里 SPA 更轻             |
 | 数学渲染       | KaTeX（不上 react-katex 包装，直接调）                                  | ✅                                                          |
-| 字体           | 系统默认 + Tailwind font-sans                                          | —                                                           |
+| 字体（display） | **Fraunces Variable**（衬线，可变字重 + SOFT/WONK 轴）— 标题 / drop-cap / 阶段名 | `@fontsource-variable/fraunces`                              |
+| 字体（body）    | **IBM Plex Sans** — 正文 / 气泡 / 按钮                                | `@fontsource/ibm-plex-sans` 400/500/600                      |
+| 字体（mono）    | **IBM Plex Mono** — 罗马数字 / 题号 / 等宽元素                        | `@fontsource/ibm-plex-mono` 400/500                          |
 | 图标           | lucide-react（轻量，与 shadcn 系契合）                                 | —                                                           |
-| 不引入         | LangGraph / @ai-sdk/* / LangChain / Drizzle / Supabase client / ali-oss | 纯前端原型                                                  |
+| 美学方向       | **数学笔记本 × 编辑式**：象牙白纸 / 方格本背景 / 钢笔感 / 罗马数字 / 「」中文引号 / 章节分隔 ※ / 朱砂"批改红"克制强调 | 区别于主项目 POC 的 shadcn 通用 chat 风                       |
+| 不引入         | LangGraph / @ai-sdk/* / LangChain / Drizzle / Supabase client / ali-oss / shadcn registry / @radix-ui / class-variance-authority / tw-animate-css / dark mode | 纯前端原型 + 轻量            |
 
 ---
 
@@ -363,3 +366,4 @@ type AgentResponse = {
 | ------ | ---------- | ------ | ------------------------------------------ |
 | v0.1   | 2026-05-21 | Claude | 首版草稿；17 scenario 范围 + 方案 A 落地    |
 | v0.1.1 | 2026-05-21 | Claude | Batch 1 落地反馈：§5 目录树补 `pnpm-workspace.yaml`（切断主项目 workspace 上溯）+ `.npmrc`（registry 锁 npmmirror）+ `tsconfig.app.json`（Vite 6 分层）。`@vitejs/plugin-react` 锁 `^5`（与 Vite 6.x 兼容；`@latest` 会装到 6.x 需要 Vite 7） |
+| v0.1.2 | 2026-05-22 | Claude | Batch 2 视觉重设计：美学方向从"暖橙学习风"切到"数学笔记本 × 编辑式"。装 3 个字体包（Fraunces Variable / IBM Plex Sans / IBM Plex Mono），重写 globals.css 主题 token（paper-* / ink-* / vermilion / 4 阶段色 / 5 信号色），重写 theme.ts TS 镜像。§5 目录树新增 `src/components/SectionDivider.tsx` + `src/lib/numerals.ts`（罗马数字工具）。10 个差异化视觉细节落地：方格本背景 / SVG noise overlay / 罗马数字题号 / 章节分隔 ※ / 气泡纸条角微旋转 / 阶段 Badge 1px 左竖线 / InsightPoint 朱砂下划线 / KnowledgeCard drop-cap + ≡ 装饰 / DevToolbar 便签夹 / 钢笔尖 ✎ 流式光标 |
