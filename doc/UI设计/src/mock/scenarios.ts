@@ -1,44 +1,116 @@
 /**
  * Scenario 注册表。
  * 17 个 scenario，按 SPEC §4 表覆盖全部 PRD 分支。
- * Batch 2 只填满 p104-execute-stuck；其余 16 项为 stub，Batch 3 再填。
+ * Batch 3：所有 16 个 stub 已填实，import 各 fixture 文件。
  */
-import type { Scenario, ConversationState, Message } from './types'
+import type { Scenario } from './types'
+
+// ── 已完整填充的 fixture imports ────────────────────────────────────────────
+
 import {
   initialConversation as p104StuckConv,
   initialMessages as p104StuckMsgs,
   responses as p104StuckResponses,
 } from './messages/p104-execute-stuck'
 
-// ──────────────────────────────────────────────────────────────
-// Stub 工厂：Batch 3 前占位用
-// ──────────────────────────────────────────────────────────────
+import {
+  initialConversation as loginConv,
+  initialMessages as loginMsgs,
+  responses as loginResponses,
+} from './messages/login'
 
-function stubConversation(id: string): ConversationState {
-  return {
-    conversationId: `stub-${id}`,
-    userId: 'mock-user-0001',
-    hasResolved: false,
-    subProblems: [
-      {
-        id: 'sub-0',
-        goal: '（stub 占位，Batch 3 填写）',
-        status: 'pending',
-        insightPoints: [],
-        stuckCountPerPhase: { UNDERSTAND: 0, PLAN: 0, EXECUTE: 0, REVIEW: 0 },
-        probedQuestionIds: [],
-      },
-    ],
-    currentSubProblemIndex: 0,
-    currentPhase: 'UNDERSTAND',
-    problemType: 'OTHER',
-  }
-}
+import {
+  initialConversation as p101Conv,
+  initialMessages as p101Msgs,
+  responses as p101Responses,
+} from './messages/p101-empty'
 
-const stubMessages: Message[] = []
+import {
+  initialConversation as p102Conv,
+  initialMessages as p102Msgs,
+  responses as p102Responses,
+} from './messages/p102-upload'
+
+import {
+  initialConversation as p103MultiConv,
+  initialMessages as p103MultiMsgs,
+  responses as p103MultiResponses,
+} from './messages/p103-multi'
+
+import {
+  initialConversation as p103SingleConv,
+  initialMessages as p103SingleMsgs,
+  responses as p103SingleResponses,
+} from './messages/p103-single'
+
+import {
+  initialConversation as p104OosConv,
+  initialMessages as p104OosMsgs,
+  responses as p104OosResponses,
+} from './messages/p104-understand-oos'
+
+import {
+  initialConversation as p104PlanConv,
+  initialMessages as p104PlanMsgs,
+  responses as p104PlanResponses,
+} from './messages/p104-plan-deviation'
+
+import {
+  initialConversation as p104MultiSubConv,
+  initialMessages as p104MultiSubMsgs,
+  responses as p104MultiSubResponses,
+} from './messages/p104-execute-multi-sub'
+
+import {
+  initialConversation as p104ReviewConv,
+  initialMessages as p104ReviewMsgs,
+  responses as p104ReviewResponses,
+} from './messages/p104-review'
+
+import {
+  initialConversation as p105DoneConv,
+  initialMessages as p105DoneMsgs,
+  responses as p105DoneResponses,
+} from './messages/p105-card-done'
+
+import {
+  initialConversation as p105PartialConv,
+  initialMessages as p105PartialMsgs,
+  responses as p105PartialResponses,
+} from './messages/p105-card-partial'
+
+import {
+  initialConversation as p106SwapConv,
+  initialMessages as p106SwapMsgs,
+  responses as p106SwapResponses,
+} from './messages/p106-swap'
+
+import {
+  initialConversation as historyResumeConv,
+  initialMessages as historyResumeMsgs,
+  responses as historyResumeResponses,
+} from './messages/history-resume'
+
+import {
+  initialConversation as longConvConv,
+  initialMessages as longConvMsgs,
+  responses as longConvResponses,
+} from './messages/long-conversation'
+
+import {
+  initialConversation as adminListConv,
+  initialMessages as adminListMsgs,
+  responses as adminListResponses,
+} from './messages/admin-list'
+
+import {
+  initialConversation as adminDetailConv,
+  initialMessages as adminDetailMsgs,
+  responses as adminDetailResponses,
+} from './messages/admin-detail'
 
 // ──────────────────────────────────────────────────────────────
-// 完整注册表
+// 完整注册表（Batch 3 全部填实）
 // ──────────────────────────────────────────────────────────────
 
 export const SCENARIOS: Record<string, Scenario> = {
@@ -49,9 +121,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: '登录页',
     prdAnchor: 'P5（PRD §9）',
     route: '/login',
-    initialConversation: stubConversation('login'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: loginConv,
+    initialMessages: loginMsgs,
+    responses: loginResponses,
   },
 
   // ── upload ───────────────────────────────────────
@@ -61,9 +133,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-101 空对话页',
     prdAnchor: 'P-101',
     route: '/chat/p101-empty',
-    initialConversation: stubConversation('p101-empty'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p101Conv,
+    initialMessages: p101Msgs,
+    responses: p101Responses,
   },
   'p102-upload': {
     id: 'p102-upload',
@@ -71,9 +143,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-102 上传图片',
     prdAnchor: 'P-102 / US-001 / US-002',
     route: '/chat/p102-upload',
-    initialConversation: stubConversation('p102-upload'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p102Conv,
+    initialMessages: p102Msgs,
+    responses: p102Responses,
   },
   'p103-multi': {
     id: 'p103-multi',
@@ -81,9 +153,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-103 多题列表',
     prdAnchor: 'P-103 / US-004 / US-005',
     route: '/chat/p103-multi',
-    initialConversation: stubConversation('p103-multi'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p103MultiConv,
+    initialMessages: p103MultiMsgs,
+    responses: p103MultiResponses,
   },
   'p103-single': {
     id: 'p103-single',
@@ -91,9 +163,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-103 单题直接确认',
     prdAnchor: 'P-103',
     route: '/chat/p103-single',
-    initialConversation: stubConversation('p103-single'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p103SingleConv,
+    initialMessages: p103SingleMsgs,
+    responses: p103SingleResponses,
   },
 
   // ── polya ────────────────────────────────────────
@@ -103,9 +175,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-104 阶段① 学科外拒答',
     prdAnchor: '阶段① + US-014',
     route: '/chat/p104-understand-oos',
-    initialConversation: stubConversation('p104-understand-oos'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p104OosConv,
+    initialMessages: p104OosMsgs,
+    responses: p104OosResponses,
   },
   'p104-plan-deviation': {
     id: 'p104-plan-deviation',
@@ -113,12 +185,12 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-104 阶段② 偏题引回',
     prdAnchor: '阶段② + US-008',
     route: '/chat/p104-plan-deviation',
-    initialConversation: stubConversation('p104-plan-deviation'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p104PlanConv,
+    initialMessages: p104PlanMsgs,
+    responses: p104PlanResponses,
   },
 
-  // ── polya：Batch 2 完整填充 ──────────────────────
+  // ── polya：已完整填充 ─────────────────────────────
   'p104-execute-stuck': {
     id: 'p104-execute-stuck',
     group: 'polya',
@@ -136,9 +208,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-104 阶段③ 多小问推进',
     prdAnchor: '阶段③ B4',
     route: '/chat/p104-execute-multi-sub',
-    initialConversation: stubConversation('p104-execute-multi-sub'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p104MultiSubConv,
+    initialMessages: p104MultiSubMsgs,
+    responses: p104MultiSubResponses,
   },
   'p104-review': {
     id: 'p104-review',
@@ -146,9 +218,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-104 阶段④ 回顾汇总',
     prdAnchor: '阶段④',
     route: '/chat/p104-review',
-    initialConversation: stubConversation('p104-review'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p104ReviewConv,
+    initialMessages: p104ReviewMsgs,
+    responses: p104ReviewResponses,
   },
 
   // ── card-overlay ──────────────────────────────────
@@ -158,9 +230,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-105 知识卡 全done',
     prdAnchor: 'P-105 全 done',
     route: '/chat/p105-card-done',
-    initialConversation: stubConversation('p105-card-done'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p105DoneConv,
+    initialMessages: p105DoneMsgs,
+    responses: p105DoneResponses,
   },
   'p105-card-partial': {
     id: 'p105-card-partial',
@@ -168,9 +240,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-105 知识卡 部分blocked',
     prdAnchor: 'P-105 partial blocked',
     route: '/chat/p105-card-partial',
-    initialConversation: stubConversation('p105-card-partial'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p105PartialConv,
+    initialMessages: p105PartialMsgs,
+    responses: p105PartialResponses,
   },
   'p106-swap': {
     id: 'p106-swap',
@@ -178,9 +250,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'P-106 换题确认浮层',
     prdAnchor: 'P-106 / US-016',
     route: '/chat/p106-swap',
-    initialConversation: stubConversation('p106-swap'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: p106SwapConv,
+    initialMessages: p106SwapMsgs,
+    responses: p106SwapResponses,
   },
   'history-resume': {
     id: 'history-resume',
@@ -188,9 +260,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: '历史对话恢复',
     prdAnchor: 'US-010 / US-017',
     route: '/chat/history-resume',
-    initialConversation: stubConversation('history-resume'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: historyResumeConv,
+    initialMessages: historyResumeMsgs,
+    responses: historyResumeResponses,
   },
   'long-conversation': {
     id: 'long-conversation',
@@ -198,9 +270,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: '长对话警示',
     prdAnchor: 'PRD §10 (≥ 50 轮)',
     route: '/chat/long-conversation',
-    initialConversation: stubConversation('long-conversation'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: longConvConv,
+    initialMessages: longConvMsgs,
+    responses: longConvResponses,
   },
 
   // ── admin ─────────────────────────────────────────
@@ -210,9 +282,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'Admin 会话列表',
     prdAnchor: 'US-015',
     route: '/admin',
-    initialConversation: stubConversation('admin-list'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: adminListConv,
+    initialMessages: adminListMsgs,
+    responses: adminListResponses,
   },
   'admin-detail': {
     id: 'admin-detail',
@@ -220,9 +292,9 @@ export const SCENARIOS: Record<string, Scenario> = {
     label: 'Admin 会话详情',
     prdAnchor: 'US-015',
     route: '/admin/detail',
-    initialConversation: stubConversation('admin-detail'),
-    initialMessages: stubMessages,
-    responses: [],
+    initialConversation: adminDetailConv,
+    initialMessages: adminDetailMsgs,
+    responses: adminDetailResponses,
   },
 }
 

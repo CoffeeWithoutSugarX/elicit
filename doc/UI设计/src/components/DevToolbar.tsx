@@ -1,11 +1,11 @@
 /**
- * DevToolbar 完整版（Batch 2）— 便签夹样式。
- * 右下角浮动面板，4 区：scenario 切换 / 流速档位 / 强制信号 / 重置。
+ * DevToolbar 完整版（Batch 3 更新）— 便签夹样式。
+ * 右下角浮动面板，5 区：Theme / Scenario / Stream Speed / Force Signal / 重置。
  * 可折叠：折叠时只显示 Wrench 图标按钮。
  *
  * 纸面调性：paper-surface 底 + ink-line 边框 + paper-lg 阴影
- * section 标题：IBM Plex Mono small caps + tracking-widest
- * scenario 选中态：朱砂色左竖线
+ * section 标题：mono + tracking-widest
+ * scenario 选中态：vermilion 左竖线
  */
 import {
   Wrench,
@@ -14,10 +14,11 @@ import {
   RotateCcw,
   Gauge,
   Zap,
+  Palette,
 } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { cn } from '@/lib/classNames'
-import { usePreviewStore, type StreamSpeed } from '@/stores/usePreviewStore'
+import { usePreviewStore, type StreamSpeed, type ThemeKey } from '@/stores/usePreviewStore'
 import { useConversationStore } from '@/stores/useConversationStore'
 import { SCENARIOS, SCENARIO_GROUPS } from '@/mock/scenarios'
 import type { PhaseSignal } from '@/mock/types'
@@ -44,7 +45,15 @@ const SIGNAL_SHORT: Record<PhaseSignal, string> = {
   PROBLEM_BLOCKED: '受阻',
 }
 
-/** 便签夹 section 标题：IBM Plex Mono small caps */
+const THEME_OPTIONS: { value: ThemeKey; label: string }[] = [
+  { value: 'warm-ai', label: '暖白 AI' },
+  { value: 'notebook', label: '笔记本' },
+  { value: 'notebook-pro', label: '笔记本 Pro' },
+  { value: 'minimal', label: '极简白' },
+  { value: 'dark-scholar', label: '深色学术' },
+]
+
+/** 便签夹 section 标题 */
 function ToolbarSectionTitle({ children, icon }: { children: React.ReactNode; icon?: React.ReactNode }) {
   return (
     <h3
@@ -69,10 +78,12 @@ export function DevToolbar() {
     streamSpeed,
     forceSignal,
     devToolbarCollapsed,
+    theme,
     setScenario,
     setStreamSpeed,
     setForceSignal,
     toggleCollapsed,
+    setTheme,
   } = usePreviewStore()
 
   const { loadScenario, reset } = useConversationStore()
@@ -160,6 +171,30 @@ export function DevToolbar() {
           当前：{currentScenario.label}
         </p>
       ) : null}
+
+      {/* 主题切换 */}
+      <section className="flex flex-col gap-1">
+        <ToolbarSectionTitle icon={<Palette size={10} />}>Theme</ToolbarSectionTitle>
+        <div className="flex flex-wrap gap-1">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setTheme(opt.value)}
+              className={cn(
+                'px-2 py-1 text-[11px] rounded-sm',
+                'border transition-colors',
+                theme === opt.value
+                  ? 'bg-ink-deep text-paper-surface border-ink-deep'
+                  : 'bg-paper-canvas text-ink-secondary border-ink-line hover:border-ink-secondary',
+              )}
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* Scenario 切换：按 group 分组 */}
       <section className="flex flex-col gap-2">

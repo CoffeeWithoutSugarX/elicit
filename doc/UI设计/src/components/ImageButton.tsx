@@ -5,8 +5,9 @@
  * - disabled：灰化 + 不可点
  *
  * 纸面调性：无背景填充，仅图标色区分状态。
+ * Batch 4：图标从 ImagePlus 改为 Camera，更贴近"拍照上传"的交互意图。
  */
-import { ImagePlus } from 'lucide-react'
+import { Camera } from 'lucide-react'
 import { cn } from '@/lib/classNames'
 
 interface Props {
@@ -27,7 +28,7 @@ export function ImageButton({ state, onClick }: Props) {
           ? '已有题目——点击将进入换题确认'
           : state === 'disabled'
           ? '当前无法上传图片'
-          : '上传题目图片'
+          : '上传题目（拍照 / 相册）'
       }
       className={cn(
         'inline-flex items-center justify-center w-9 h-9 rounded-sm',
@@ -37,7 +38,7 @@ export function ImageButton({ state, onClick }: Props) {
           : 'text-vermilion hover:bg-paper-deep cursor-pointer',
       )}
     >
-      <ImagePlus size={18} />
+      <Camera size={18} />
     </button>
   )
 }

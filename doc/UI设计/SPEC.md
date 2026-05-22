@@ -74,7 +74,7 @@
 | 字体（body）    | **IBM Plex Sans** — 正文 / 气泡 / 按钮                                | `@fontsource/ibm-plex-sans` 400/500/600                      |
 | 字体（mono）    | **IBM Plex Mono** — 罗马数字 / 题号 / 等宽元素                        | `@fontsource/ibm-plex-mono` 400/500                          |
 | 图标           | lucide-react（轻量，与 shadcn 系契合）                                 | —                                                           |
-| 美学方向       | **数学笔记本 × 编辑式**：象牙白纸 / 方格本背景 / 钢笔感 / 罗马数字 / 「」中文引号 / 章节分隔 ※ / 朱砂"批改红"克制强调 | 区别于主项目 POC 的 shadcn 通用 chat 风                       |
+| 美学方向       | **5 主题切换**：默认暖白 AI (Claude 风) / 备选 数学笔记本 / 笔记本 Pro / 极简白 / 深色学术。muzi 在 DevToolbar 切换对比 | 区别于主项目 POC 的 shadcn 通用 chat 风                       |
 | 不引入         | LangGraph / @ai-sdk/* / LangChain / Drizzle / Supabase client / ali-oss / shadcn registry / @radix-ui / class-variance-authority / tw-animate-css / dark mode | 纯前端原型 + 轻量            |
 
 ---
@@ -131,9 +131,9 @@ doc/UI设计/
     │   ├── chat/
     │   │   ├── ChatLayout.tsx      ← 侧边栏 + 主区域共用骨架
     │   │   ├── P101Empty.tsx
-    │   │   ├── P102Upload.tsx      ← overlay 浮层
-    │   │   ├── P103MultiQuestion.tsx
-    │   │   ├── P103SingleQuestion.tsx
+    │   │   ├── CameraView.tsx      ← inline 拍照/相册视图（替代 P102Upload overlay 浮层）
+    │   │   ├── P103MultiQuestion.tsx  ← 对话流容器 + OcrResultMessage 卡片
+    │   │   ├── P103SingleQuestion.tsx ← 对话流容器 + OcrResultMessage 单题
     │   │   ├── P104Phase.tsx       ← 4 阶段共用主对话流路由（按 phase state 切壳）
     │   │   ├── P105Card.tsx
     │   │   ├── P106SwapConfirm.tsx ← overlay
@@ -144,10 +144,11 @@ doc/UI设计/
     │       ├── ConversationList.tsx
     │       └── ConversationDetail.tsx
     ├── components/
-    │   ├── DevToolbar.tsx          ← 右下角固定切分支面板
+    │   ├── DevToolbar.tsx          ← 右下角固定切分支面板（5 区：Theme / Scenario / Speed / Signal / Reset）
     │   ├── ChatBubble.tsx          ← user / agent / system 三态气泡
-    │   ├── ChatInput.tsx           ← 输入框 + 图片按钮 + 发送
-    │   ├── ImageButton.tsx         ← 三态：active / triggers-P106 / disabled
+    │   ├── ChatInput.tsx           ← 输入框 + 图片按钮（Camera）+ 发送
+    │   ├── ImageButton.tsx         ← 三态：active / triggers-P106 / disabled（Camera 图标）
+    │   ├── OcrResultMessage.tsx    ← OCR 识别结果卡片（对话流内 agent 消息）
     │   ├── Sidebar.tsx             ← 会话列表
     │   ├── PolyaTopBar.tsx         ← 双层顶栏（小问 N/M · 阶段 · 破题点 K）
     │   ├── KnowledgeCard.tsx       ← P-105 卡片
@@ -169,14 +170,16 @@ doc/UI设计/
     │   ├── ocr-results.ts          ← 单 / 多题 / OOS OCR fixtures
     │   └── fakeLlmStream.ts        ← 流式打字机模拟（setTimeout）
     ├── stores/
-    │   ├── usePreviewStore.ts      ← scenarioId / streamSpeed / DevToolbar 状态
+    │   ├── usePreviewStore.ts      ← scenarioId / streamSpeed / DevToolbar 状态 / theme（新增）
     │   └── useConversationStore.ts ← 镜像主项目 zustand 形态（含 B4 subProblems / insightPoints）
     ├── styles/
-    │   ├── globals.css             ← Tailwind v4 @import + 主题 token CSS variables
-    │   └── theme.ts                ← 颜色 / 字号 / 圆角 / 阴影 design token TS 镜像
+    │   ├── globals.css             ← Tailwind v4 @import + 5 主题 token CSS variables（[data-theme] 块）
+    │   └── theme.ts                ← 颜色 / 字号 / 圆角 / 阴影 design token TS 镜像（含 themeTokens Record）
     └── lib/
         ├── classNames.ts           ← cn() 工具
-        └── katexHelpers.ts
+        ├── katexHelpers.ts
+        ├── numerals.ts             ← toRoman() 罗马数字工具
+        └── themeAware.ts           ← getQuestionLabel(i, theme) 主题感知题号
 ```
 
 ---
@@ -239,7 +242,9 @@ ChatInput.onSubmit(userText)
 | `Sidebar`                  | 会话列表 + 「新建对话」                     | —                                                 |
 | `LongConversationToast`    | ≥ 50 轮警示                                 | —                                                 |
 | `OcrErrorButton`           | 「识别错误」按钮                            | —                                                 |
-| `DevToolbar`               | 右下角面板：scenario / streamSpeed / 强制信号 | `usePreviewStore`                                 |
+| `OcrResultMessage`         | OCR 识别结果卡片（对话流内 agent 气泡）      | `LatexRender`；props: `originalImageUrl`, `questions[]`, `onConfirm`, `onOcrError` |
+| `CameraView`               | 拍照/相册 inline 视图（全 main 区域，非浮层）| `lucide-react: Camera/Images/X/RefreshCw`         |
+| `DevToolbar`               | 右下角面板：Theme / Scenario / StreamSpeed / ForceSignal / Reset | `usePreviewStore`                                 |
 
 ### 7.3 浮层 / 页面层
 
@@ -367,3 +372,4 @@ type AgentResponse = {
 | v0.1   | 2026-05-21 | Claude | 首版草稿；17 scenario 范围 + 方案 A 落地    |
 | v0.1.1 | 2026-05-21 | Claude | Batch 1 落地反馈：§5 目录树补 `pnpm-workspace.yaml`（切断主项目 workspace 上溯）+ `.npmrc`（registry 锁 npmmirror）+ `tsconfig.app.json`（Vite 6 分层）。`@vitejs/plugin-react` 锁 `^5`（与 Vite 6.x 兼容；`@latest` 会装到 6.x 需要 Vite 7） |
 | v0.1.2 | 2026-05-22 | Claude | Batch 2 视觉重设计：美学方向从"暖橙学习风"切到"数学笔记本 × 编辑式"。装 3 个字体包（Fraunces Variable / IBM Plex Sans / IBM Plex Mono），重写 globals.css 主题 token（paper-* / ink-* / vermilion / 4 阶段色 / 5 信号色），重写 theme.ts TS 镜像。§5 目录树新增 `src/components/SectionDivider.tsx` + `src/lib/numerals.ts`（罗马数字工具）。10 个差异化视觉细节落地：方格本背景 / SVG noise overlay / 罗马数字题号 / 章节分隔 ※ / 气泡纸条角微旋转 / 阶段 Badge 1px 左竖线 / InsightPoint 朱砂下划线 / KnowledgeCard drop-cap + ≡ 装饰 / DevToolbar 便签夹 / 钢笔尖 ✎ 流式光标 |
+| v0.1.3 | 2026-05-22 | Claude | 5 主题系统 + 拍照视图 inline 化 + OCR 结果改对话流消息。①globals.css 重构为 5 [data-theme] 块（warm-ai 为默认不挂 attr）；theme.ts 新增 `themeTokens` Record；usePreviewStore 新增 `theme` 字段 + `setTheme`；DevToolbar 新增 Theme 切换区（5 个按钮）；SectionDivider 双态（※ / 细横线）；lib/themeAware.ts 新增 `getQuestionLabel(i, theme)`；②新建 CameraView.tsx（inline 全屏，取景框 + 快门 + 相册 grid + 预览），删除 P102Upload.tsx overlay 浮层，ImageButton 图标 ImagePlus→Camera；③新建 OcrResultMessage.tsx（对话流 agent 卡片：原图缩略 + 多题 tab + LaTeX + 识别错误/确认），P103MultiQuestion + P103SingleQuestion 改为对话流容器展示。|
