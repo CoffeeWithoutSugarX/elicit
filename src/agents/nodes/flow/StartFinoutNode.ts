@@ -1,6 +1,6 @@
 import {ElicitGraphState} from "@/agents/schemas/ElicitGraphStateSchema";
-import {conversationNodeName, shouldCreateConversation} from "@/agents/nodes/ConversationNode";
-import {ocrNodeName, shouldOcr} from "@/agents/nodes/OcrNode";
+import {conversationNodeName, shouldCreateConversation} from "@/agents/nodes/flow/ConversationNode";
+import {ocrNodeName, shouldOcr} from "@/agents/nodes/flow/OcrNode";
 import {chatNodeName} from "@/agents/nodes/ChatNode";
 
 

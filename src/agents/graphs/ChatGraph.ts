@@ -2,9 +2,9 @@ import {END, START, StateGraph} from "@langchain/langgraph";
 import {chatNode, chatNodeName} from "@/agents/nodes/ChatNode";
 import {ElicitGraphStateSchema} from "@/agents/schemas/ElicitGraphStateSchema";
 import {PostgresSaver} from "@langchain/langgraph-checkpoint-postgres";
-import {conversationNodeName, createConversationNode} from "@/agents/nodes/ConversationNode";
-import {ocrNode, ocrNodeName} from "@/agents/nodes/OcrNode";
-import {startFinOutNode} from "@/agents/nodes/StartFinoutNode";
+import {conversationNodeName, createConversationNode} from "@/agents/nodes/flow/ConversationNode";
+import {ocrNode, ocrNodeName} from "@/agents/nodes/flow/OcrNode";
+import {startFinOutNode} from "@/agents/nodes/flow/StartFinoutNode";
 
 
 const elicitGraph = new StateGraph({
