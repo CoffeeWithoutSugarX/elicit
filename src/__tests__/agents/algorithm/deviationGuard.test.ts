@@ -1,24 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
-import { type ElicitGraphState } from '@/agents/schemas/ElicitGraphStateSchema';
 import { deviationGuard } from '@/agents/nodes/algorithm/deviationGuard';
 import { PolyaPhase } from '@/types/enums/polyaPhase.enum';
-
-// ── 辅助构造器 ──────────────────────────────────────────────────
-
-function createMockState(overrides: Partial<ElicitGraphState>): ElicitGraphState {
-  return {
-    messages: [],
-    userId: '00000000-0000-0000-0000-000000000001',
-    conversationId: '00000000-0000-0000-0000-000000000002',
-    hasResolved: true,
-    currentPhase: PolyaPhase.UNDERSTAND,
-    lastDeviationAt: null,
-    subProblems: [],
-    currentSubProblemIndex: 0,
-    ...overrides,
-  } as ElicitGraphState;
-}
+import { createMockState } from '@/__tests__/helpers/mockState';
 
 describe('deviationGuard', () => {
   // ── giveAnswer 检测（仅 UNDERSTAND / PLAN 阶段触发）──────────
@@ -66,6 +50,25 @@ describe('deviationGuard', () => {
       // messages.length = 2，lastDeviationAt = 1 → 2 - 1 = 1 < 2，冷却中
       lastDeviationAt: 1,
       messages,
+    });
+    expect(deviationGuard(state)).toBeNull();
+  });
+
+  // ── crossPhasePatterns 检测（仅 UNDERSTAND / PLAN 阶段触发）────
+
+  it('UNDERSTAND 阶段用户输入"3+5=8"(crossPhase) → PULL_BACK', () => {
+    const state = createMockState({
+      currentPhase: PolyaPhase.UNDERSTAND,
+      messages: [new HumanMessage('3+5=8')],
+    });
+    const action = deviationGuard(state);
+    expect(action?.kind).toBe('PULL_BACK');
+  });
+
+  it('EXECUTE 阶段用户输入"x=3"(crossPhase) → null（该阶段不触发 crossPhase）', () => {
+    const state = createMockState({
+      currentPhase: PolyaPhase.EXECUTE,
+      messages: [new HumanMessage('x=3')],
     });
     expect(deviationGuard(state)).toBeNull();
   });

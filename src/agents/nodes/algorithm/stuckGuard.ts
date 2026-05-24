@@ -6,7 +6,7 @@ import { PolyaPhase }            from '@/types/enums/polyaPhase.enum';
 
 // ---------- 关键词加载 ----------
 const _stuckJson = JSON.parse(
-  readFileSync(join(process.cwd(), 'src/agents/data/stuck-keywords.json'), 'utf-8'),
+  readFileSync(join(__dirname, '../../data/stuck-keywords.json'), 'utf-8'),
 ) as { keywords: string[] };
 const STUCK_KEYWORDS: ReadonlyArray<string> = _stuckJson.keywords;
 

@@ -1,38 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
-import { type ElicitGraphState, type SubProblemState } from '@/agents/schemas/ElicitGraphStateSchema';
 import { stuckGuard } from '@/agents/nodes/algorithm/stuckGuard';
 import { PolyaPhase } from '@/types/enums/polyaPhase.enum';
-
-// ── 辅助构造器 ──────────────────────────────────────────────────
-
-function makeSubProblem(overrides: Partial<SubProblemState> = {}): SubProblemState {
-  return {
-    index: 0,
-    goal: '求解方程',
-    givenConditions: [],
-    milestones: [],
-    status: 'pending',
-    insightPoints: [],
-    stuckCountPerPhase: { understand: 0, plan: 0, execute: 0, review: 0 },
-    probedQuestionIds: [],
-    ...overrides,
-  };
-}
-
-function createMockState(overrides: Partial<ElicitGraphState>): ElicitGraphState {
-  return {
-    messages: [],
-    userId: '00000000-0000-0000-0000-000000000001',
-    conversationId: '00000000-0000-0000-0000-000000000002',
-    hasResolved: true,
-    currentPhase: PolyaPhase.UNDERSTAND,
-    lastDeviationAt: null,
-    subProblems: [],
-    currentSubProblemIndex: 0,
-    ...overrides,
-  } as ElicitGraphState;
-}
+import { createMockState, makeSubProblem } from '@/__tests__/helpers/mockState';
 
 // 包含卡住关键词的用户消息
 const stuckMessages = [
@@ -130,5 +100,33 @@ describe('stuckGuard', () => {
       })],
     });
     expect(stuckGuard(state)).toBeNull();
+  });
+
+  // ── 多阶段覆盖（PLAN / EXECUTE）────────────────────────────────
+
+  it('PLAN 阶段 stuckCount >= 3 + 关键词命中 → PROBE_5Q', () => {
+    const state = createMockState({
+      currentPhase: PolyaPhase.PLAN,
+      messages: stuckMessages,
+      subProblems: [makeSubProblem({
+        stuckCountPerPhase: { understand: 0, plan: 3, execute: 0, review: 0 },
+        probedQuestionIds: [],
+      })],
+    });
+    const action = stuckGuard(state);
+    expect(action?.kind).toBe('PROBE_5Q');
+  });
+
+  it('EXECUTE 阶段 stuckCount >= 3 + 关键词命中 → PROBE_5Q', () => {
+    const state = createMockState({
+      currentPhase: PolyaPhase.EXECUTE,
+      messages: stuckMessages,
+      subProblems: [makeSubProblem({
+        stuckCountPerPhase: { understand: 0, plan: 0, execute: 4, review: 0 },
+        probedQuestionIds: [],
+      })],
+    });
+    const action = stuckGuard(state);
+    expect(action?.kind).toBe('PROBE_5Q');
   });
 });

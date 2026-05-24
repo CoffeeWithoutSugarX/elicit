@@ -1,9 +1,4 @@
-// elicit_messages 的 Drizzle schema 镜像。
-// 用途：类型派生 + ADR 漂移检测。
-// 运行时查询走浏览器侧 Supabase 客户端，不经此 schema。
-//
-// 注意：此表字段语义与 conversations 不同，不展开 commonAuditFields，
-// 所有字段单独声明（见 doc §7.3.1）。
+// Drizzle mirror for elicit_messages — type derivation only, not runtime; fields declared individually (not commonAuditFields)
 import {
     pgTable,
     bigint,

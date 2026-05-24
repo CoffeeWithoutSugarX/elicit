@@ -6,7 +6,7 @@ import { PolyaPhase, PolyaPhaseEnum } from '@/types/enums/polyaPhase.enum';
 
 // ---------- 关键词加载 ----------
 const _deviationJson = JSON.parse(
-  readFileSync(join(process.cwd(), 'src/agents/data/deviation-keywords.json'), 'utf-8'),
+  readFileSync(join(__dirname, '../../data/deviation-keywords.json'), 'utf-8'),
 ) as {
   giveAnswer:          string[];
   offTopic:            string[];
@@ -54,7 +54,7 @@ export function deviationGuard(state: ElicitGraphState): DeviationAction | null 
     const phaseLabel = PolyaPhaseEnum.getLabel(phase);
     return {
       kind:           'PULL_BACK',
-      injectPrompt:   `[系统提示] 同学似乎跑题了。请温和地把话题拉回到当前「${phaseLabel}」阶段的数学题。`,
+      injectPrompt:   `[系统提示] 这个我们等会再聊，先把这题搞定？你刚才在【${phaseLabel}】这一步。`,
       pulledFromPhase: phase,
     };
   }
@@ -64,23 +64,29 @@ export function deviationGuard(state: ElicitGraphState): DeviationAction | null 
     const isGivingAnswer = GIVE_ANSWER_KEYWORDS.some(kw => text.includes(kw));
     if (isGivingAnswer) {
       const phaseLabel = PolyaPhaseEnum.getLabel(phase);
+      const snippet = text.slice(0, 20);
       return {
         kind:           'PULL_BACK',
-        injectPrompt:   `[系统提示] 同学试图直接给出答案。请提醒她先完成「${phaseLabel}」阶段，引导她自己思考。`,
+        injectPrompt:   `[系统提示] 等等，我们先停一下。我们刚才在【${phaseLabel}】这一步，你刚才说的【${snippet}】是怎么想到的？`,
         pulledFromPhase: phase,
       };
     }
   }
 
-  // 检查 crossPhasePatterns（任何阶段均触发，防止直接列算式跳过思考）
-  const isCrossPhase = CROSS_PHASE_PATTERNS.some(re => re.test(text));
-  if (isCrossPhase) {
-    const phaseLabel = PolyaPhaseEnum.getLabel(phase);
-    return {
-      kind:           'PULL_BACK',
-      injectPrompt:   `[系统提示] 同学似乎跳过了当前「${phaseLabel}」阶段直接计算。请引导她先完成本阶段再推进。`,
-      pulledFromPhase: phase,
-    };
+  // 检查 crossPhasePatterns — 仅在 UNDERSTAND(0) 和 PLAN(1) 阶段触发
+  // 详设 §5.4：CROSS_PHASE = 当前 currentPhase ≤ PLAN 但 user 给出 EXECUTE 阶段才该有的内容
+  // 在 EXECUTE/REVIEW 阶段，用户输入算式属于正常行为，不应拦截
+  if (phase === PolyaPhase.UNDERSTAND || phase === PolyaPhase.PLAN) {
+    const isCrossPhase = CROSS_PHASE_PATTERNS.some(re => re.test(text));
+    if (isCrossPhase) {
+      const phaseLabel = PolyaPhaseEnum.getLabel(phase);
+      const snippet = text.slice(0, 20);
+      return {
+        kind:           'PULL_BACK',
+        injectPrompt:   `[系统提示] 等等，我们先停一下。我们刚才在【${phaseLabel}】这一步，你刚才说的【${snippet}】是怎么想到的？`,
+        pulledFromPhase: phase,
+      };
+    }
   }
 
   return null;

@@ -17,7 +17,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "check": "pnpm typecheck && pnpm lint",
-    "verify": "pnpm check"
+    "verify": "pnpm check && pnpm test"
   },
   "dependencies": {
     "@ai-sdk/langchain": "^2.0.73",

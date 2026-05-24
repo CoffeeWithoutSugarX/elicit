@@ -1,24 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { HumanMessage } from '@langchain/core/messages';
-import { type ElicitGraphState } from '@/agents/schemas/ElicitGraphStateSchema';
 import { outOfScopeGuard } from '@/agents/nodes/algorithm/outOfScopeGuard';
-import { PolyaPhase } from '@/types/enums/polyaPhase.enum';
-
-// ── 辅助构造器 ──────────────────────────────────────────────────
-
-function createMockState(overrides: Partial<ElicitGraphState>): ElicitGraphState {
-  return {
-    messages: [],
-    userId: '00000000-0000-0000-0000-000000000001',
-    conversationId: '00000000-0000-0000-0000-000000000002',
-    hasResolved: true,
-    currentPhase: PolyaPhase.UNDERSTAND,
-    lastDeviationAt: null,
-    subProblems: [],
-    currentSubProblemIndex: 0,
-    ...overrides,
-  } as ElicitGraphState;
-}
+import { createMockState } from '@/__tests__/helpers/mockState';
 
 describe('outOfScopeGuard', () => {
   // ── 基于 ocrResult.subject 的判断 ─────────────────────────────
