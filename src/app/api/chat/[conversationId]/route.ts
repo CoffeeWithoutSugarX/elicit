@@ -16,6 +16,7 @@ export const POST = withAuth(async (request, {params, user}) => {
             messages: [new HumanMessage(body.message)],
             userId: user.id,
             conversationId: conversationId,
+            questionImgUrl: body.imgUrl,  // 透传图片 URL 供 VisionNode / OcrNode 使用
         },
         {
             streamMode: ["values", "messages", "custom"],

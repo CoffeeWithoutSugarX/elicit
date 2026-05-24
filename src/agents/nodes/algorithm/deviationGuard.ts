@@ -6,7 +6,7 @@ import { PolyaPhase, PolyaPhaseEnum } from '@/types/enums/polyaPhase.enum';
 
 // ---------- 关键词加载 ----------
 const _deviationJson = JSON.parse(
-  readFileSync(join(__dirname, '../../data/deviation-keywords.json'), 'utf-8'),
+  readFileSync(join(process.cwd(), 'src', 'agents', 'data', 'deviation-keywords.json'), 'utf-8'),
 ) as {
   giveAnswer:          string[];
   offTopic:            string[];

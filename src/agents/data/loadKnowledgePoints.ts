@@ -9,7 +9,7 @@ export interface KnowledgePoint {
   textbookRef: string;
 }
 
-const csvPath = join(__dirname, 'knowledge-points.csv');
+const csvPath = join(process.cwd(), 'src', 'agents', 'data', 'knowledge-points.csv');
 const raw = readFileSync(csvPath, 'utf-8').replace(/^﻿/, '');
 
 export const knowledgePoints: ReadonlyArray<KnowledgePoint> = raw

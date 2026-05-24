@@ -103,3 +103,4 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 ### 已登记的测试目录
 
 - `src/__tests__/` — L3 单元测试（Phase 2 起启用，vitest + `@/` 别名）
+- `src/__tests__/agents/nodes/phases/` — Phase 节点单元测试（ClassifyNode 等）

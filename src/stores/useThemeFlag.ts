@@ -1,14 +1,13 @@
 import {create} from "zustand";
 
+// MVP 阶段仅支持简约白（minimal）主题，无需主题切换
 type ThemeFlag = {
     isDark: boolean,
     themeToggle: () => void
 }
 
-export const useThemeFlag = create<ThemeFlag>((set) => ({
+export const useThemeFlag = create<ThemeFlag>(() => ({
     isDark: false,
-    themeToggle: () => set((state) => {
-        document.documentElement.classList.toggle("dark", !state.isDark);
-        return {isDark: !state.isDark}
-    })
+    // MVP 光模式固定，themeToggle 为空操作
+    themeToggle: () => {},
 }))
