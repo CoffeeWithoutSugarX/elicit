@@ -3,13 +3,14 @@
  * 子路由通过 Outlet 渲染（react-router v7）。
  * Batch 3：Sidebar 接 mock/conversations.ts 真实 mock 数据。
  */
-import { Outlet, useNavigate, useParams } from 'react-router'
+import { Outlet, useNavigate } from 'react-router'
+import { usePreviewStore } from '@/stores/usePreviewStore'
 import { Sidebar } from '@/components/Sidebar'
 import { MOCK_CONVERSATIONS } from '@/mock/conversations'
 
 export function ChatLayout() {
   const navigate = useNavigate()
-  const { scenarioId } = useParams<{ scenarioId: string }>()
+  const scenarioId = usePreviewStore((s) => s.scenarioId)
 
   // 将 mock 会话数据转换为 Sidebar 所需格式
   const conversations = MOCK_CONVERSATIONS.map((c) => ({

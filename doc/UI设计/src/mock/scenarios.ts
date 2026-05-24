@@ -1,11 +1,18 @@
 /**
  * Scenario 注册表。
- * 17 个 scenario，按 SPEC §4 表覆盖全部 PRD 分支。
+ * 18 个 scenario，按 SPEC §4 表覆盖全部 PRD 分支。
  * Batch 3：所有 16 个 stub 已填实，import 各 fixture 文件。
+ * v0.1.1：新增 p104-full-flow（4 阶段完整 happy path）
  */
 import type { Scenario } from './types'
 
 // ── 已完整填充的 fixture imports ────────────────────────────────────────────
+
+import {
+  initialConversation as p104FullFlowConv,
+  initialMessages as p104FullFlowMsgs,
+  responses as p104FullFlowResponses,
+} from './messages/p104-full-flow'
 
 import {
   initialConversation as p104StuckConv,
@@ -169,6 +176,17 @@ export const SCENARIOS: Record<string, Scenario> = {
   },
 
   // ── polya ────────────────────────────────────────
+  'p104-full-flow': {
+    id: 'p104-full-flow',
+    group: 'polya',
+    label: 'P-104 4 阶段 happy path',
+    prdAnchor: '阶段①②③④ happy path 完整演进 / G2 验收',
+    route: '/chat/p104-full-flow',
+    initialConversation: p104FullFlowConv,
+    initialMessages: p104FullFlowMsgs,
+    responses: p104FullFlowResponses,
+  },
+
   'p104-understand-oos': {
     id: 'p104-understand-oos',
     group: 'polya',

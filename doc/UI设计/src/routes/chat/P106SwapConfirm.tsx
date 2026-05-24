@@ -4,7 +4,7 @@
  * 对应 PRD P-106 / US-016（换题流程）。
  */
 import { useEffect } from 'react'
-import { useParams } from 'react-router'
+import { usePreviewStore } from '@/stores/usePreviewStore'
 import { useConversationStore } from '@/stores/useConversationStore'
 import { SCENARIOS } from '@/mock/scenarios'
 import { ChatBubble } from '@/components/ChatBubble'
@@ -13,7 +13,7 @@ import { cn } from '@/lib/classNames'
 import { useState } from 'react'
 
 export function P106SwapConfirm() {
-  const { scenarioId } = useParams<{ scenarioId: string }>()
+  const scenarioId = usePreviewStore((s) => s.scenarioId)
   const { conversation, messages, loadScenario } = useConversationStore()
 
   const [overlayOpen, setOverlayOpen] = useState(true)

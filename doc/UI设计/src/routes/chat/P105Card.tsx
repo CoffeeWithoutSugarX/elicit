@@ -4,7 +4,7 @@
  * 对应 PRD P-105 知识点卡片。
  */
 import { useEffect } from 'react'
-import { useParams } from 'react-router'
+import { usePreviewStore } from '@/stores/usePreviewStore'
 import { useConversationStore } from '@/stores/useConversationStore'
 import { SCENARIOS } from '@/mock/scenarios'
 import { KnowledgeCard } from '@/components/KnowledgeCard'
@@ -19,7 +19,7 @@ function buildNodes(msgs: Message[]) {
 }
 
 export function P105Card() {
-  const { scenarioId } = useParams<{ scenarioId: string }>()
+  const scenarioId = usePreviewStore((s) => s.scenarioId)
   const {
     conversation,
     messages,

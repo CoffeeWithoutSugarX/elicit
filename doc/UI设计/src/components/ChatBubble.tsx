@@ -4,8 +4,8 @@
  * isStreaming=true 时在尾部显示块状光标（▍，ink-deep 色闪烁）。
  *
  * 设计：
- * - user：右对齐，bg-paper-deep，无 border / shadow，rounded-lg
- * - agent：左对齐，无背景，左侧 2px ink-deep 细线，pl-4
+ * - user：右对齐，bg-paper-deep 圆角软包 + 右侧 32px 浅灰头像（衬线"妹"），无 border / shadow
+ * - agent：左对齐，32px 圆形水墨头像（衬线"引"）+ 右侧纯文字内容，无气泡背景
  * - system：居中纯文字，无气泡
  */
 import { Fragment } from 'react'
@@ -66,11 +66,13 @@ function PhaseBadge({ message }: { message: Message }) {
 
   return (
     <div
-      className="mb-1 text-ink-muted"
+      className="inline-flex items-center mb-1.5 text-ink-muted rounded"
       style={{
-        fontSize: '10px',
-        fontFamily: 'var(--font-mono)',
-        letterSpacing: '0.06em',
+        fontSize: '11px',
+        fontFamily: 'var(--font-display)',
+        letterSpacing: '0.04em',
+        backgroundColor: 'color-mix(in srgb, var(--color-ink-line) 40%, transparent)',
+        padding: '2px 8px',
       }}
     >
       {badgeText}
@@ -100,7 +102,8 @@ export function ChatBubble({ message, isStreaming }: Props) {
 
   if (isUser) {
     return (
-      <div className="group flex w-full my-2.5 justify-end">
+      <div className="group flex w-full my-6 justify-end items-start gap-3">
+        {/* 气泡内容区：浅灰 paper-deep 圆角软包，max-w-[78%] 保留 */}
         <div className="relative max-w-[78%]">
           <div
             className="px-4 py-3 text-base leading-relaxed rounded-lg"
@@ -128,18 +131,63 @@ export function ChatBubble({ message, isStreaming }: Props) {
             </div>
           ) : null}
         </div>
+        {/* 32px 圆形用户头像，右侧，浅灰底 + 深墨字（与 agent 头像反色对称） */}
+        <div
+          className="flex-shrink-0 flex items-center justify-center rounded-full"
+          style={{
+            width: 32,
+            height: 32,
+            backgroundColor: 'var(--color-paper-deep)',
+            border: '1px solid var(--color-ink-line)',
+          }}
+          aria-hidden
+        >
+          <span
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '16px',
+              fontWeight: 500,
+              lineHeight: 1,
+              color: 'var(--color-ink-deep)',
+            }}
+          >
+            妹
+          </span>
+        </div>
       </div>
     )
   }
 
-  // agent 气泡：无背景，左侧 2px 细线
+  // agent 气泡：32px 圆形水墨头像（衬线"引"）+ 右侧纯文字内容，无气泡背景
   return (
-    <div className="group flex w-full my-2.5 justify-start">
-      <div className="relative max-w-[78%]">
-        <div
-          className="pl-4 pr-4 py-2 text-base leading-relaxed"
+    <div className="group flex w-full my-6 justify-start items-start gap-3">
+      {/* 32px 圆形头像，固定水墨色 */}
+      <div
+        className="flex-shrink-0 flex items-center justify-center rounded-full"
+        style={{
+          width: 32,
+          height: 32,
+          backgroundColor: 'var(--color-ink-deep)',
+        }}
+        aria-hidden
+      >
+        <span
           style={{
-            borderLeft: '2px solid var(--color-ink-deep)',
+            fontFamily: 'var(--font-display)',
+            fontSize: '16px',
+            fontWeight: 500,
+            lineHeight: 1,
+            color: 'var(--color-paper-surface)',
+          }}
+        >
+          引
+        </span>
+      </div>
+      {/* 右侧内容区：纯文字，无背景无边框 */}
+      <div className="relative flex-1 min-w-0 py-1">
+        <div
+          className="text-base leading-relaxed"
+          style={{
             color: 'var(--color-ink-primary)',
             fontFamily: 'var(--font-body)',
           }}

@@ -79,7 +79,7 @@
 
 ---
 
-## 4. 14 个 Scenario 清单 → PRD 锚点
+## 4. 18 个 Scenario 清单 → PRD 锚点
 
 | #   | scenario id              | PRD 锚点                  | 关键 UI 元素 / 分支要点                                                 |
 | --- | ------------------------ | ------------------------- | ------------------------------------------------------------------------ |
@@ -88,20 +88,21 @@
 | 3   | `p102-upload`            | P-102 / US-001 / US-002   | 「拍照」「相册」二选一 + 预览 + 确认 / 取消                                |
 | 4   | `p103-multi`             | P-103 / US-004 / US-005   | 多题列表 LaTeX 渲染 + 单选 + 「识别错误」回 P-102                          |
 | 5   | `p103-single`            | P-103                     | 单题直接进确认                                                            |
-| 6   | `p104-understand-oos`    | 阶段① + US-014            | 学科外礼貌拒答兜底 + 单 / 多问顶栏切换                                    |
-| 7   | `p104-plan-deviation`    | 阶段② + US-008            | DeviationGuard 引回话术                                                   |
-| 8   | `p104-execute-stuck`     | 阶段③ + US-009 + B4 双层  | 卡死 5 问探路 + KNOWLEDGE_FALLBACK 升级 + `insightPoints` 增长动效        |
-| 9   | `p104-execute-multi-sub` | 阶段③ B4                  | 多 subProblem 顺序推进 + `sub_problem_changed` 顶栏切换                   |
-| 10  | `p104-review`            | 阶段④                     | 多 subProblem 汇总过场                                                    |
-| 11  | `p105-card-done`         | P-105 全 done             | 完整知识点卡片 + 「再来一题」                                              |
-| 12  | `p105-card-partial`      | P-105 partial blocked     | 含「未突破」徽标的卡片形态                                                |
-| 13  | `p106-swap`              | P-106 / US-016            | 换题确认浮层 + 「换一道」「取消」                                          |
-| 14  | `history-resume`         | US-010 / US-017           | 图片按钮置灰 + 历史消息恢复                                                |
-| 15  | `long-conversation`      | PRD §10 (≥ 50 轮)         | 顶栏「对话已较长」警示                                                    |
-| 16  | `admin-list`             | US-015                    | `/admin` 跨用户只读列表                                                   |
-| 17  | `admin-detail`           | US-015                    | 单会话只读详情 + 不脱敏（P9）                                              |
+| 6   | `p104-full-flow`         | 阶段①②③④ happy path 完整演进 / G2 验收 | 4 阶段 stepper 逐个推进；一元一次方程单小问；UNDERSTAND→PLAN→EXECUTE→REVIEW 全程可观察 |
+| 7   | `p104-understand-oos`    | 阶段① + US-014            | 学科外礼貌拒答兜底 + 单 / 多问顶栏切换                                    |
+| 8   | `p104-plan-deviation`    | 阶段② + US-008            | DeviationGuard 引回话术                                                   |
+| 9   | `p104-execute-stuck`     | 阶段③ + US-009 + B4 双层  | 卡死 5 问探路 + KNOWLEDGE_FALLBACK 升级 + `insightPoints` 增长动效        |
+| 10  | `p104-execute-multi-sub` | 阶段③ B4                  | 多 subProblem 顺序推进 + `sub_problem_changed` 顶栏切换                   |
+| 11  | `p104-review`            | 阶段④                     | 多 subProblem 汇总过场                                                    |
+| 12  | `p105-card-done`         | P-105 全 done             | 完整知识点卡片 + 「再来一题」                                              |
+| 13  | `p105-card-partial`      | P-105 partial blocked     | 含「未突破」徽标的卡片形态                                                |
+| 14  | `p106-swap`              | P-106 / US-016            | 换题确认浮层 + 「换一道」「取消」                                          |
+| 15  | `history-resume`         | US-010 / US-017           | 图片按钮置灰 + 历史消息恢复                                                |
+| 16  | `long-conversation`      | PRD §10 (≥ 50 轮)         | 顶栏「对话已较长」警示                                                    |
+| 17  | `admin-list`             | US-015                    | `/admin` 跨用户只读列表                                                   |
+| 18  | `admin-detail`           | US-015                    | 单会话只读详情 + 不脱敏（P9）                                              |
 
-> 范围确认：17 个 scenario（之前口算 14 个偏低，按 PRD 完整覆盖应为 17 个）。DevToolbar 切换面板按 4 组分类：登录 / 上传 OCR / Pólya 阶段 / 卡片与浮层 / Admin。
+> 范围确认：18 个 scenario（v0.1 原 17 个 + v0.1.1 补 p104-full-flow happy path）。DevToolbar 切换面板按 4 组分类：登录 / 上传 OCR / Pólya 阶段 / 卡片与浮层 / Admin。
 
 ---
 
@@ -373,3 +374,4 @@ type AgentResponse = {
 | v0.1.1 | 2026-05-21 | Claude | Batch 1 落地反馈：§5 目录树补 `pnpm-workspace.yaml`（切断主项目 workspace 上溯）+ `.npmrc`（registry 锁 npmmirror）+ `tsconfig.app.json`（Vite 6 分层）。`@vitejs/plugin-react` 锁 `^5`（与 Vite 6.x 兼容；`@latest` 会装到 6.x 需要 Vite 7） |
 | v0.1.2 | 2026-05-22 | Claude | Batch 2 视觉重设计：美学方向从"暖橙学习风"切到"数学笔记本 × 编辑式"。装 3 个字体包（Fraunces Variable / IBM Plex Sans / IBM Plex Mono），重写 globals.css 主题 token（paper-* / ink-* / vermilion / 4 阶段色 / 5 信号色），重写 theme.ts TS 镜像。§5 目录树新增 `src/components/SectionDivider.tsx` + `src/lib/numerals.ts`（罗马数字工具）。10 个差异化视觉细节落地：方格本背景 / SVG noise overlay / 罗马数字题号 / 章节分隔 ※ / 气泡纸条角微旋转 / 阶段 Badge 1px 左竖线 / InsightPoint 朱砂下划线 / KnowledgeCard drop-cap + ≡ 装饰 / DevToolbar 便签夹 / 钢笔尖 ✎ 流式光标 |
 | v0.1.3 | 2026-05-22 | Claude | 5 主题系统 + 拍照视图 inline 化 + OCR 结果改对话流消息。①globals.css 重构为 5 [data-theme] 块（warm-ai 为默认不挂 attr）；theme.ts 新增 `themeTokens` Record；usePreviewStore 新增 `theme` 字段 + `setTheme`；DevToolbar 新增 Theme 切换区（5 个按钮）；SectionDivider 双态（※ / 细横线）；lib/themeAware.ts 新增 `getQuestionLabel(i, theme)`；②新建 CameraView.tsx（inline 全屏，取景框 + 快门 + 相册 grid + 预览），删除 P102Upload.tsx overlay 浮层，ImageButton 图标 ImagePlus→Camera；③新建 OcrResultMessage.tsx（对话流 agent 卡片：原图缩略 + 多题 tab + LaTeX + 识别错误/确认），P103MultiQuestion + P103SingleQuestion 改为对话流容器展示。|
+| v0.1.4 | 2026-05-22 | Claude | 补 Pólya 4 阶段 stepper + p104-full-flow scenario。①PolyaTopBar.tsx 在中层"小问/阶段名"行上方新增 4 阶段横向 stepper（8~10px 圆点 + 1px 连线 + 衬线阶段名小字，3 态：已完成打✓/实心色、当前阶段高亮 ring、未到达灰色空心）；②新增 p104-full-flow fixture（一元一次方程 $3x-7=2(x+4)$，10 轮对话，4 阶段完整演进，2 个 insightPoint + emitKnowledgeCard）；③scenarios.ts / App.tsx / SPEC.md 同步更新至 18 个 scenario。 |

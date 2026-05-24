@@ -4,11 +4,14 @@
  * 会话列表按时间分组（今天 / 昨天 / 本周 / 更早），双行布局（标题 + 副标题）。
  * 底部固定用户区（首字母头像 + 邮箱 + 设置图标）。
  */
+import type React from 'react'
 import { Plus, Settings } from 'lucide-react'
 import { cn } from '@/lib/classNames'
 import { formatRelativeTime } from '@/lib/relativeTime'
 import { PHASE_LABEL } from '@/styles/theme'
 import type { PolyaPhase } from '@/mock/types'
+import { parseLatexSegments } from '@/lib/katexHelpers'
+import { LatexRender } from './LatexRender'
 
 interface ConversationListItem {
   id: string
@@ -67,6 +70,20 @@ function groupConversations(conversations: ConversationListItem[]): GroupedConve
     label,
     items: map.get(label) ?? [],
   })).filter((g) => g.items.length > 0)
+}
+
+/**
+ * 将含 $...$ 的标题/副标题字符串渲染为 React 节点序列。
+ * 块级 $$...$$ 在侧边栏单行场景没有意义，统一按 inline 处理。
+ */
+function renderTitleWithLatex(text: string): React.ReactNode {
+  const segments = parseLatexSegments(text)
+  return segments.map((seg, idx) => {
+    if (seg.type === 'latex-inline' || seg.type === 'latex-block') {
+      return <LatexRender key={idx} tex={seg.content} display="inline" />
+    }
+    return <span key={idx}>{seg.content}</span>
+  })
 }
 
 /** 邮箱前缀首字母大写 */
@@ -222,7 +239,7 @@ export function Sidebar({
                               fontWeight: active ? 500 : 400,
                             }}
                           >
-                            {c.title}
+                            {renderTitleWithLatex(c.title)}
                           </div>
                           {/* 第二行：副标题 */}
                           {subtitle ? (
@@ -233,7 +250,7 @@ export function Sidebar({
                                 color: 'var(--color-ink-muted)',
                               }}
                             >
-                              {subtitle}
+                              {renderTitleWithLatex(subtitle)}
                             </div>
                           ) : null}
                         </button>

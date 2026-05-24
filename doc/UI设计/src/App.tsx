@@ -1,7 +1,8 @@
 /**
  * 应用路由表 — Batch 3 全部路由（Batch 4 主题系统更新）。
- * 17 scenario 全覆盖：auth / upload / polya / card-overlay / admin。
+ * 18 scenario 全覆盖：auth / upload / polya / card-overlay / admin。
  * Batch 4：新增 5 主题系统，App 挂载时初始化 data-theme。
+ * v0.1.1：新增 p104-full-flow 路由（4 阶段 happy path，stepper 视觉验收）。
  */
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router'
@@ -210,13 +211,6 @@ export function App() {
           <Route path="p103-multi" element={<P103MultiQuestion />} />
           <Route path="p103-single" element={<P103SingleQuestion />} />
 
-          {/* Pólya 四阶段（4 个 scenario 共用 P104Phase，由 useParams scenarioId 区分） */}
-          <Route path="p104-understand-oos" element={<P104Phase />} />
-          <Route path="p104-plan-deviation" element={<P104Phase />} />
-          <Route path="p104-execute-stuck" element={<P104Phase />} />
-          <Route path="p104-execute-multi-sub" element={<P104Phase />} />
-          <Route path="p104-review" element={<P104Phase />} />
-
           {/* 知识卡片（2 个 scenario 共用 P105Card） */}
           <Route path="p105-card-done" element={<P105Card />} />
           <Route path="p105-card-partial" element={<P105Card />} />
@@ -230,7 +224,7 @@ export function App() {
           {/* 长对话（超 50 条消息） */}
           <Route path="long-conversation" element={<LongConversation />} />
 
-          {/* 通配：旧版 :scenarioId 路由兜底（保持向后兼容） */}
+          {/* Pólya 四阶段（所有 p104-* scenario 共用 P104Phase，通过 useParams scenarioId 取值） */}
           <Route path=":scenarioId" element={<P104Phase />} />
         </Route>
 
