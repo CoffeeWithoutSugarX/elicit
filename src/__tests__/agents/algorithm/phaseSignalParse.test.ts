@@ -92,4 +92,13 @@ describe('phaseSignalParse', () => {
     expect(result.cleanContent).not.toContain('probed_question_id');
     expect(result.cleanContent).not.toContain('phase_signal');
   });
+
+  it('非协议行夹在协议行之间时，只剔除尾部连续协议行', () => {
+    const raw = '主要内容\nphase_signal: "STAY"\n一些正常文本\nprobed_question_id: 2';
+    const result = phaseSignalParse(raw);
+    // 只有尾部的 probed_question_id 行被剔除（连续协议行到第一个非协议行为止）
+    expect(result.cleanContent).toContain('一些正常文本');
+    expect(result.cleanContent).toContain('phase_signal');
+    expect(result.probedQuestionId).toBe(2);
+  });
 });

@@ -65,7 +65,7 @@ export function stuckGuard(state: ElicitGraphState): StuckAction | null {
     };
   }
 
-  const usedIds    = subProblem.probedQuestionIds as number[];
+  const usedIds    = subProblem.probedQuestionIdsPerPhase[phaseKey] as number[];
   const allIds     = [1, 2, 3, 4, 5] as const;
   const unusedIds  = allIds.filter(id => !usedIds.includes(id));
 

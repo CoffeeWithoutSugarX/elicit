@@ -24,7 +24,7 @@ export function makeSubProblem(overrides: Partial<SubProblemState> = {}): SubPro
     status: 'pending',
     insightPoints: [],
     stuckCountPerPhase: { understand: 0, plan: 0, execute: 0, review: 0 },
-    probedQuestionIds: [],
+    probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
     ...overrides,
   };
 }

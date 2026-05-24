@@ -60,6 +60,9 @@ export function phaseSignalParse(rawContent: string): PhaseSignalParseResult {
       dropLineCount = Math.max(dropLineCount, i + 1);
       continue;
     }
+
+    // 遇到非协议行则停止扫描，避免跳过中间内容
+    break;
   }
 
   const signal = signals.length > 0

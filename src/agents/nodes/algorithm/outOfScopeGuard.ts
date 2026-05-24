@@ -21,6 +21,10 @@ export function outOfScopeGuard(state: ElicitGraphState): boolean {
   if (state.ocrResult && 'subject' in state.ocrResult && state.ocrResult.subject !== 'math') {
     return true;
   }
+  // OCR 确认是数学题 → 直接放行，不再走关键词回退
+  if (state.ocrResult && 'subject' in state.ocrResult) {
+    return false;
+  }
 
   // OCR 结果缺失时，退化为关键词匹配最近一条用户消息
   const lastUserMsg = [...state.messages]

@@ -44,6 +44,33 @@ describe('outOfScopeGuard', () => {
     expect(outOfScopeGuard(state)).toBe(false);
   });
 
+  it('ocrResult.subject="math" + 消息含非数学关键词 → 仍在范围内（返回 false）', () => {
+    const state = createMockState({
+      ocrResult: {
+        isSolvable: true,
+        subject: 'math',
+        grade: '初中',
+        questions: [{
+          index: 0,
+          topic: '代数',
+          latexFull: 'x+1=2',
+          givenConditions: [],
+          implicitConditions: [],
+          goal: '求 x',
+          milestones: [],
+          visualFeaturesNeeded: false,
+          visualDescription: '',
+          subProblems: [{ index: 0, goal: '求 x', givenConditions: [], milestones: [] }],
+        }],
+        isMulti: false,
+        visualFeaturesNeeded: false,
+        errorReason: null,
+      },
+      messages: [new HumanMessage('这道英语翻译的数学题怎么做')],
+    });
+    expect(outOfScopeGuard(state)).toBe(false);
+  });
+
   // ── 无 ocrResult 时退化为关键词匹配 ──────────────────────────
 
   it('无 ocrResult + 消息含"英语题" → 超出范围（返回 true）', () => {

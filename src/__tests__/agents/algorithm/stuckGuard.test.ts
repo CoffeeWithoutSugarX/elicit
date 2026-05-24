@@ -32,7 +32,7 @@ describe('stuckGuard', () => {
       messages: stuckMessages,
       subProblems: [makeSubProblem({
         stuckCountPerPhase: { understand: 3, plan: 0, execute: 0, review: 0 },
-        probedQuestionIds: [],
+        probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
       })],
     });
     const action = stuckGuard(state);
@@ -47,7 +47,7 @@ describe('stuckGuard', () => {
       messages: stuckMessages,
       subProblems: [makeSubProblem({
         stuckCountPerPhase: { understand: 3, plan: 0, execute: 0, review: 0 },
-        probedQuestionIds: [1, 2],
+        probedQuestionIdsPerPhase: { understand: [1, 2], plan: [], execute: [], review: [] },
       })],
     });
     const action = stuckGuard(state);
@@ -62,7 +62,7 @@ describe('stuckGuard', () => {
       messages: stuckMessages,
       subProblems: [makeSubProblem({
         stuckCountPerPhase: { understand: 3, plan: 0, execute: 0, review: 0 },
-        probedQuestionIds: [1, 2, 3, 4, 5],
+        probedQuestionIdsPerPhase: { understand: [1, 2, 3, 4, 5], plan: [], execute: [], review: [] },
       })],
     });
     const action = stuckGuard(state);
@@ -79,7 +79,7 @@ describe('stuckGuard', () => {
           index: 0,
           status: 'blocked',
           stuckCountPerPhase: { understand: 3, plan: 0, execute: 0, review: 0 },
-          probedQuestionIds: [],
+          probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
         }),
         makeSubProblem({ index: 1, status: 'blocked' }),
       ],
@@ -96,7 +96,7 @@ describe('stuckGuard', () => {
       messages: [new HumanMessage('这道题很有趣'), new AIMessage('你思考一下')],
       subProblems: [makeSubProblem({
         stuckCountPerPhase: { understand: 5, plan: 0, execute: 0, review: 0 },
-        probedQuestionIds: [],
+        probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
       })],
     });
     expect(stuckGuard(state)).toBeNull();
@@ -110,7 +110,7 @@ describe('stuckGuard', () => {
       messages: stuckMessages,
       subProblems: [makeSubProblem({
         stuckCountPerPhase: { understand: 0, plan: 3, execute: 0, review: 0 },
-        probedQuestionIds: [],
+        probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
       })],
     });
     const action = stuckGuard(state);
@@ -123,10 +123,31 @@ describe('stuckGuard', () => {
       messages: stuckMessages,
       subProblems: [makeSubProblem({
         stuckCountPerPhase: { understand: 0, plan: 0, execute: 4, review: 0 },
-        probedQuestionIds: [],
+        probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
       })],
     });
     const action = stuckGuard(state);
     expect(action?.kind).toBe('PROBE_5Q');
+  });
+
+  it('UNDERSTAND 阶段用尽 5 问后，PLAN 阶段重新从 id=1 开始探路', () => {
+    const state = createMockState({
+      currentPhase: PolyaPhase.PLAN,
+      messages: stuckMessages,
+      subProblems: [makeSubProblem({
+        stuckCountPerPhase: { understand: 5, plan: 3, execute: 0, review: 0 },
+        probedQuestionIdsPerPhase: {
+          understand: [1, 2, 3, 4, 5],
+          plan: [],
+          execute: [],
+          review: [],
+        },
+      })],
+    });
+    const action = stuckGuard(state);
+    expect(action?.kind).toBe('PROBE_5Q');
+    if (action?.kind === 'PROBE_5Q') {
+      expect(action.nextQuestionId).toBe(1);
+    }
   });
 });

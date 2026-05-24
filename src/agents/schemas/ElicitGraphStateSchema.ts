@@ -38,7 +38,14 @@ const SubProblemStateSchema = z.object({
     stuckCountPerPhase: StuckCountSchema.default(() => ({
         understand: 0, plan: 0, execute: 0, review: 0,
     })),
-    probedQuestionIds:  z.array(z.number().int().min(1).max(5)).default(() => []),
+    probedQuestionIdsPerPhase: z.object({
+        understand: z.array(z.number().int().min(1).max(5)).default(() => []),
+        plan:       z.array(z.number().int().min(1).max(5)).default(() => []),
+        execute:    z.array(z.number().int().min(1).max(5)).default(() => []),
+        review:     z.array(z.number().int().min(1).max(5)).default(() => []),
+    }).default(() => ({
+        understand: [], plan: [], execute: [], review: [],
+    })),
 });
 
 export const ElicitGraphStateSchema = z.object({
