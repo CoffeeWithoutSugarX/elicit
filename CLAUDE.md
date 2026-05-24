@@ -99,3 +99,7 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 - **subagent prompt 模版必须包含**："禁止编写仅为提升覆盖率的无效断言；完成后跑 `pnpm verify` 全绿才返回"
 
 新建任何 `tests/` 顶层目录 / `src/__tests__/` / `src/agents/demo/` 等，必须先在本文件登记。
+
+### 已登记的测试目录
+
+- `src/__tests__/` — L3 单元测试（Phase 2 起启用，vitest + `@/` 别名）
