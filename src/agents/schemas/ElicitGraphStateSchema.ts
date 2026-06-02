@@ -55,7 +55,7 @@ export const ElicitGraphStateSchema = z.object({
     }),
     userId:         z.string().uuid(),
     conversationId: z.string().uuid(),
-    questionImgUrl: z.string().url().optional(),
+    questionImgUrl: z.string().optional(),
     hasResolved:    z.boolean().default(false),
     ocrResult:      OcrSchema.optional(),
 

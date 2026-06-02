@@ -20,6 +20,8 @@ type ConversationStore = {
     tempConversationId: string;
     isStreaming: boolean;
     isWaitingFirstChunk: boolean;
+    draftMessage: { text: string; imgUrl?: string } | null;  // 失败回填
+    sendError: string | null;                                  // 错误提示
 
     // Polya 解题流程状态
     currentPhase: number;              // PolyaPhase 枚举值，默认 0 = UNDERSTAND
@@ -38,6 +40,7 @@ type ConversationStore = {
     loadAllConversation: () => Promise<boolean>;
     confirmSelectedQuestion: (index: number) => Promise<void>;
     resetForNewConversation: () => void;
+    clearSendError: () => void;                                // 清除错误
 }
 
 export type ChunkMessage = {
@@ -60,6 +63,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
     chatMessages.push(defaultMessage);
 
     const setCurrentConversationId = async (id: string) => {
+        // 已是当前激活会话：不重载、不用 DB 覆盖内存中的乐观消息（修复发消息时用户气泡被冲掉的竞态）
+        if (id !== "" && id === get().currentConversationId) return;
         set({currentConversationId: id});
         if (id === "") {
             set({chatMessages: [defaultMessage]});
@@ -100,7 +105,10 @@ export const useConversation = create<ConversationStore>((set, get) => {
             const legacyTitle  = data.title as string | undefined;
             if (legacyConvId && legacyTitle && legacyConvId === get().currentConversationId) {
                 set({chatConversation: [new ChatConversationProps(legacyConvId, legacyTitle), ...get().chatConversation]});
-                await insertChatMessageRequest(get().chatMessages[get().chatMessages.length - 1]);
+                const userMsg = get().chatMessages.find(
+                    m => m.role === ChatMessageRole.USER && m.conversationId === legacyConvId
+                );
+                if (userMsg) await insertChatMessageRequest(userMsg);
             }
             return;
         }
@@ -112,7 +120,10 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 // 新会话已在服务端创建，将其插入侧边栏列表最前面
                 if (custom.conversationId === get().currentConversationId) {
                     set({chatConversation: [new ChatConversationProps(custom.conversationId, custom.title), ...get().chatConversation]});
-                    await insertChatMessageRequest(get().chatMessages[get().chatMessages.length - 1]);
+                    const userMsg = get().chatMessages.find(
+                        m => m.role === ChatMessageRole.USER && m.conversationId === custom.conversationId
+                    );
+                    if (userMsg) await insertChatMessageRequest(userMsg);
                 }
                 break;
             case 'phase_changed':
@@ -161,14 +172,33 @@ export const useConversation = create<ConversationStore>((set, get) => {
             }
             message.conversationId = get().currentConversationId;
         } else {
-            await insertChatMessageRequest(message);
+            const conversationExists = get().chatConversation.some(
+                c => c.id === get().currentConversationId
+            );
+            if (conversationExists) {
+                await insertChatMessageRequest(message);
+            }
         }
         set(state => ({chatMessages: [...state.chatMessages, message]}));
         set({isStreaming: true, isWaitingFirstChunk: true});
         try {
             const response = await chatRequest.getRawResponse(message);
             await processStream(response);
-            await insertChatMessageRequest(get().chatMessages[get().chatMessages.length - 1]);
+            const lastMsg = get().chatMessages[get().chatMessages.length - 1];
+            if (lastMsg.id !== message.id) {
+                await insertChatMessageRequest(lastMsg);
+            }
+        } catch (error) {
+            console.error('sendMessage failed:', error);
+            // 1. 撤销乐观渲染
+            set(state => ({
+                chatMessages: state.chatMessages.filter(m => m.id !== message.id)
+            }));
+            // 2. 回填草稿 + 设置错误
+            set({
+                draftMessage: { text: message.message, imgUrl: message.imgUrl ?? undefined },
+                sendError: '发送失败，请检查网络后重试',
+            });
         } finally {
             set({isStreaming: false, isWaitingFirstChunk: false});
         }
@@ -197,6 +227,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
             set({isStreaming: false, isWaitingFirstChunk: false});
         }
     };
+
+    const clearSendError = () => set({ sendError: null });
 
     // 重置所有 Polya 流程相关状态，用于新会话开始时
     const resetForNewConversation = () => {
@@ -232,6 +264,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
         isStreaming,
         isWaitingFirstChunk,
         chatMessages,
+        draftMessage: null,
+        sendError: null,
 
         // Polya 流程状态初始值
         currentPhase: 0,
@@ -250,5 +284,6 @@ export const useConversation = create<ConversationStore>((set, get) => {
         loadAllConversation,
         confirmSelectedQuestion,
         resetForNewConversation,
+        clearSendError,
     };
 });

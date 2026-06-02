@@ -38,12 +38,11 @@ describe('ElicitGraphStateSchema — 顶层 schema', () => {
         expect(result.problemType).toBeUndefined();
     });
 
-    // ── 2. questionImgUrl 不是有效 URL → Zod 报错 ─────────────────────────────
+    // ── 2. questionImgUrl 接受 OSS key（非完整 URL）──────────────────────────
 
-    it('questionImgUrl 非 URL → 解析失败', () => {
-        expect(() =>
-            ElicitGraphStateSchema.parse({ ...minimalValid, questionImgUrl: 'not-a-url' })
-        ).toThrow();
+    it('questionImgUrl 接受非 URL 字符串（OSS object key）', () => {
+        const result = ElicitGraphStateSchema.parse({ ...minimalValid, questionImgUrl: 'conv-id/2026-05-25/photo.jpg' });
+        expect(result.questionImgUrl).toBe('conv-id/2026-05-25/photo.jpg');
     });
 
     // ── 3. userId 不是有效 UUID → Zod 报错 ───────────────────────────────────

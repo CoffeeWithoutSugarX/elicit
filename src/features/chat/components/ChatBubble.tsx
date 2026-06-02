@@ -9,17 +9,23 @@
  * - user：右对齐，bg-paper-deep 圆角软包 + 右侧 32px 浅灰头像（衬线"妹"），无 border / shadow
  * - assistant：左对齐，32px 圆形水墨头像（衬线"引"）+ 右侧纯文字内容，无气泡背景
  * - system：居中纯文字，无气泡
+ *
+ * imgUrl（可选）：OSS 对象 key，仅在 user 气泡中渲染。
+ * 使用 IntersectionObserver 懒加载，进入视口后调用 ossRequest.signImageForPreview() 获取签名 URL。
  */
-import { Fragment } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { parseLatexSegments } from '@/lib/katexHelpers'
 import { LatexRender } from '@/components/LatexRender'
 import { PHASE_LABEL } from '@/lib/theme'
 import type { PolyaPhase } from '@/lib/theme'
+import { ossRequest } from '@/services/api-client/OssRequest'
 
 interface Props {
   role: 'user' | 'assistant' | 'system'
   content: string
+  imgUrl?: string | null
   phaseLabel?: string
   timestamp?: Date
   isStreaming?: boolean
@@ -99,7 +105,51 @@ function PhaseBadge({ phaseLabel }: { phaseLabel: string }) {
   )
 }
 
-export function ChatBubble({ role, content, phaseLabel, timestamp, isStreaming }: Props) {
+export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStreaming }: Props) {
+  // 图片懒加载：IntersectionObserver + OSS 签名（仅 user 气泡有 imgUrl）
+  const imageWrapperRef = useRef<HTMLDivElement | null>(null)
+  const [isInView, setIsInView] = useState(false)
+  const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null)
+  const isSigningRef = useRef(false)
+
+  // Effect 1：挂载 IntersectionObserver，进入视口时标记 isInView
+  useEffect(() => {
+    if (!imgUrl) return
+    const node = imageWrapperRef.current
+    if (!node) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsInView(true)
+        }
+      },
+      { root: null, rootMargin: '120px', threshold: 0.1 },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [imgUrl])
+
+  // Effect 2：isInView 后签名 OSS URL
+  useEffect(() => {
+    if (!imgUrl || !isInView || signedImageUrl || isSigningRef.current) return
+    let isCancelled = false
+    isSigningRef.current = true
+    ossRequest
+      .signImageForPreview(imgUrl)
+      .then((url) => {
+        if (!isCancelled) setSignedImageUrl(url)
+      })
+      .catch((error) => {
+        console.error('获取图片预览签名失败', error)
+      })
+      .finally(() => {
+        isSigningRef.current = false
+      })
+    return () => {
+      isCancelled = true
+    }
+  }, [imgUrl, isInView, signedImageUrl])
+
   // system 消息：居中纯文字，无气泡背景
   if (role === 'system') {
     return (
@@ -135,6 +185,35 @@ export function ChatBubble({ role, content, phaseLabel, timestamp, isStreaming }
               fontFamily: 'var(--font-body)',
             }}
           >
+            {/* 图片预览区：仅 user 气泡有 imgUrl 时渲染 */}
+            {imgUrl ? (
+              <div
+                ref={imageWrapperRef}
+                className="relative mb-3 w-56 sm:w-64 rounded-lg overflow-hidden"
+                style={{
+                  aspectRatio: '4/3',
+                  backgroundColor: 'var(--color-paper-surface)',
+                }}
+              >
+                {signedImageUrl ? (
+                  <Image
+                    src={signedImageUrl}
+                    alt="图片预览"
+                    fill
+                    sizes="(max-width: 768px) 70vw, 320px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0 flex items-center justify-center text-xs"
+                    style={{ color: 'var(--color-ink-muted)' }}
+                  >
+                    {isInView ? '图片加载中...' : '图片待加载'}
+                  </div>
+                )}
+              </div>
+            ) : null}
             <div className="break-words">
               {renderContent(content)}
             </div>

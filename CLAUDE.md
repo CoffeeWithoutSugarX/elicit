@@ -104,3 +104,5 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 
 - `src/__tests__/` — L3 单元测试（Phase 2 起启用，vitest + `@/` 别名）
 - `src/__tests__/agents/nodes/phases/` — Phase 节点单元测试（ClassifyNode 等）
+- `src/__tests__/stores/` — Zustand store 单元测试（useConversation、useUserInfo、useHistoryConversation、useShowWelcome、useThemeFlag）
+- `src/__tests__/app/api/` — Next.js API 路由单元测试（chat、oss、conversation、admin，镜像 `src/app/api/` 路径）

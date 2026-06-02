@@ -5,14 +5,14 @@ import { ChatMessageType, ChatMessageTypeEnum } from "@/types/enums/chatMessageT
 
 export const insertChatMessageRequest = async (message: ChatMessageProps) => {
     const { error } = await supabase.from('elicit_messages')
-        .insert({
+        .upsert({
             message_id:      message.id,
             conversation_id: message.conversationId,
             role:            message.role,
             content:         message.message,
             type:            message.type,
             img_url:         message.imgUrl
-        });
+        }, { onConflict: 'conversation_id,message_id', ignoreDuplicates: true });
     if (error) {
         console.error("Failed to insert chat message:", error);
         return false;

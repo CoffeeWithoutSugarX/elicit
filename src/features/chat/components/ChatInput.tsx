@@ -12,9 +12,10 @@
  *
  * 纸面调性：象牙白背景 + 深墨蓝发送按钮 + Fraunces 衬线。
  */
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { ArrowUp, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useConversation } from '@/stores/useConversation'
 
 interface Props {
   onSendMessage: (text: string, imageUrl?: string) => void
@@ -33,16 +34,32 @@ export function ChatInput({
 }: Props) {
   const [text, setText] = useState('')
   const [pendingImageUrl, setPendingImageUrl] = useState<string | undefined>()
+  const [pendingImagePreview, setPendingImagePreview] = useState<string | undefined>()
   const [isUploading, setIsUploading] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const draftMessage = useConversation(state => state.draftMessage)
+
+  // 发送失败回滚：将草稿内容还原到输入框
+  useEffect(() => {
+    if (!draftMessage) return
+    setText(draftMessage.text)
+    if (draftMessage.imgUrl) {
+      setPendingImageUrl(draftMessage.imgUrl)
+    }
+    // 还原后清除 store 中的草稿，避免重复触发
+    useConversation.setState({ draftMessage: null })
+  }, [draftMessage])
 
   function handleSubmit() {
     const trimmed = text.trim()
     if (!trimmed || disabled) return
     onSendMessage(trimmed, pendingImageUrl)
     setText('')
+    if (pendingImagePreview) URL.revokeObjectURL(pendingImagePreview)
     setPendingImageUrl(undefined)
+    setPendingImagePreview(undefined)
     // 复位高度
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
@@ -73,6 +90,7 @@ export function ChatInput({
     if (!file) return
 
     if (onImageUpload) {
+      setPendingImagePreview(URL.createObjectURL(file))
       setIsUploading(true)
       try {
         const url = await onImageUpload(file)
@@ -93,17 +111,21 @@ export function ChatInput({
       {/* 内层限宽居中 */}
       <div className="max-w-[768px] mx-auto">
         {/* 图片预览区（有待上传图片时显示） */}
-        {pendingImageUrl ? (
+        {pendingImagePreview ? (
           <div className="mb-2 flex items-center gap-2 px-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={pendingImageUrl}
+              src={pendingImagePreview}
               alt="待发送图片"
               className="h-16 w-16 object-cover rounded border border-ink-line"
             />
             <button
               type="button"
-              onClick={() => setPendingImageUrl(undefined)}
+              onClick={() => {
+                URL.revokeObjectURL(pendingImagePreview)
+                setPendingImageUrl(undefined)
+                setPendingImagePreview(undefined)
+              }}
               className="text-xs text-ink-muted hover:text-ink-primary transition-colors"
             >
               移除

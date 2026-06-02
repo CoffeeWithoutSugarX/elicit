@@ -2,7 +2,7 @@ import {OssUploadSignInfo} from "@/types/response/OssUploadSignInfo";
 import OSS, {Credentials} from 'ali-oss';
 import {getStandardRegion} from "ali-oss/lib/common/utils/getStandardRegion";
 import {getCredential} from 'ali-oss/lib/common/signUtils';
-import {policy2Str} from "ali-oss/lib/common/utils/policy2Str";
+
 import {formatDateToUTC} from "@/lib/date";
 
 const sts = new OSS.STS({
@@ -89,7 +89,7 @@ class OssService {
 
         // 生成签名并设置表单数据
         const signature = client.signPostObjectPolicyV4(policy, date);
-        const policyBase64 = Buffer.from(policy2Str(policy), 'utf8').toString('base64');
+        const policyBase64 = Buffer.from(JSON.stringify(policy), 'utf8').toString('base64');
 
         return new OssUploadSignInfo(
             `https://${client.options.bucket}.${client.options.region}.aliyuncs.com`,

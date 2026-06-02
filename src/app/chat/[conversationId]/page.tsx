@@ -25,6 +25,8 @@ export default function ConversationPage({ params }: PageProps) {
     const isStreaming = useConversation(state => state.isStreaming);
     const isWaitingFirstChunk = useConversation(state => state.isWaitingFirstChunk);
     const sendMessage = useConversation(state => state.sendMessage);
+    const sendError = useConversation(state => state.sendError);
+    const clearSendError = useConversation(state => state.clearSendError);
     const setCurrentConversationId = useConversation(state => state.setCurrentConversationId);
     const confirmSelectedQuestion = useConversation(state => state.confirmSelectedQuestion);
     const resetForNewConversation = useConversation(state => state.resetForNewConversation);
@@ -105,6 +107,7 @@ export default function ConversationPage({ params }: PageProps) {
                         key={msg.id}
                         role={msg.role === ChatMessageRole.USER ? 'user' : 'assistant'}
                         content={msg.message}
+                        imgUrl={msg.imgUrl}
                         isStreaming={
                             isStreaming &&
                             msg.id === lastMsgId &&
@@ -140,6 +143,22 @@ export default function ConversationPage({ params }: PageProps) {
                     <ChatBubble role="assistant" content="正在思考…" isStreaming />
                 )}
             </div>
+
+            {/* 错误横幅 */}
+            {sendError && (
+                <div className="px-4 pb-2 max-w-[768px] mx-auto w-full">
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
+                        <span>{sendError}</span>
+                        <button
+                            type="button"
+                            onClick={clearSendError}
+                            className="ml-2 text-red-500 hover:text-red-700 text-xs"
+                        >
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* 输入框 */}
             <ChatInput

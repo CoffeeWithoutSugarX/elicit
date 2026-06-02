@@ -17,7 +17,7 @@ class ChatRequest {
             body: JSON.stringify(message)
         });
 
-        if (!response.body) {
+        if (!response.ok || !response.body) {
             throw new Error("Failed to get chat response");
         }
 
