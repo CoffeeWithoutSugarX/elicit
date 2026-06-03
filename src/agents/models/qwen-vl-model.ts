@@ -1,7 +1,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 
 export const visionModel = new ChatOpenAI({
-    model: "qwen-vl-max",
+    model: "qwen3-vl-plus",
     temperature: 0,
     apiKey: process.env.DASHSCOPE_API_KEY,
     configuration: {

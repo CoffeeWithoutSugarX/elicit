@@ -202,7 +202,7 @@ export const fewShots: ReadonlyArray<{ user: string; assistant: string }> = [
 ] as const;
 
 // ——— 模型参数 ———
-// 使用 qwen-vl-max（视觉模型），不用 DeepSeek
+// 使用 qwen3-vl-plus（Qwen3-VL 代视觉模型），不用 DeepSeek
 export const modelParams = {
     temperature: 0.0,
     max_tokens: 1024,
