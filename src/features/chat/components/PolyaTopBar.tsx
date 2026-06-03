@@ -33,13 +33,12 @@ const PHASE_SHORT_LABEL: Record<PolyaPhase, string> = {
   REVIEW:     '回顾',
 }
 
-/** 阶段 → CSS variable 颜色 */
-const PHASE_COLOR: Record<PolyaPhase, string> = {
-  UNDERSTAND: 'var(--color-phase-understand)',
-  PLAN:       'var(--color-phase-plan)',
-  EXECUTE:    'var(--color-phase-execute)',
-  REVIEW:     'var(--color-phase-review)',
-}
+/**
+ * 阶段圆点颜色 — 全灰阶，不使用彩色 phase token。
+ * 当前阶段：实心黑（--color-ink-primary）；已完成：深灰；未到达：淡灰。
+ * 颜色语义通过填充/粗细/opacity 区分，见 stepper 渲染逻辑。
+ */
+// PHASE_COLOR 已移除（原 --color-phase-* 彩色 token，迁移到黑白灰 inline style）
 
 /** 小问题号徽标 — 罗马数字版 */
 function SubProblemBadge({ current, total }: { current: number; total: number }) {
@@ -137,7 +136,6 @@ export function PolyaTopBar({
 
   // EXECUTE 阶段才显示破题点下层
   const showInsightRow = currentPolyaPhase === 'EXECUTE'
-  const phaseColor = PHASE_COLOR[currentPolyaPhase]
 
   return (
     <div
@@ -161,7 +159,6 @@ export function PolyaTopBar({
           const isDone = idx < currentPhaseIndex
           const isCurrent = idx === currentPhaseIndex
           const isUpcoming = idx > currentPhaseIndex
-          const dotColor = PHASE_COLOR[phase]
           // 连线状态：连线在圆点右侧，最后一个无连线
           const lineCompleted = idx < currentPhaseIndex
           const isLast = idx === PHASE_ORDER.length - 1
@@ -180,15 +177,15 @@ export function PolyaTopBar({
                     width: isCurrent ? '10px' : '8px',
                     height: isCurrent ? '10px' : '8px',
                     borderRadius: '50%',
-                    // 当前阶段：实心 + 白色 ring
+                    // 当前阶段：实心黑 + 白 ring（灰阶，不用 phase 彩色）
                     ...(isCurrent ? {
-                      backgroundColor: dotColor,
-                      boxShadow: `0 0 0 2px var(--color-paper-surface), 0 0 0 3.5px ${dotColor}`,
+                      backgroundColor: 'var(--color-ink-primary)',
+                      boxShadow: `0 0 0 2px var(--color-paper-surface), 0 0 0 3.5px var(--color-ink-primary)`,
                     } : isDone ? {
-                      // 已完成：实心阶段色
-                      backgroundColor: dotColor,
+                      // 已完成：实心深灰
+                      backgroundColor: 'var(--color-ink-secondary)',
                     } : {
-                      // 未到达：空心
+                      // 未到达：空心淡灰
                       backgroundColor: 'transparent',
                       border: '1px solid var(--color-ink-line)',
                     }),
@@ -259,10 +256,10 @@ export function PolyaTopBar({
           total={totalSubProblems}
         />
 
-        {/* 阶段色细竖线 */}
+        {/* 细竖线分隔（灰阶，不用 phase 彩色） */}
         <div
           className="w-px h-4 flex-shrink-0"
-          style={{ backgroundColor: phaseColor }}
+          style={{ backgroundColor: 'var(--color-ink-secondary)' }}
           aria-hidden
         />
 
