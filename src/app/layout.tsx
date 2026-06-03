@@ -1,5 +1,6 @@
 import type {Metadata} from "next";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
     title: "Elict",
@@ -15,6 +16,8 @@ export default function RootLayout({
         <html lang="en">
         <body className="antialiased">
         {children}
+        {/* 全局 Toast 挂载点，统一错误/通知提示 */}
+        <Toaster />
         </body>
         </html>
     );

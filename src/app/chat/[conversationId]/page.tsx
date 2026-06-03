@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { use } from 'react';
+import { toast } from 'sonner';
 import { PolyaTopBar } from '@/features/chat/components/PolyaTopBar';
 import { ChatBubble } from '@/features/chat/components/ChatBubble';
 import { ChatInput } from '@/features/chat/components/ChatInput';
@@ -44,6 +45,14 @@ export default function ConversationPage({ params }: PageProps) {
     useEffect(() => {
         setCurrentConversationId(conversationId);
     }, [conversationId]);
+
+    // sendError 置位时弹 toast 并立即清空（避免重复弹）
+    useEffect(() => {
+        if (sendError) {
+            toast.error(sendError);
+            clearSendError();
+        }
+    }, [sendError, clearSendError]);
 
     // 新消息到来时自动滚动到底部
     useEffect(() => {
@@ -143,22 +152,6 @@ export default function ConversationPage({ params }: PageProps) {
                     <ChatBubble role="assistant" content="正在思考…" isStreaming />
                 )}
             </div>
-
-            {/* 错误横幅 */}
-            {sendError && (
-                <div className="px-4 pb-2 max-w-[768px] mx-auto w-full">
-                    <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-red-50 text-red-700 text-sm border border-red-200">
-                        <span>{sendError}</span>
-                        <button
-                            type="button"
-                            onClick={clearSendError}
-                            className="ml-2 text-red-500 hover:text-red-700 text-xs"
-                        >
-                            关闭
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {/* 输入框 */}
             <ChatInput
