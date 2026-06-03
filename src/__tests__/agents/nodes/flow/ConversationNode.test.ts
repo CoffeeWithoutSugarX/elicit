@@ -117,7 +117,9 @@ describe('createConversationNode', () => {
 
         await createConversationNode(state);
 
+        // 新契约：使用 kind 字段区分，让外层 SSE part 名始终为 data-custom
         expect(writerFn).toHaveBeenCalledWith({
+            kind: 'conversation_created',
             conversationId: conversation.conversationId,
             title: conversation.title,
         });

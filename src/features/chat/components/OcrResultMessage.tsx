@@ -17,8 +17,13 @@
  *
  * 判定：主卡片为内联卡片（嵌在对话流 agent 气泡，非浮层），未套 Dialog。
  * 原图全屏预览是真模态，已迁移至 shadcn Dialog。
+ *
+ * 签名说明：
+ *   originalImageUrl 是私有桶 OSS object key，不可直接用于 <img src>。
+ *   组件挂载后调用 ossRequest.signImageForPreview(key) 获取签名 URL，
+ *   签名完成前显示占位（避免裂图闪烁）。防竞态 guard 模式与 ChatBubble 一致。
  */
-import { useState, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { cn } from '@/lib/utils'
 import { LatexRender } from '@/components/LatexRender'
 import { parseLatexSegments } from '@/lib/katexHelpers'
@@ -28,12 +33,15 @@ import {
   DialogContent,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { ossRequest } from '@/services/api-client/OssRequest'
 
 interface Props {
   originalImageUrl: string
   questions: SanitizedQuestion[]
-  onConfirm: (selectedIndex: number) => void
-  onOcrError: () => void
+  /** readOnly=true 时：隐藏操作按钮和提示文字，显示「✓ 已确认」徽标，适用于对话流中的静态富卡片 */
+  readOnly?: boolean
+  onConfirm?: (selectedIndex: number) => void
+  onOcrError?: () => void
 }
 
 /** 渲染含 LaTeX 的混合文本 */
@@ -58,14 +66,34 @@ function renderMixed(content: string) {
 export function OcrResultMessage({
   originalImageUrl,
   questions,
+  readOnly = false,
   onConfirm,
   onOcrError,
 }: Props) {
   const [activeTab, setActiveTab] = useState(0)
   const [imageExpanded, setImageExpanded] = useState(false)
+  // 签名后的 OSS URL，null 表示签名尚未完成（显示占位）
+  const [signedImageUrl, setSignedImageUrl] = useState<string | null>(null)
   const isSingle = questions.length === 1
 
   const selectedQuestion = questions[activeTab] ?? questions[0]
+
+  // 组件挂载后签名 OSS 预览 URL；isCancelled 防竞态（与 ChatBubble 保持一致的模式）
+  useEffect(() => {
+    if (!originalImageUrl) return
+    let isCancelled = false
+    ossRequest
+      .signImageForPreview(originalImageUrl)
+      .then((url) => {
+        if (!isCancelled) setSignedImageUrl(url)
+      })
+      .catch((error) => {
+        console.error('OcrResultMessage：获取原图预览签名失败', error)
+      })
+    return () => {
+      isCancelled = true
+    }
+  }, [originalImageUrl])
 
   return (
     <>
@@ -89,11 +117,18 @@ export function OcrResultMessage({
             className="image-preview-container w-full overflow-hidden border-b border-border bg-muted"
             style={{ height: '120px' }}
           >
-            <img
-              src={originalImageUrl}
-              alt="原题图片"
-              className="w-full h-full object-contain"
-            />
+            {signedImageUrl ? (
+              <img
+                src={signedImageUrl}
+                alt="原题图片"
+                className="w-full h-full object-contain"
+              />
+            ) : (
+              // 签名未完成前显示占位，避免私有桶裂图
+              <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                图片加载中…
+              </div>
+            )}
           </div>
         </button>
 
@@ -127,14 +162,23 @@ export function OcrResultMessage({
 
         {/* ── 题目内容区 ── */}
         <div className="px-4 py-3">
-          {/* 题型标签（使用 topic 字段） */}
-          {selectedQuestion && (
-            <span
-              className="inline-block text-[10px] px-1.5 py-0.5 mb-2 rounded-sm border border-border text-muted-foreground"
-            >
-              {selectedQuestion.topic}
-            </span>
-          )}
+          {/* 题型标签（使用 topic 字段）+ readOnly 时显示「✓ 已确认」徽标 */}
+          <div className="flex items-center gap-2 mb-2">
+            {selectedQuestion && (
+              <span
+                className="inline-block text-[10px] px-1.5 py-0.5 rounded-sm border border-border text-muted-foreground"
+              >
+                {selectedQuestion.topic}
+              </span>
+            )}
+            {readOnly && (
+              <span
+                className="inline-block text-[10px] px-1.5 py-0.5 rounded-sm border border-border text-muted-foreground"
+              >
+                ✓ 已确认
+              </span>
+            )}
+          </div>
 
           <p
             className="text-sm text-foreground leading-relaxed"
@@ -144,27 +188,36 @@ export function OcrResultMessage({
           </p>
         </div>
 
-        {/* ── 底栏：操作按钮 ── */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-          {/* 识别错误按钮 */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onOcrError}
-          >
-            识别错误
-          </Button>
+        {/* ── 识别确认提示（只读时隐藏） ── */}
+        {!readOnly && (
+          <p className="px-4 pb-1 text-xs text-muted-foreground">
+            请确认识别是否正确，正确就点「确认」开始引导，不对就点「识别错误」重拍。
+          </p>
+        )}
 
-          {/* 确认按钮（主 CTA） */}
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => onConfirm(activeTab)}
-          >
-            确认
-          </Button>
-        </div>
+        {/* ── 底栏：操作按钮（只读时隐藏） ── */}
+        {!readOnly && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border">
+            {/* 识别错误按钮 */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onOcrError}
+            >
+              识别错误
+            </Button>
+
+            {/* 确认按钮（主 CTA） */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => onConfirm!(activeTab)}
+            >
+              确认
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ── 原图全屏预览（shadcn Dialog 真模态，受控 open/onOpenChange） ── */}
@@ -174,11 +227,16 @@ export function OcrResultMessage({
           showCloseButton={true}
           aria-label="原图预览"
         >
-          <img
-            src={originalImageUrl}
-            alt="原题图片（全屏预览）"
-            className="max-w-full max-h-[85vh] object-contain rounded-md"
-          />
+          {signedImageUrl ? (
+            <img
+              src={signedImageUrl}
+              alt="原题图片（全屏预览）"
+              className="max-w-full max-h-[85vh] object-contain rounded-md"
+            />
+          ) : (
+            // 签名未完成时 Dialog 内也显示占位，不出现私有桶裂图
+            <div className="text-white/60 text-sm">图片加载中…</div>
+          )}
           <p className="absolute bottom-4 text-white/60 text-xs pointer-events-none">
             点击任意处关闭
           </p>

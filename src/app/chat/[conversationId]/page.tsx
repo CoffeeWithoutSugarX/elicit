@@ -36,7 +36,7 @@ export default function ConversationPage({ params }: PageProps) {
     const currentSubProblemIndex = useConversation(state => state.currentSubProblemIndex);
     const currentInsightPoints = useConversation(state => state.currentInsightPoints);
     const pendingQuestions = useConversation(state => state.pendingQuestions);
-    const isMultiQuestion = useConversation(state => state.isMultiQuestion);
+    const hasResolved = useConversation(state => state.hasResolved);
     const knowledgeCard = useConversation(state => state.knowledgeCard);
 
     const listRef = useRef<HTMLDivElement>(null);
@@ -87,8 +87,8 @@ export default function ConversationPage({ params }: PageProps) {
     const lastMsgId = chatMessages[chatMessages.length - 1]?.id;
     const lastMsgRole = chatMessages[chatMessages.length - 1]?.role;
 
-    // P-103：有待选题目且为多题时，展示 OcrResultMessage
-    const showOcrSelector = pendingQuestions.length > 0 && isMultiQuestion;
+    // P-103：有待确认题目且用户尚未 resolve 时展示 OcrResultMessage（单题/多题均弹卡）
+    const showOcrSelector = pendingQuestions.length > 0 && !hasResolved;
 
     // 找 OCR 时上传的题目图片（最后一条 user 消息中的 imgUrl）
     const questionImageUrl = [...chatMessages]
@@ -111,21 +111,47 @@ export default function ConversationPage({ params }: PageProps) {
                 ref={listRef}
                 className="flex-1 overflow-y-auto px-4 py-2 max-w-2xl mx-auto w-full"
             >
-                {chatMessages.map(msg => (
-                    <ChatBubble
-                        key={msg.id}
-                        role={msg.role === ChatMessageRole.USER ? 'user' : 'assistant'}
-                        content={msg.message}
-                        imgUrl={msg.imgUrl}
-                        isStreaming={
-                            isStreaming &&
-                            msg.id === lastMsgId &&
-                            lastMsgRole === ChatMessageRole.ASSISTANT
+                {chatMessages.map(msg => {
+                    // type=3 OCR_CARD：渲染静态已确认题目卡（只读，无按钮）
+                    if (msg.type === ChatMessageType.OCR_CARD) {
+                        try {
+                            const { question } = JSON.parse(msg.message) as { question: import('@/agents/schemas/OcrSchema').SanitizedQuestion };
+                            return (
+                                <div key={msg.id} className="my-4">
+                                    <OcrResultMessage
+                                        originalImageUrl={msg.imgUrl ?? ''}
+                                        questions={[question]}
+                                        readOnly
+                                    />
+                                </div>
+                            );
+                        } catch {
+                            // 解析失败：数据损坏时回落成普通气泡，不整页崩溃
+                            return (
+                                <ChatBubble
+                                    key={msg.id}
+                                    role="assistant"
+                                    content={msg.message}
+                                />
+                            );
                         }
-                    />
-                ))}
+                    }
+                    return (
+                        <ChatBubble
+                            key={msg.id}
+                            role={msg.role === ChatMessageRole.USER ? 'user' : 'assistant'}
+                            content={msg.message}
+                            imgUrl={msg.imgUrl}
+                            isStreaming={
+                                isStreaming &&
+                                msg.id === lastMsgId &&
+                                lastMsgRole === ChatMessageRole.ASSISTANT
+                            }
+                        />
+                    );
+                })}
 
-                {/* P-103：多题选择卡片 */}
+                {/* P-103：OCR 确认卡片（单题/多题均显示，用户确认后消失） */}
                 {showOcrSelector && questionImageUrl && (
                     <div className="my-4">
                         <OcrResultMessage

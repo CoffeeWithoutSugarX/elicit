@@ -104,8 +104,8 @@ describe('POST /api/chat/[conversationId]', () => {
         expect(stateArg.questionImgUrl).toBeUndefined();
         expect(stateArg.messages).toHaveLength(1);
 
-        // 应该调用 toUIMessageStream 包装 graph stream
-        expect(mockToUIMessageStream).toHaveBeenCalledWith(fakeStream);
+        // 应该调用 toUIMessageStream 包装 graph stream（第二参数为 callbacks 对象，含 onFinal）
+        expect(mockToUIMessageStream).toHaveBeenCalledWith(fakeStream, expect.objectContaining({ onFinal: expect.any(Function) }));
 
         // 应该调用 createUIMessageStreamResponse
         expect(mockCreateUIMessageStreamResponse).toHaveBeenCalledWith({
@@ -156,5 +156,32 @@ describe('POST /api/chat/[conversationId]', () => {
         // HumanMessage mock 构造函数将 role 和 content 挂到实例上
         expect(stateArg.messages[0].role).toBe('human');
         expect(stateArg.messages[0].content).toBe('what is 2+2?');
+    });
+
+    it('imgUrl 为 null 时传给 graph.stream 的 questionImgUrl 是 undefined 而非 null（ZodError 修复）', async () => {
+        // 后续消息无图片时 body.imgUrl === null，schema z.string().optional() 拒绝 null，修复后转 undefined
+        const req = makeRequest({ message: '继续解题', role: 'user', imgUrl: null });
+        const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
+
+        await POST(req, context);
+
+        expect(mockGetSignedUrl).not.toHaveBeenCalled();
+        const [stateArg] = mockGraphStream.mock.calls[0];
+        expect(stateArg.questionImgUrl).toBeUndefined();
+    });
+
+    it('graph.stream 同步抛出错误时返回结构化 500 JSON', async () => {
+        // 模拟 stream 同步抛出（如 ZodError）
+        mockGraphStream.mockRejectedValueOnce(new Error('ZodError: expected string, received null'));
+
+        const req = makeRequest({ message: 'hello', role: 'user' });
+        const context = { params: Promise.resolve({ conversationId: 'conv-err' }) };
+
+        const res = await POST(req, context);
+
+        expect(res.status).toBe(500);
+        const body = await res.json();
+        expect(body).toHaveProperty('error');
+        expect(typeof body.error).toBe('string');
     });
 });

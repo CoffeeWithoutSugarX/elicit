@@ -207,4 +207,18 @@ describe('classifyNode', () => {
     it('classifyNodeName 为 "classifyNode"', () => {
         expect(classifyNodeName).toBe('classifyNode');
     });
+
+    // ── 10. chatModel.invoke 携带 nostream tag，防止分类 JSON 泄漏到前端文本流 ─────
+    it('invoke 第二参数包含 tags: ["langsmith:nostream"]，避免分类 JSON 泄漏前端', async () => {
+        vi.mocked(chatModel.invoke).mockResolvedValue(makeModelResponse(0, '代数题') as never);
+
+        const ocrResult = makeSolvableOcrResult();
+        const state = createMockState({ ocrResult, hasResolved: true });
+        await classifyNode(state);
+
+        expect(chatModel.invoke).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ tags: ["langsmith:nostream"] })
+        );
+    });
 });

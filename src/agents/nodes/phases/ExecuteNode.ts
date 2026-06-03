@@ -59,11 +59,17 @@ export const executeNode = async (state: ElicitGraphState) => {
     if (guardAction) {
         if (guardAction.kind === 'VISION_FAILURE') {
             console.log('ExecuteNode guard fired: VISION_FAILURE');
-            return { messages: [new AIMessage('（图片识别失败，无法继续引导，请重新上传清晰的题目图片）')] };
+            const visionFailText = '（图片识别失败，无法继续引导，请重新上传清晰的题目图片）';
+            // nostream 模式下前端收不到 messages 流，需主动推干净正文
+            getWriter()?.({ kind: 'assistant_message', text: visionFailText });
+            return { messages: [new AIMessage(visionFailText)] };
         }
         if (guardAction.kind === 'OUT_OF_SCOPE') {
             console.log('ExecuteNode guard fired: OUT_OF_SCOPE');
-            return { messages: [new AIMessage('（这道题超出了初中数学的范围，我只能帮你解决初中数学题哦）')] };
+            const outOfScopeText = '（这道题超出了初中数学的范围，我只能帮你解决初中数学题哦）';
+            // nostream 模式下前端收不到 messages 流，需主动推干净正文
+            getWriter()?.({ kind: 'assistant_message', text: outOfScopeText });
+            return { messages: [new AIMessage(outOfScopeText)] };
         }
         // PULL_BACK / PROBE_5Q / KNOWLEDGE_FALLBACK — 注入 prompt，继续调用 LLM
         console.log('ExecuteNode guard fired:', guardAction.kind);
@@ -91,11 +97,13 @@ export const executeNode = async (state: ElicitGraphState) => {
         // temperature / max_tokens 在 modelParams 中定义供文档用；
         // ChatOpenAI 的 temperature 是构造参数，不是 invoke call option。
         // 如需覆盖可在 chatModel 构造时传入，或通过 new ChatOpenAI({...modelParams})。
+        // 加 "langsmith:nostream" tag：让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit，
+        // 避免协议行（phase_signal 等）被当作妹妹回复推送到前端文本流。干净正文由下方 getWriter() 主动推出。
         const response = await chatModel.invoke([
             new SystemMessage(systemPrompt),
             ...fewShotMessages,
             new HumanMessage(userContent),
-        ]);
+        ], { tags: ["langsmith:nostream"] });
 
         const rawContent = typeof response.content === 'string' ? response.content : '';
 
@@ -118,6 +126,7 @@ export const executeNode = async (state: ElicitGraphState) => {
         );
 
         // ——— 处理各信号的 status / 路由变更（status 不属于 applySignalSideEffects 职责）———
+        // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
         const writer = getWriter();
         let updatedSubProblems = afterSideEffects;
 
@@ -127,7 +136,7 @@ export const executeNode = async (state: ElicitGraphState) => {
                 updatedSubProblems = updateCurrentSubProblem(updatedSubProblems, currentSubProblemIndex, { status: 'done' });
                 // 推送 phase_changed 信号（路由到下一小问 / reviewNode 由 graph 处理）
                 if (writer) {
-                    writer({ type: 'phase_changed', phase: PolyaPhase.EXECUTE });
+                    writer({ kind: 'phase_changed', phase: PolyaPhase.EXECUTE });
                 }
                 break;
             }
@@ -135,14 +144,14 @@ export const executeNode = async (state: ElicitGraphState) => {
                 // 标记当前小问阻塞
                 updatedSubProblems = updateCurrentSubProblem(updatedSubProblems, currentSubProblemIndex, { status: 'blocked' });
                 if (writer) {
-                    writer({ type: 'phase_changed', phase: PolyaPhase.EXECUTE });
+                    writer({ kind: 'phase_changed', phase: PolyaPhase.EXECUTE });
                 }
                 break;
             }
             case 'ESCALATE': {
                 // 路由回 PlanNode 由 graph 处理；currentPhase 回退到 PLAN（供 executeRouter 判断）
                 if (writer) {
-                    writer({ type: 'phase_changed', phase: PolyaPhase.PLAN });
+                    writer({ kind: 'phase_changed', phase: PolyaPhase.PLAN });
                 }
                 break;
             }
@@ -153,6 +162,11 @@ export const executeNode = async (state: ElicitGraphState) => {
                 // COMPLETED 在 Execute 阶段不应出现，按 STAY 处理（priority 低）
                 break;
             }
+        }
+
+        // nostream 模式下，主动用 getWriter() 把干净正文推回给前端
+        if (writer && cleanContent.trim()) {
+            writer({ kind: 'assistant_message', text: cleanContent });
         }
 
         // 构造 state 更新对象
@@ -176,8 +190,9 @@ export const executeNode = async (state: ElicitGraphState) => {
                 stateUpdate.currentSubProblemIndex = nextPendingIndex;
                 // 重置阶段到 UNDERSTAND，从头引导下一个子问题
                 stateUpdate.currentPhase = PolyaPhase.UNDERSTAND;
+                // 使用 kind 字段区分，让外层 SSE part 名始终为 data-custom
                 if (writer) {
-                    writer({ type: 'sub_problem_changed', currentIndex: nextPendingIndex, totalCount: state.subProblems.length });
+                    writer({ kind: 'sub_problem_changed', currentIndex: nextPendingIndex, totalCount: state.subProblems.length });
                 }
             }
             // 无更多 pending → index 保持（executeRouter 会路由到 reviewNode）
@@ -188,8 +203,11 @@ export const executeNode = async (state: ElicitGraphState) => {
     } catch (error) {
         console.log('ExecuteNode error', error);
         // 容错兜底：返回简单回复，不改变 subProblems 状态
+        // nostream 模式下前端收不到 messages 流，需主动推干净正文
+        const catchText = '（执行阶段暂时无法响应，请重试）';
+        getWriter()?.({ kind: 'assistant_message', text: catchText });
         return {
-            messages: [new AIMessage('（执行阶段暂时无法响应，请重试）')],
+            messages: [new AIMessage(catchText)],
         };
     }
 };

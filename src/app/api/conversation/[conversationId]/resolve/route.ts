@@ -13,43 +13,52 @@ export const POST = withAuth(async (request, { params, user }) => {
 
     console.log('Resolve route invoked', { conversationId, selectedQuestionIndex, userId: user.id });
 
-    // C9 双写：DB 记录标记 hasResolved=true
-    await conversationMapper.update(conversationId, { hasResolved: true });
+    try {
+        // C9 双写：DB 记录标记 hasResolved=true
+        await conversationMapper.update(conversationId, { hasResolved: true });
 
-    const config = {
-        configurable: { thread_id: conversationId },
-    };
-
-    // 通过 updateState 把新字段合并进 checkpoint，而不是整体替换。
-    // ocrResult 已在第一次 invoke 的 checkpoint 中，只需要更新 selectedQuestionIndex。
-    // LangGraph 的状态合并会将 ocrResult 中已有的字段与下面的 patch 合并。
-    const currentState = await compiledElicitGraph.getState(config);
-    const existingOcrResult = currentState.values.ocrResult;
-
-    await compiledElicitGraph.updateState(config, {
-        hasResolved: true,
-        // 将 selectedQuestionIndex 写入 ocrResult（patch 合并，保留其他字段）
-        ocrResult: existingOcrResult
-            ? { ...existingOcrResult, selectedQuestionIndex }
-            : undefined,
-    });
-
-    // 第二次 invoke：checkpoint 已有 ocrResult + hasResolved；
-    // 输入只需携带 userId/conversationId 以满足 schema 必填约束，
-    // messages=[] 不产生新对话轮次。
-    const stream = await compiledElicitGraph.stream(
-        {
-            messages: [],
-            userId: user.id,
-            conversationId,
-        },
-        {
-            streamMode: ["values", "messages", "custom"],
+        const config = {
             configurable: { thread_id: conversationId },
-        }
-    );
+        };
 
-    return createUIMessageStreamResponse({
-        stream: toUIMessageStream(stream),
-    });
+        // 通过 updateState 把新字段合并进 checkpoint，而不是整体替换。
+        // ocrResult 已在第一次 invoke 的 checkpoint 中，只需要更新 selectedQuestionIndex。
+        // LangGraph 的状态合并会将 ocrResult 中已有的字段与下面的 patch 合并。
+        const currentState = await compiledElicitGraph.getState(config);
+        const existingOcrResult = currentState.values.ocrResult;
+
+        await compiledElicitGraph.updateState(config, {
+            hasResolved: true,
+            // 将 selectedQuestionIndex 写入 ocrResult（patch 合并，保留其他字段）
+            ocrResult: existingOcrResult
+                ? { ...existingOcrResult, selectedQuestionIndex }
+                : undefined,
+        });
+
+        // 第二次 invoke：checkpoint 已有 ocrResult + hasResolved；
+        // 输入只需携带 userId/conversationId 以满足 schema 必填约束，
+        // messages=[] 不产生新对话轮次。
+        const stream = await compiledElicitGraph.stream(
+            {
+                messages: [],
+                userId: user.id,
+                conversationId,
+            },
+            {
+                streamMode: ["values", "messages", "custom"],
+                configurable: { thread_id: conversationId },
+            }
+        );
+
+        return createUIMessageStreamResponse({
+            stream: toUIMessageStream(stream),
+        });
+    } catch (err) {
+        // update/getState/updateState/stream 本身抛出的同步或异步错误
+        console.error('Resolve route error', err);
+        return new Response(
+            JSON.stringify({ error: err instanceof Error ? err.message : '解题初始化失败，请重试' }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } },
+        );
+    }
 });

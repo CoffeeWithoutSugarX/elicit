@@ -41,20 +41,20 @@ export const systemPrompt = `你是一个数学题图片识别助手。任务：
   "questions": [
     {
       "index": <0-based 序号>,
-      "topic": <string, ≤30 字>,
+      "topic": <string, 尽量简短，建议 30 字内；超出会被自动截断，请尽量精炼>,
       "latexFull": <string, 原题完整 LaTeX>,
       "givenConditions": <string[]>,
       "implicitConditions": <string[]>,
-      "goal": <string, ≤30 字>,
-      "milestones": <string[], 长度 ≤ 4>,
+      "goal": <string, 尽量简短，建议 30 字内；超出会被自动截断，请尽量精炼>,
+      "milestones": <string[], 建议不超过 4 条；超出会被自动截断>,
       "visualFeaturesNeeded": <boolean>,
       "visualDescription": <string, visualFeaturesNeeded=true 时必填 ≥30 字按 checklist 覆盖；false 时 "">,
       "subProblems": [
         {
           "index": <0-based 序号>,
-          "goal": <string, ≤50 字>,
+          "goal": <string, 尽量简短，建议 50 字内；超出会被自动截断，请尽量精炼>,
           "givenConditions": <string[]>,
-          "milestones": <string[], 长度 ≤ 4>
+          "milestones": <string[], 建议不超过 4 条；超出会被自动截断>
         }
       ]
     }

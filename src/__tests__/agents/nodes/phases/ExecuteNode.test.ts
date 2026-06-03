@@ -97,9 +97,13 @@ describe('executeNode', () => {
         if (result.subProblems) {
             expect(result.subProblems[0].status).toBe('pending');
         }
-        // STAY 不推 phase_changed
+        // STAY 不推 phase_changed（kind 字段新契约）
         expect(mockWriter).not.toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed' }),
+            expect.objectContaining({ kind: 'phase_changed' }),
+        );
+        // nostream 模式下，assistant_message 应被推送
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' }),
         );
     });
 
@@ -122,9 +126,9 @@ describe('executeNode', () => {
 
         expect(result.subProblems).toBeDefined();
         expect(result.subProblems![0].status).toBe('done');
-        // 推送 phase_changed chunk
+        // 推送 phase_changed chunk（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed', phase: PolyaPhase.EXECUTE }),
+            expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.EXECUTE }),
         );
     });
 
@@ -147,8 +151,9 @@ describe('executeNode', () => {
 
         expect(result.subProblems).toBeDefined();
         expect(result.subProblems![0].status).toBe('blocked');
+        // 推送 phase_changed chunk（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed', phase: PolyaPhase.EXECUTE }),
+            expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.EXECUTE }),
         );
     });
 
@@ -173,9 +178,9 @@ describe('executeNode', () => {
         if (result.subProblems) {
             expect(result.subProblems[0].status).toBe('pending');
         }
-        // 推送 PLAN 信号
+        // 推送 PLAN 信号（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed', phase: PolyaPhase.PLAN }),
+            expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.PLAN }),
         );
     });
 
@@ -496,9 +501,9 @@ describe('executeNode', () => {
         expect(result.currentSubProblemIndex).toBe(1);
         // 阶段重置为 UNDERSTAND
         expect(result.currentPhase).toBe(PolyaPhase.UNDERSTAND);
-        // 推送 sub_problem_changed chunk
+        // 推送 sub_problem_changed chunk（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'sub_problem_changed', currentIndex: 1 }),
+            expect.objectContaining({ kind: 'sub_problem_changed', currentIndex: 1 }),
         );
     });
 

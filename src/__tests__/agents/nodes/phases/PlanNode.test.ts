@@ -97,8 +97,13 @@ describe('planNode', () => {
         expect(result.messages![0].content).toBe('你觉得这道题应该用什么方法？');
         // 阶段不应变化
         expect(result.currentPhase).toBeUndefined();
-        // writer 不应被调用
-        expect(mockWriter).not.toHaveBeenCalled();
+        // STAY 时 phase_changed 不应被调用，但 assistant_message 应被推送（nostream 干净正文）
+        expect(mockWriter).not.toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'phase_changed' })
+        );
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' })
+        );
     });
 
     // ── 2. COMPLETED 信号 → 推进到 EXECUTE，推送 SSE chunk ───────────────────
@@ -126,11 +131,15 @@ describe('planNode', () => {
         expect(result.messages![0].content).toBe('太好了，因式分解方向完全对！接下来我们试着执行这个计划。');
         // 阶段推进到 EXECUTE
         expect(result.currentPhase).toBe(PolyaPhase.EXECUTE);
-        // SSE chunk 已推送
+        // SSE chunk 已推送（kind 字段确保外层 SSE part 为 data-custom）
         expect(mockWriter).toHaveBeenCalledWith({
-            type: 'phase_changed',
+            kind: 'phase_changed',
             phase: PolyaPhase.EXECUTE,
         });
+        // nostream 模式下，干净正文应通过 assistant_message chunk 主动推出
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' })
+        );
     });
 
     // ── 3. probedQuestionId 追加到 plan 探路记录 ─────────────────────────────

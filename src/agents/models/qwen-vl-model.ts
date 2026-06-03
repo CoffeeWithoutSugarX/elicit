@@ -7,5 +7,6 @@ export const visionModel = new ChatOpenAI({
     configuration: {
         baseURL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     },
-    maxTokens: 1024,
+    // 多题富字段 OCR JSON 在 1024 token 会被截断，导致服务端 JSON.parse 抛 "Unterminated string"
+    maxTokens: 8192,
 });

@@ -141,13 +141,17 @@ describe('reviewNode', () => {
         expect(result.currentPhase).toBe(PolyaPhase.DONE);
         expect(result.hasResolved).toBe(true);
 
-        // knowledge_card SSE chunk 已推送
+        // knowledge_card SSE chunk 已推送（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'knowledge_card' }),
+            expect.objectContaining({ kind: 'knowledge_card' }),
         );
-        // phase_changed → DONE SSE chunk 已推送
+        // phase_changed → DONE SSE chunk 已推送（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed', phase: PolyaPhase.DONE }),
+            expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.DONE }),
+        );
+        // nostream 模式下，干净正文（已剥去 ```json 围栏）应通过 assistant_message chunk 主动推出
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' }),
         );
 
         // C9 dual-write：conversationMapper.update 被调用
@@ -177,13 +181,13 @@ describe('reviewNode', () => {
         // 仍然有消息回复
         expect(result.messages).toHaveLength(1);
 
-        // knowledge_card chunk 不推送
+        // knowledge_card chunk 不推送（kind 字段新契约）
         expect(mockWriter).not.toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'knowledge_card' }),
+            expect.objectContaining({ kind: 'knowledge_card' }),
         );
-        // phase_changed → DONE 仍推送
+        // phase_changed → DONE 仍推送（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed', phase: PolyaPhase.DONE }),
+            expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.DONE }),
         );
         // 状态仍更新
         expect(result.currentPhase).toBe(PolyaPhase.DONE);
@@ -208,12 +212,13 @@ describe('reviewNode', () => {
         const result = await reviewNode(state);
 
         expect(result.messages).toHaveLength(1);
+        // knowledge_card 不推送（无 json 围栏）（kind 字段新契约）
         expect(mockWriter).not.toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'knowledge_card' }),
+            expect.objectContaining({ kind: 'knowledge_card' }),
         );
-        // phase_changed 仍推送
+        // phase_changed 仍推送（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'phase_changed', phase: PolyaPhase.DONE }),
+            expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.DONE }),
         );
     });
 
@@ -328,8 +333,9 @@ phase_signal: "COMPLETED"`;
 
         expect(result.currentPhase).toBe(PolyaPhase.DONE);
         expect(result.hasResolved).toBe(true);
+        // 多小问场景 knowledge_card 推送（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'knowledge_card' }),
+            expect.objectContaining({ kind: 'knowledge_card' }),
         );
     });
 

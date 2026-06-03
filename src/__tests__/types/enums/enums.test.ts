@@ -83,11 +83,12 @@ describe('ChatMessageRoleEnum', () => {
 describe('ChatMessageType', () => {
   it('TEXT = 1', () => expect(ChatMessageType.TEXT).toBe(1));
   it('IMAGE = 2', () => expect(ChatMessageType.IMAGE).toBe(2));
+  it('OCR_CARD = 3', () => expect(ChatMessageType.OCR_CARD).toBe(3));
 });
 
 describe('ChatMessageTypeEnum', () => {
-  it('items 有 2 个', () => {
-    expect(ChatMessageTypeEnum.items).toHaveLength(2);
+  it('items 有 3 个', () => {
+    expect(ChatMessageTypeEnum.items).toHaveLength(3);
   });
 
   it('getLabel(TEXT) → "文本"', () => {
@@ -98,6 +99,10 @@ describe('ChatMessageTypeEnum', () => {
     expect(ChatMessageTypeEnum.getLabel(ChatMessageType.IMAGE)).toBe('图片');
   });
 
+  it('getLabel(OCR_CARD) → "题目卡"', () => {
+    expect(ChatMessageTypeEnum.getLabel(ChatMessageType.OCR_CARD)).toBe('题目卡');
+  });
+
   it('getLabel 未知值 → "未知"', () => {
     expect(ChatMessageTypeEnum.getLabel(99 as never)).toBe('未知');
   });
@@ -106,6 +111,13 @@ describe('ChatMessageTypeEnum', () => {
     expect(ChatMessageTypeEnum.fromCode(ChatMessageType.IMAGE)).toEqual({
       code: 2,
       label: '图片',
+    });
+  });
+
+  it('fromCode(OCR_CARD) → 完整枚举项，不回落 TEXT', () => {
+    expect(ChatMessageTypeEnum.fromCode(ChatMessageType.OCR_CARD)).toEqual({
+      code: 3,
+      label: '题目卡',
     });
   });
 

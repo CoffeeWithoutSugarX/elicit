@@ -30,11 +30,17 @@ export const understandNode = async (state: ElicitGraphState) => {
     if (guardAction) {
         if (guardAction.kind === 'VISION_FAILURE') {
             console.log('UnderstandNode guard fired: VISION_FAILURE');
-            return { messages: [new AIMessage('（图片识别失败，无法继续引导，请重新上传清晰的题目图片）')] };
+            const visionFailText = '（图片识别失败，无法继续引导，请重新上传清晰的题目图片）';
+            // nostream 模式下前端收不到 messages 流，需主动推干净正文
+            getWriter()?.({ kind: 'assistant_message', text: visionFailText });
+            return { messages: [new AIMessage(visionFailText)] };
         }
         if (guardAction.kind === 'OUT_OF_SCOPE') {
             console.log('UnderstandNode guard fired: OUT_OF_SCOPE');
-            return { messages: [new AIMessage('（这道题超出了初中数学的范围，我只能帮你解决初中数学题哦）')] };
+            const outOfScopeText = '（这道题超出了初中数学的范围，我只能帮你解决初中数学题哦）';
+            // nostream 模式下前端收不到 messages 流，需主动推干净正文
+            getWriter()?.({ kind: 'assistant_message', text: outOfScopeText });
+            return { messages: [new AIMessage(outOfScopeText)] };
         }
         // PULL_BACK / PROBE_5Q / KNOWLEDGE_FALLBACK — 注入 prompt，继续调用 LLM
         console.log('UnderstandNode guard fired:', guardAction.kind);
@@ -58,11 +64,13 @@ export const understandNode = async (state: ElicitGraphState) => {
 
     // 调用 DeepSeek（temperature 由 modelParams 定义，但 ChatOpenAICallOptions 不接受运行时覆盖，
     // 故此处仅传消息列表，temperature / max_tokens 通过 modelParams 文档化供未来模型绑定使用）
+    // 加 "langsmith:nostream" tag：让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit，
+    // 避免协议行（phase_signal 等）被当作妹妹回复推送到前端文本流。干净正文由下方 getWriter() 主动推出。
     void modelParams; // 保持对 modelParams 的引用，避免 unused import
     const response = await chatModel.invoke([
         new SystemMessage(systemPrompt),
         new HumanMessage(userContent),
-    ]);
+    ], { tags: ["langsmith:nostream"] });
 
     const responseText = typeof response.content === 'string' ? response.content : '';
 
@@ -87,12 +95,18 @@ export const understandNode = async (state: ElicitGraphState) => {
         subProblems: updatedSubProblems,
     };
 
+    // nostream 模式下，主动用 getWriter() 把干净正文推回给前端
+    const writer = getWriter();
+    if (writer && parsed.cleanContent.trim()) {
+        writer({ kind: 'assistant_message', text: parsed.cleanContent });
+    }
+
     // COMPLETED → 推进到 PLAN 阶段并发送 SSE chunk
+    // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
     if (parsed.signal === 'COMPLETED') {
         stateUpdate.currentPhase = PolyaPhase.PLAN;
-        const writer = getWriter();
         if (writer) {
-            writer({ type: 'phase_changed', phase: PolyaPhase.PLAN });
+            writer({ kind: 'phase_changed', phase: PolyaPhase.PLAN });
         }
     }
 

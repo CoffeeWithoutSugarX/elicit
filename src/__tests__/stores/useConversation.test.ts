@@ -67,8 +67,13 @@ async function* makeChunkStream(chunks: ChunkMessage[]) {
     }
 }
 
-/** Build a minimal mock Response with a body (for confirmSelectedQuestion) */
+/** Build a minimal mock Response with ok=true and a body (for confirmSelectedQuestion) */
 function makeOkResponse() {
+    return { ok: true, body: {} } as unknown as Response;
+}
+
+/** Build a resolve response: ok=true + body, used for confirmSelectedQuestion success path */
+function makeOkResolveResponse() {
     return { ok: true, body: {} } as unknown as Response;
 }
 
@@ -110,6 +115,7 @@ function resetStore() {
 describe('useConversation', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.resetAllMocks();  // 重置 mock 返回值队列，防止 mockReturnValueOnce 泄漏到下一个测试
         resetStore();
     });
 
@@ -401,6 +407,37 @@ describe('useConversation', () => {
 
             expect(useConversation.getState().draftMessage?.imgUrl).toBe('https://example.com/img.jpg');
         });
+
+        it('response.ok===false（服务端 500）时乐观消息被撤销', async () => {
+            // 模拟服务端返回 500：fetch 不 reject，但 response.ok=false
+            useConversation.setState({ currentConversationId: 'conv-500', chatConversation: [] });
+            mockGetRawResponse.mockResolvedValueOnce({ ok: false, status: 500 } as unknown as Response);
+
+            const msg = makeUserMsg('msg-500', 'conv-500');
+            await useConversation.getState().sendMessage(msg);
+
+            // 乐观渲染的消息应被撤销
+            const msgs = useConversation.getState().chatMessages;
+            expect(msgs.find(m => m.id === 'msg-500')).toBeUndefined();
+        });
+
+        it('response.ok===false 时设置 sendError', async () => {
+            useConversation.setState({ currentConversationId: 'conv-500b', chatConversation: [] });
+            mockGetRawResponse.mockResolvedValueOnce({ ok: false, status: 500 } as unknown as Response);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-500b', 'conv-500b'));
+
+            expect(useConversation.getState().sendError).toBe('发送失败，请检查网络后重试');
+        });
+
+        it('response.ok===false 时 isStreaming 仍重置为 false', async () => {
+            useConversation.setState({ currentConversationId: 'conv-500c', chatConversation: [] });
+            mockGetRawResponse.mockResolvedValueOnce({ ok: false, status: 503 } as unknown as Response);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-500c', 'conv-500c'));
+
+            expect(useConversation.getState().isStreaming).toBe(false);
+        });
     });
 
     // --------------------------------------------------
@@ -464,37 +501,32 @@ describe('useConversation', () => {
     });
 
     // --------------------------------------------------
-    // handleCustomChunk — legacy conversation_created (no kind)
+    // handleCustomChunk — 旧版 conversation_created (无 kind 字段)
+    // 新行为：store 已删除 legacy 无-kind 分支，无 kind 的 data-custom chunk 走 default: break 静默忽略
     // --------------------------------------------------
     describe('handleCustomChunk — 旧版 conversation_created (无 kind 字段)', () => {
-        it('legacyConvId 与 currentConversationId 匹配时插入侧边栏并 insert 用户消息', async () => {
+        it('无 kind 的 data-custom chunk 不会插入侧边栏（legacy 分支已删除，静默忽略）', async () => {
             const convId = 'conv-legacy';
-            const userMsg = makeUserMsg('u-msg-legacy', convId);
             useConversation.setState({
                 currentConversationId: convId,
                 chatConversation: [],
-                chatMessages: [
-                    new ChatMessageProps(DEFAULT_MSG_ID, 'conv-1', ChatMessageRole.ASSISTANT, 'hi', ChatMessageType.TEXT),
-                    userMsg,
-                ],
             });
 
-            const customChunk: ChunkMessage = {
+            const legacyChunk: ChunkMessage = {
                 id: 'c1',
                 type: 'data-custom',
                 delta: '',
-                data: { conversationId: convId, title: '数学题目' }, // no 'kind'
+                data: { conversationId: convId, title: '数学题目' }, // no 'kind' — legacy format, now ignored
             };
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
-            mockStreamIterator.mockReturnValueOnce(makeChunkStream([customChunk]));
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([legacyChunk]));
             mockInsertChatMessageRequest.mockResolvedValue(true);
 
             await useConversation.getState().sendMessage(makeUserMsg('msg-trigger', convId));
 
-            // Sidebar should have the new conversation
+            // 无 kind → switch(undefined) falls through to default: break → 侧边栏不更新
             const convs = useConversation.getState().chatConversation;
-            expect(convs.find(c => c.id === convId)).toBeDefined();
-            expect(convs[0].title).toBe('数学题目');
+            expect(convs).toHaveLength(0);
         });
 
         it('legacyConvId 与 currentConversationId 不匹配时不插入侧边栏', async () => {
@@ -507,7 +539,7 @@ describe('useConversation', () => {
                 id: 'c2',
                 type: 'data-custom',
                 delta: '',
-                data: { conversationId: 'conv-other', title: '别的题' }, // mismatch
+                data: { conversationId: 'conv-other', title: '别的题' }, // mismatch, no kind
             };
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([customChunk]));
@@ -569,13 +601,10 @@ describe('useConversation', () => {
             expect(useConversation.getState().isMultiQuestion).toBe(true);
         });
 
-        it('单题时 isMultiQuestion=false 且自动调用 confirmSelectedQuestion 设置 hasResolved=true', async () => {
-            // confirmSelectedQuestion is called without await from handleCustomChunk,
-            // so we use direct store method call to test this behavior separately.
-            // Here we test the state after questions_detected chunk is processed via sendMessage.
+        it('单题时设置 pendingQuestions 和 isMultiQuestion=false，不自动确认、不调用 /resolve', async () => {
+            // 产品变更：单题不再自动确认，弹卡等用户手动点「确认」
             useConversation.setState({ currentConversationId: 'conv-sq', chatConversation: [] });
 
-            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
             mockInsertChatMessageRequest.mockResolvedValue(true);
 
             const singleQ = [
@@ -588,26 +617,18 @@ describe('useConversation', () => {
                 data: { kind: 'questions_detected', questions: singleQ, isMulti: false },
             };
 
-            // The qChunk triggers confirmSelectedQuestion(0) internally (fire-and-forget)
-            // We need fetch to resolve for that internal call
-            mockFetch.mockResolvedValue({ body: {} } as unknown as Response);
-            mockStreamIterator
-                // First call: sendMessage's processStream — yields qChunk
-                .mockReturnValueOnce(makeChunkStream([qChunk]))
-                // Second call: confirmSelectedQuestion's processStream — empty
-                .mockReturnValueOnce(makeChunkStream([]));
-
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([qChunk]));
 
             await useConversation.getState().sendMessage(makeUserMsg('msg-sq', 'conv-sq'));
 
-            // pendingQuestions and isMultiQuestion should be set immediately
-            expect(useConversation.getState().isMultiQuestion).toBe(false);
+            // pendingQuestions 应被设置，isMultiQuestion=false
             expect(useConversation.getState().pendingQuestions).toHaveLength(1);
-            // hasResolved is set by confirmSelectedQuestion — but it fires async,
-            // wait briefly for microtasks to flush
-            await new Promise(resolve => setTimeout(resolve, 10));
-            expect(useConversation.getState().hasResolved).toBe(true);
+            expect(useConversation.getState().isMultiQuestion).toBe(false);
+            // 不自动触发 /resolve：hasResolved 仍为 false
+            expect(useConversation.getState().hasResolved).toBe(false);
+            // 未调用 fetch（confirmSelectedQuestion 未被触发）
+            expect(mockFetch).not.toHaveBeenCalled();
         });
     });
 
@@ -721,7 +742,117 @@ describe('useConversation', () => {
     });
 
     // --------------------------------------------------
-    // handleCustomChunk — unknown kind (silent ignore)
+    // handleCustomChunk — assistant_message（新增）
+    // phase 节点抑制 token 流，通过 assistant_message chunk 整段下发
+    // --------------------------------------------------
+    describe('handleCustomChunk — assistant_message', () => {
+        it('收到 assistant_message chunk 时新增 ASSISTANT 消息气泡', async () => {
+            useConversation.setState({ currentConversationId: 'conv-am', chatConversation: [], isWaitingFirstChunk: true });
+
+            const amChunk: ChunkMessage = {
+                id: 'am1',
+                type: 'data-custom',
+                delta: '',
+                data: { kind: 'assistant_message', text: '好的，让我分析一下这道题...' },
+            };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([amChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-am', 'conv-am'));
+
+            const msgs = useConversation.getState().chatMessages;
+            // 最后一条消息应是包含 assistant_message 文字的 ASSISTANT 气泡
+            const lastMsg = msgs[msgs.length - 1];
+            expect(lastMsg.role).toBe(ChatMessageRole.ASSISTANT);
+            expect(lastMsg.message).toBe('好的，让我分析一下这道题...');
+        });
+
+        it('assistant_message chunk 到来时复位 isWaitingFirstChunk=false', async () => {
+            useConversation.setState({
+                currentConversationId: 'conv-am2',
+                chatConversation: [],
+                isWaitingFirstChunk: true,
+            });
+
+            const amChunk: ChunkMessage = {
+                id: 'am2',
+                type: 'data-custom',
+                delta: '',
+                data: { kind: 'assistant_message', text: '分析结果如下' },
+            };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([amChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-am2', 'conv-am2'));
+
+            // isWaitingFirstChunk 应在 handleCustomChunk 内部被复位（不等待普通 text delta）
+            expect(useConversation.getState().isWaitingFirstChunk).toBe(false);
+        });
+    });
+
+    // --------------------------------------------------
+    // processStream — error chunk（新增）
+    // toUIMessageStream 抛错时 emit { type:'error', errorText }
+    // --------------------------------------------------
+    describe('processStream — error chunk', () => {
+        it('收到 error chunk 时设置 sendError 并终止流', async () => {
+            useConversation.setState({ currentConversationId: 'conv-err', chatConversation: [] });
+
+            const errorChunk: ChunkMessage = {
+                id: '',
+                type: 'error',
+                delta: '',
+                errorText: '模型调用超时，请重试',
+            };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([errorChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-err', 'conv-err'));
+
+            expect(useConversation.getState().sendError).toBe('模型调用超时，请重试');
+        });
+
+        it('error chunk 无 errorText 时使用默认错误消息', async () => {
+            useConversation.setState({ currentConversationId: 'conv-err2', chatConversation: [] });
+
+            // errorText 为 undefined → 应使用默认文案
+            const errorChunk: ChunkMessage = {
+                id: '',
+                type: 'error',
+                delta: '',
+            };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([errorChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-err2', 'conv-err2'));
+
+            expect(useConversation.getState().sendError).toBe('生成失败，请重试');
+        });
+
+        it('error chunk 后 isWaitingFirstChunk 被复位为 false', async () => {
+            useConversation.setState({
+                currentConversationId: 'conv-err3',
+                chatConversation: [],
+                isWaitingFirstChunk: true,
+            });
+
+            const errorChunk: ChunkMessage = { id: '', type: 'error', delta: '', errorText: '出错了' };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([errorChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-err3', 'conv-err3'));
+
+            expect(useConversation.getState().isWaitingFirstChunk).toBe(false);
+        });
+    });
+
+    // --------------------------------------------------
+    // handleCustomChunk — 未知 kind (silent ignore)
     // --------------------------------------------------
     describe('handleCustomChunk — 未知 kind', () => {
         it('未知 kind 静默忽略，不抛出错误', async () => {
@@ -822,9 +953,11 @@ describe('useConversation', () => {
     // --------------------------------------------------
     describe('confirmSelectedQuestion', () => {
         it('设置 hasResolved=true 并调用 /resolve 接口', async () => {
-            useConversation.setState({ currentConversationId: 'conv-resolve' });
-            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'Bearer-token' } } });
-            mockFetch.mockResolvedValueOnce({ body: {} } as unknown as Response);
+            const mockQ = { index: 1, topic: '数学', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({ currentConversationId: 'conv-resolve', pendingQuestions: [makeUserMsg(), mockQ] as never });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'Bearer-token' } } });
+            // 必须包含 ok:true + body，否则 !response.ok 会触发 throw
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
             mockInsertChatMessageRequest.mockResolvedValue(true);
 
@@ -841,9 +974,10 @@ describe('useConversation', () => {
         });
 
         it('调用时设置 isStreaming=true，完成后为 false', async () => {
-            useConversation.setState({ currentConversationId: 'conv-resolve2' });
-            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
-            mockFetch.mockResolvedValueOnce({ body: {} } as unknown as Response);
+            const mockQ = { index: 0, topic: '数学', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({ currentConversationId: 'conv-resolve2', pendingQuestions: [mockQ] });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
             mockInsertChatMessageRequest.mockResolvedValue(true);
 
@@ -853,13 +987,14 @@ describe('useConversation', () => {
         });
 
         it('处理流式响应并更新消息', async () => {
-            useConversation.setState({ currentConversationId: 'conv-resolve3' });
-            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
+            const mockQ = { index: 0, topic: '数学', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({ currentConversationId: 'conv-resolve3', pendingQuestions: [mockQ] });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
 
             const aiChunks: ChunkMessage[] = [
                 { id: 'r-msg-1', type: 'text', delta: '好的，让我来分析' },
             ];
-            mockFetch.mockResolvedValueOnce({ body: {} } as unknown as Response);
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream(aiChunks));
             mockInsertChatMessageRequest.mockResolvedValue(true);
 
@@ -870,9 +1005,10 @@ describe('useConversation', () => {
         });
 
         it('Authorization header 包含正确的 access_token', async () => {
-            useConversation.setState({ currentConversationId: 'conv-auth' });
-            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'my-secret-token' } } });
-            mockFetch.mockResolvedValueOnce({ body: {} } as unknown as Response);
+            const mockQ = { index: 0, topic: '数学', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({ currentConversationId: 'conv-auth', pendingQuestions: [mockQ, mockQ, mockQ] });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'my-secret-token' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
             mockInsertChatMessageRequest.mockResolvedValue(true);
 
@@ -888,17 +1024,146 @@ describe('useConversation', () => {
             );
         });
 
-        it('response.body 为 null 时抛出错误，isStreaming 仍重置', async () => {
-            useConversation.setState({ currentConversationId: 'conv-nullbody' });
-            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
-            mockFetch.mockResolvedValueOnce({ body: null } as unknown as Response);
+        it('response.ok=false 时抛出错误并回滚 hasResolved=false + 设置 sendError', async () => {
+            const mockQ = { index: 0, topic: '数学', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({ currentConversationId: 'conv-badresp', pendingQuestions: [mockQ] });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // ok=false → 触发 throw
+            mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: {} } as unknown as Response);
 
-            // Should not throw (finally resets streaming)
-            await expect(
-                useConversation.getState().confirmSelectedQuestion(0)
-            ).rejects.toThrow('Failed to get resolve response');
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            // 乐观 hasResolved 应被回滚
+            expect(useConversation.getState().hasResolved).toBe(false);
+            expect(useConversation.getState().sendError).toBe('选题失败，请重试');
+            // finally 仍复位流状态
+            expect(useConversation.getState().isStreaming).toBe(false);
+        });
+
+        it('response.body 为 null 时抛出错误，isStreaming 仍重置', async () => {
+            const mockQ = { index: 0, topic: '数学', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({ currentConversationId: 'conv-nullbody', pendingQuestions: [mockQ] });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // ok=true 但 body=null → !response.body 触发 throw
+            mockFetch.mockResolvedValueOnce({ ok: true, body: null } as unknown as Response);
+
+            // confirmSelectedQuestion 内部 catch → 不 rethrow，所以不会 reject
+            await useConversation.getState().confirmSelectedQuestion(0);
 
             expect(useConversation.getState().isStreaming).toBe(false);
+            // hasResolved 被回滚
+            expect(useConversation.getState().hasResolved).toBe(false);
+            // sendError 被设置
+            expect(useConversation.getState().sendError).toBe('选题失败，请重试');
+        });
+
+        it('流结束后仅当最后一条消息是 ASSISTANT+TEXT 时才落库妹妹消息（DB guard）', async () => {
+            const mockQuestion = { index: 0, topic: '数学', latexFull: 'x+1=2', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({
+                currentConversationId: 'conv-guard',
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+
+            const aiChunk: ChunkMessage = { id: 'g-msg', type: 'text', delta: 'AI 回复' };
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([aiChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            // 应落库：确认卡（type=3）和妹妹 TEXT 消息各一次
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ type: ChatMessageType.OCR_CARD })
+            );
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ role: ChatMessageRole.ASSISTANT, type: ChatMessageType.TEXT })
+            );
+        });
+
+        it('流结束后最后一条消息为 USER 时不落库（DB guard）', async () => {
+            // 初始状态有一条用户消息作为最后一条（流未产出 ASSISTANT 消息）
+            const userMsg = makeUserMsg('u-last', 'conv-guard2');
+            const mockQuestion = { index: 0, topic: '数学', latexFull: 'x+1=2', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
+            useConversation.setState({
+                currentConversationId: 'conv-guard2',
+                chatMessages: [
+                    new ChatMessageProps(DEFAULT_MSG_ID, 'conv-1', ChatMessageRole.ASSISTANT, 'hi', ChatMessageType.TEXT),
+                    userMsg,
+                ],
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+            // 空流，不追加任何 AI TEXT 消息
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            // 确认卡应落库（type=3）
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ type: ChatMessageType.OCR_CARD })
+            );
+            // 但最后一条是 OCR_CARD 而非 TEXT，妹妹消息落库 guard 不应再落库 OCR_CARD 本身
+            // insertChatMessageRequest 调用次数恰好 1 次（仅确认卡）
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledTimes(1);
+        });
+
+        it('确认成功后 chatMessages 中有一条 type=OCR_CARD 消息且 message 可解析出 question', async () => {
+            const mockQuestion = { index: 0, topic: '物理', latexFull: 'F=ma', givenConditions: [], implicitConditions: [], goal: '求F', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求F', givenConditions: [], milestones: [] }] };
+            useConversation.setState({
+                currentConversationId: 'conv-ocr-card',
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            const msgs = useConversation.getState().chatMessages;
+            const cardMsg = msgs.find(m => m.type === ChatMessageType.OCR_CARD);
+            expect(cardMsg).toBeDefined();
+            // message 可解析为含 question 的对象
+            const parsed = JSON.parse(cardMsg!.message) as { question: typeof mockQuestion };
+            expect(parsed.question.latexFull).toBe('F=ma');
+            expect(parsed.question.topic).toBe('物理');
+        });
+
+        it('确认成功后 pendingQuestions 被清空', async () => {
+            const mockQuestion = { index: 0, topic: '化学', latexFull: 'H2O', givenConditions: [], implicitConditions: [], goal: '求解', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求解', givenConditions: [], milestones: [] }] };
+            useConversation.setState({
+                currentConversationId: 'conv-clear-q',
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            expect(useConversation.getState().pendingQuestions).toHaveLength(0);
+        });
+
+        it('insertChatMessageRequest 被以 type=3(OCR_CARD) 调用', async () => {
+            const mockQuestion = { index: 0, topic: '英语', latexFull: 'Hello world', givenConditions: [], implicitConditions: [], goal: '翻译', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '翻译', givenConditions: [], milestones: [] }] };
+            useConversation.setState({
+                currentConversationId: 'conv-insert-type3',
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 3 })
+            );
         });
     });
 

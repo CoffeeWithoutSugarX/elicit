@@ -79,9 +79,9 @@ describe('visionNode', () => {
         }
         // questionImgUrl 应清空，避免重复触发 OCR
         expect(result.questionImgUrl).toBeUndefined();
-        // SSE writer 应被调用推送 questions_detected
+        // SSE writer 应被调用推送 questions_detected（kind 字段确保外层 SSE part 为 data-custom）
         expect(mockWriter).toHaveBeenCalledWith(
-            expect.objectContaining({ type: 'questions_detected' })
+            expect.objectContaining({ kind: 'questions_detected' })
         );
     });
 
@@ -126,17 +126,17 @@ describe('visionNode', () => {
             expect(result.ocrResult!.questions).toHaveLength(2);
             expect(result.ocrResult!.isMulti).toBe(true);
         }
-        // questions_detected chunk 要包含 2 道题
+        // questions_detected chunk 要包含 2 道题（kind 字段确保外层 SSE part 为 data-custom）
         expect(mockWriter).toHaveBeenCalledWith(
             expect.objectContaining({
-                type: 'questions_detected',
+                kind: 'questions_detected',
                 isMulti: true,
             })
         );
     });
 
     // ── 3. 非数学学科（isSolvable=false）────────────────────────────────────────
-    it('非数学题（语文） → ocrResult.isSolvable=false', async () => {
+    it('非数学题（语文） → ocrResult.isSolvable=false，推 assistant_message 妹妹提示', async () => {
         const mockWriter = vi.fn();
         vi.mocked(getWriter).mockReturnValue(mockWriter);
 
@@ -158,14 +158,16 @@ describe('visionNode', () => {
             expect(result.ocrResult!.errorReason).toBe('NOT_SOLVABLE');
             expect(result.ocrResult!.questions).toHaveLength(0);
         }
-        // 非数学题不推送 questions_detected
-        expect(mockWriter).not.toHaveBeenCalled();
+        // isSolvable=false 时推 assistant_message 妹妹提示（NOT_SOLVABLE 话术）
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' })
+        );
         // questionImgUrl 同样清空
         expect(result.questionImgUrl).toBeUndefined();
     });
 
-    // ── 4. 解析失败（乱码响应）→ errorReason='PARSE_FAIL' ──────────────────────
-    it('模型返回乱码 → errorReason=PARSE_FAIL', async () => {
+    // ── 4. 解析失败（乱码响应）→ errorReason='PARSE_FAIL'，推 assistant_message ─
+    it('模型返回乱码 → errorReason=PARSE_FAIL，推 assistant_message 妹妹提示', async () => {
         const mockWriter = vi.fn();
         vi.mocked(getWriter).mockReturnValue(mockWriter);
 
@@ -180,7 +182,10 @@ describe('visionNode', () => {
         if (!result.ocrResult!.isSolvable) {
             expect(result.ocrResult!.errorReason).toBe('PARSE_FAIL');
         }
-        expect(mockWriter).not.toHaveBeenCalled();
+        // 提取 JSON 失败时推 assistant_message 妹妹提示，避免前端无限「正在思考…」
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' })
+        );
         expect(result.questionImgUrl).toBeUndefined();
     });
 
@@ -193,8 +198,8 @@ describe('visionNode', () => {
         expect(visionModel.invoke).not.toHaveBeenCalled();
     });
 
-    // ── 6. 模型抛出异常 → 返回 PARSE_FAIL ────────────────────────────────────
-    it('模型调用抛异常 → 返回 PARSE_FAIL 兜底', async () => {
+    // ── 6. 模型抛出异常 → 返回 PARSE_FAIL，推 assistant_message ─────────────
+    it('模型调用抛异常 → 返回 PARSE_FAIL 兜底，推 assistant_message 妹妹提示', async () => {
         const mockWriter = vi.fn();
         vi.mocked(getWriter).mockReturnValue(mockWriter);
 
@@ -207,12 +212,70 @@ describe('visionNode', () => {
         if (!result.ocrResult!.isSolvable) {
             expect(result.ocrResult!.errorReason).toBe('PARSE_FAIL');
         }
+        // catch 分支推 assistant_message 妹妹提示，避免前端无限「正在思考…」
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({ kind: 'assistant_message' })
+        );
         expect(result.questionImgUrl).toBeUndefined();
     });
 
     // ── 7. visionNodeName 导出值正确 ─────────────────────────────────────────
     it('visionNodeName 为 "visionNode"', () => {
         expect(visionNodeName).toBe('visionNode');
+    });
+
+    // ── 10. isSolvable=false + errorReason=BLURRY → 推模糊图片话术 ────────────
+    it('BLURRY → 推专属"模糊图片"话术 assistant_message', async () => {
+        const mockWriter = vi.fn();
+        vi.mocked(getWriter).mockReturnValue(mockWriter);
+
+        const blurryJson = JSON.stringify({
+            isSolvable: false,
+            subject: 'math',
+            questions: [],
+            errorReason: 'BLURRY',
+        });
+        vi.mocked(visionModel.invoke).mockResolvedValue({ content: blurryJson } as never);
+
+        const state = createMockState({ questionImgUrl: TEST_IMG_URL, hasResolved: false });
+        await visionNode(state);
+
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({
+                kind: 'assistant_message',
+                text: expect.stringContaining('模糊'),
+            })
+        );
+    });
+
+    // ── 11. getWriter() 返回 null/undefined 时失败路径不崩溃 ──────────────────
+    it('getWriter() 返回 null 时，乱码失败路径不抛错', async () => {
+        vi.mocked(getWriter).mockReturnValue(null as never);
+
+        vi.mocked(visionModel.invoke).mockResolvedValue({
+            content: '纯文本乱码，无 JSON',
+        } as never);
+
+        const state = createMockState({ questionImgUrl: TEST_IMG_URL, hasResolved: false });
+        // 不抛错即通过
+        await expect(visionNode(state)).resolves.toBeDefined();
+    });
+
+    // ── 9. visionModel.invoke 携带 nostream tag，防止 OCR JSON 泄漏到前端文本流 ──
+    it('invoke 第二参数包含 tags: ["langsmith:nostream"]，避免 OCR JSON 泄漏前端', async () => {
+        const mockWriter = vi.fn();
+        vi.mocked(getWriter).mockReturnValue(mockWriter);
+        vi.mocked(visionModel.invoke).mockResolvedValue({
+            content: makeSolvableJson(),
+        } as never);
+
+        const state = createMockState({ questionImgUrl: TEST_IMG_URL, hasResolved: false });
+        await visionNode(state);
+
+        expect(visionModel.invoke).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ tags: ["langsmith:nostream"] })
+        );
     });
 
     // ── 8. JSON 被 ```json 围栏包裹时仍能正确解析 ─────────────────────────────

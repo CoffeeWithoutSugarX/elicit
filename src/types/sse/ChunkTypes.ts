@@ -31,9 +31,16 @@ export interface SubProblemChangedChunk {
     totalCount: number;
 }
 
+// phase 节点（understand/plan/execute/review）在 nostream 模式下主动推出的干净正文
+export interface AssistantMessageChunk {
+    kind: 'assistant_message';
+    text: string;
+}
+
 export type CustomChunk =
     | ConversationCreatedChunk
     | PhaseChangedChunk
     | KnowledgeCardChunk
     | QuestionsDetectedChunk
-    | SubProblemChangedChunk;
+    | SubProblemChangedChunk
+    | AssistantMessageChunk;

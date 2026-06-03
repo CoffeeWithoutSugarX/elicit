@@ -65,18 +65,25 @@ export const reviewNode = async (state: ElicitGraphState) => {
         // ——— 调用 DeepSeek ———
         // temperature / max_tokens 在 modelParams 中定义供文档用；
         // ChatOpenAI 的 temperature 是构造参数，不是 invoke call option。
+        // 加 "langsmith:nostream" tag：让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit，
+        // 避免正文里的 ```json 知识卡片被当作妹妹回复推送到前端文本流。干净正文由下方 getWriter() 主动推出。
         const response = await chatModel.invoke([
             new SystemMessage(systemPrompt),
             ...fewShotMessages,
             new HumanMessage(userContent),
-        ]);
+        ], { tags: ["langsmith:nostream"] });
 
         const rawContent = typeof response.content === 'string' ? response.content : '';
 
         // ——— 解析 phase 信号（COMPLETED）———
         const { cleanContent } = phaseSignalParse(rawContent);
 
+        // ReviewNode 特殊：phaseSignalParse 只剥末尾协议行，剥不掉正文里的 ```json 围栏。
+        // 在推送/存储前先剥掉围栏，确保妹妹气泡和会话历史里不残留 JSON 片段。
+        const prose = cleanContent.replace(/```json[\s\S]*?```/g, '').trim();
+
         // ——— 提取知识卡片 JSON ———
+        // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
         const writer = getWriter();
         const rawJson = extractJsonFence(rawContent);
 
@@ -85,7 +92,7 @@ export const reviewNode = async (state: ElicitGraphState) => {
             if (cardResult.success) {
                 // 推送 knowledge_card SSE chunk
                 if (writer) {
-                    writer({ type: 'knowledge_card', card: cardResult.data });
+                    writer({ kind: 'knowledge_card', card: cardResult.data });
                 }
                 console.log('ReviewNode: knowledge_card pushed', { knowledgePoints: cardResult.data.knowledgePoints.length });
             } else {
@@ -97,7 +104,12 @@ export const reviewNode = async (state: ElicitGraphState) => {
 
         // ——— 推送 phase_changed → DONE SSE chunk ———
         if (writer) {
-            writer({ type: 'phase_changed', phase: PolyaPhase.DONE });
+            writer({ kind: 'phase_changed', phase: PolyaPhase.DONE });
+        }
+
+        // nostream 模式下，主动用 getWriter() 把干净正文推回给前端（已剥去围栏）
+        if (writer && prose) {
+            writer({ kind: 'assistant_message', text: prose });
         }
 
         // ——— C9 dual-write：更新 DB hasResolved + currentPhase ———
@@ -113,7 +125,8 @@ export const reviewNode = async (state: ElicitGraphState) => {
         }
 
         return {
-            messages: [new AIMessage(cleanContent)],
+            // 存入 state.messages 的使用剥去围栏的 prose，保证会话历史里不残留 JSON
+            messages: [new AIMessage(prose)],
             currentPhase: PolyaPhase.DONE,
             hasResolved: true,
         };
@@ -121,8 +134,11 @@ export const reviewNode = async (state: ElicitGraphState) => {
     } catch (error) {
         console.log('ReviewNode error', error);
         // 容错兜底：返回简单回复，不改变 phase
+        // nostream 模式下前端收不到 messages 流，需主动推干净正文
+        const catchText = '（回顾阶段暂时无法响应，请重试）';
+        getWriter()?.({ kind: 'assistant_message', text: catchText });
         return {
-            messages: [new AIMessage('（回顾阶段暂时无法响应，请重试）')],
+            messages: [new AIMessage(catchText)],
         };
     }
 };

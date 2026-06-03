@@ -48,6 +48,7 @@ export type ChunkMessage = {
     type: string;
     delta: string;
     data?: Record<string, unknown>;
+    errorText?: string;
 }
 
 export const useConversation = create<ConversationStore>((set, get) => {
@@ -94,24 +95,10 @@ export const useConversation = create<ConversationStore>((set, get) => {
         }
     };
 
-    // 处理 data-custom chunk，按 kind 分发；兼容无 kind 的旧版 conversation_created 格式
+    // 处理 data-custom chunk，按 kind 分发
     const handleCustomChunk = async (chunk: ChunkMessage) => {
         const data = chunk.data;
         if (!data) return;
-
-        // 旧版兼容：ConversationNode 推送 {conversationId, title}，无 kind 字段
-        if (!('kind' in data)) {
-            const legacyConvId = data.conversationId as string | undefined;
-            const legacyTitle  = data.title as string | undefined;
-            if (legacyConvId && legacyTitle && legacyConvId === get().currentConversationId) {
-                set({chatConversation: [new ChatConversationProps(legacyConvId, legacyTitle), ...get().chatConversation]});
-                const userMsg = get().chatMessages.find(
-                    m => m.role === ChatMessageRole.USER && m.conversationId === legacyConvId
-                );
-                if (userMsg) await insertChatMessageRequest(userMsg);
-            }
-            return;
-        }
 
         // 有 kind 字段，强制转换为 CustomChunk 并按类型分发
         const custom = data as unknown as CustomChunk;
@@ -133,14 +120,29 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 set({knowledgeCard: custom.card});
                 break;
             case 'questions_detected':
+                // 无论单题还是多题，都弹卡等用户手动确认，不再自动确认
                 set({pendingQuestions: custom.questions, isMultiQuestion: custom.isMulti});
-                // 单题时自动确认，跳过 P-103 多题选择流程
-                if (!custom.isMulti) {
-                    confirmSelectedQuestion(0);
-                }
                 break;
             case 'sub_problem_changed':
                 set({currentSubProblemIndex: custom.currentIndex, totalSubProblems: custom.totalCount});
+                break;
+            case 'assistant_message':
+                // phase 节点抑制 token 流，妹妹回复通过此 chunk 一次性整段下发
+                set(state => ({
+                    chatMessages: [
+                        ...state.chatMessages,
+                        new ChatMessageProps(
+                            generateId(),
+                            get().currentConversationId,
+                            ChatMessageRole.ASSISTANT,
+                            custom.text,
+                            ChatMessageType.TEXT,
+                        ),
+                    ],
+                    // processStream 里 data-custom 走 continue 分支，不会触发现有的 isWaitingFirstChunk 复位，
+                    // 必须在此处手动复位，否则「正在思考…」不消失
+                    isWaitingFirstChunk: false,
+                }));
                 break;
             default:
                 // 未知 kind，静默忽略（CR-005 兼容性）
@@ -154,6 +156,12 @@ export const useConversation = create<ConversationStore>((set, get) => {
             if (chunk.type === 'data-custom') {
                 await handleCustomChunk(chunk);
                 continue;
+            }
+            // graph 节点抛错时 toUIMessageStream 自动 emit { type:'error', errorText }
+            // 终止流解析，终止「正在思考…」；外层 finally 负责复位 isStreaming/isWaitingFirstChunk
+            if (chunk.type === 'error') {
+                set({ sendError: chunk.errorText || '生成失败，请重试', isWaitingFirstChunk: false });
+                return;
             }
             if (!chunk.delta || chunk.delta.trim() === "") continue;
             if (get().isWaitingFirstChunk) {
@@ -183,6 +191,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
         set({isStreaming: true, isWaitingFirstChunk: true});
         try {
             const response = await chatRequest.getRawResponse(message);
+            // 4xx/5xx 时 fetch 不 reject，需手动检查 ok 以触发 catch（撤销乐观渲染 + 回填草稿）
+            if (!response.ok) throw new Error('发送失败: ' + response.status);
             await processStream(response);
             const lastMsg = get().chatMessages[get().chatMessages.length - 1];
             if (lastMsg.id !== message.id) {
@@ -207,6 +217,23 @@ export const useConversation = create<ConversationStore>((set, get) => {
     // 用户确认选择某道题（P-103 多题选择流程），调用 /resolve 接口并处理 SSE 回包
     const confirmSelectedQuestion = async (index: number) => {
         const conversationId = get().currentConversationId;
+        // 在乐观更新前，先取出被确认的题目和原题图 key
+        const confirmedQuestion = get().pendingQuestions[index];
+        const imgKey = [...get().chatMessages].reverse().find(
+            m => m.role === ChatMessageRole.USER && m.imgUrl
+        )?.imgUrl ?? '';
+
+        // 构建已确认题目卡消息（type=3 OCR_CARD），content 格式：JSON.stringify({question})
+        const cardMsg = new ChatMessageProps(
+            generateId(),
+            conversationId,
+            ChatMessageRole.ASSISTANT,
+            JSON.stringify({ question: confirmedQuestion }),
+            ChatMessageType.OCR_CARD,
+            imgKey,
+        );
+
+        // 乐观置 hasResolved，catch 里回滚
         set({hasResolved: true, isStreaming: true, isWaitingFirstChunk: true});
         try {
             const {data: {session}} = await supabase.auth.getSession();
@@ -218,11 +245,26 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 },
                 body: JSON.stringify({selectedQuestionIndex: index}),
             });
-            if (!response.body) {
-                throw new Error("Failed to get resolve response");
+            // 4xx/5xx 或 body 缺失均视为失败
+            if (!response.ok || !response.body) {
+                throw new Error(`resolve 请求失败: ${response.status}`);
             }
+            // fetch 成功后，processStream 之前：把确认卡推入消息流并清空待确认列表
+            set(state => ({ chatMessages: [...state.chatMessages, cardMsg], pendingQuestions: [] }));
+            // 落库确认卡（type=3，供刷新后复现）
+            await insertChatMessageRequest(cardMsg);
+
             await processStream(response);
-            await insertChatMessageRequest(get().chatMessages[get().chatMessages.length - 1]);
+            // 成功路径：仅当最后一条消息是 ASSISTANT 且 type=TEXT 时才落库（避免把 OCR_CARD 卡误当妹妹文本落库）
+            const lastMsg = get().chatMessages[get().chatMessages.length - 1];
+            if (lastMsg && lastMsg.role === ChatMessageRole.ASSISTANT && lastMsg.type === ChatMessageType.TEXT) {
+                await insertChatMessageRequest(lastMsg);
+            }
+        } catch (error) {
+            console.error('confirmSelectedQuestion failed:', error);
+            // 回滚乐观状态；isStreaming/isWaitingFirstChunk 由 finally 复位
+            // pendingQuestions 此时可能已被清空，确认卡已落库——可接受，不强求恢复交互卡
+            set({ hasResolved: false, sendError: '选题失败，请重试' });
         } finally {
             set({isStreaming: false, isWaitingFirstChunk: false});
         }

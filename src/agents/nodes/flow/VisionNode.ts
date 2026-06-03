@@ -31,6 +31,8 @@ export const visionNode = async (state: ElicitGraphState) => {
         const userContent = userPromptTemplate({ imgUrl: state.questionImgUrl, userText });
 
         // 调用 Qwen VL，图片以 image_url 方式传入
+        // 加 "langsmith:nostream" tag：让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit，
+        // 避免 OCR 输出的机器可读 JSON 被当作妹妹回复推送到前端文本流（参见 @langchain/langgraph StreamMessagesHandler）
         const response = await visionModel.invoke([
             new SystemMessage(systemPrompt),
             new HumanMessage({
@@ -39,7 +41,7 @@ export const visionNode = async (state: ElicitGraphState) => {
                     { type: "text", text: userContent },
                 ],
             }),
-        ]);
+        ], { tags: ["langsmith:nostream"] });
 
         // 提取响应文本
         const responseText = typeof response.content === 'string'
@@ -52,6 +54,8 @@ export const visionNode = async (state: ElicitGraphState) => {
 
         if (!jsonMatch) {
             console.log('VisionNode: failed to extract JSON from response');
+            // 提取 JSON 失败——主动推妹妹口吻提示，避免前端无限「正在思考…」
+            getWriter()?.({ kind: 'assistant_message', text: '这道题我暂时没看清呢～麻烦把题目重新拍一张清晰、完整的照片发给我好吗？' });
             return { ocrResult: failResult, questionImgUrl: undefined };
         }
 
@@ -60,15 +64,22 @@ export const visionNode = async (state: ElicitGraphState) => {
         const ocrResult = OcrSchema.parse(parsed);
 
         // 通过 getWriter() 向客户端推送 questions_detected SSE chunk
+        // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
         if (ocrResult.isSolvable) {
             const writer = getWriter();
             if (writer) {
                 writer({
-                    type: 'questions_detected',
+                    kind: 'questions_detected',
                     questions: ocrResult.questions,
                     isMulti: ocrResult.isMulti,
                 });
             }
+        } else {
+            // isSolvable=false——按 errorReason 选话术推妹妹提示
+            const text = ocrResult.errorReason === 'BLURRY'
+                ? '图片有点模糊，我看不清题目～换一张清晰点的照片再发我吧！'
+                : '这道题好像不是初中数学题哦～我目前只擅长初中数学，换道数学题考考我？';
+            getWriter()?.({ kind: 'assistant_message', text });
         }
 
         console.log('VisionNode completed', {
@@ -81,6 +92,8 @@ export const visionNode = async (state: ElicitGraphState) => {
 
     } catch (error) {
         console.log('VisionNode error', error);
+        // JSON.parse 或 OcrSchema.parse 抛错——主动推妹妹口吻提示，避免前端无限「正在思考…」
+        getWriter()?.({ kind: 'assistant_message', text: '这道题我暂时没看清呢～麻烦把题目重新拍一张清晰、完整的照片发给我好吗？' });
         return { ocrResult: failResult, questionImgUrl: undefined };
     }
 };

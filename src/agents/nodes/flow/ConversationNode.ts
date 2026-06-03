@@ -20,9 +20,10 @@ export const createConversationNode = async (state: ElicitGraphState) => {
     }
     const conversation = await conversationMapper.create(state.conversationId, state.userId, title);
 
+    // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
     const writer = getWriter();
     if (writer) {
-        writer({conversationId: conversation.conversationId, title: conversation.title})
+        writer({ kind: 'conversation_created', conversationId: conversation.conversationId, title: conversation.title })
     }
 
     console.log('createConversationNode created conversation:', conversation)

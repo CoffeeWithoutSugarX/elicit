@@ -37,11 +37,13 @@ export const classifyNode = async (state: ElicitGraphState) => {
 
     try {
         // 调用 DeepSeek 分类（不流式，JSON 输出；temperature 在 chatModel 构造时配置）
+        // 加 "langsmith:nostream" tag：纯 JSON 分类输出不应泄漏到前端文本流，
+        // 让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit（参见 @langchain/langgraph StreamMessagesHandler）
         const userContent = userPromptTemplate({ selectedQuestion });
         const response = await chatModel.invoke([
             new SystemMessage(systemPrompt),
             new HumanMessage(userContent),
-        ]);
+        ], { tags: ["langsmith:nostream"] });
 
         const responseText = typeof response.content === 'string' ? response.content : '';
 
