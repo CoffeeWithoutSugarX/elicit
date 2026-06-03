@@ -6,8 +6,8 @@
  * isStreaming=true 时在尾部显示块状光标（▍，ink-deep 色闪烁）。
  *
  * 设计：
- * - user：右对齐，bg-paper-deep 圆角软包 + 右侧 32px 浅灰头像（衬线"妹"），无 border / shadow
- * - assistant：左对齐，32px 圆形水墨头像（衬线"引"）+ 右侧纯文字内容，无气泡背景
+ * - user：右对齐，bg-muted 圆角软包 + 右侧 Avatar（bg-muted/text-foreground，衬线"妹"），无 border / shadow
+ * - assistant：左对齐，Avatar（bg-foreground/text-background，衬线"引"）+ 右侧纯文字内容，无气泡背景
  * - system：居中纯文字，无气泡
  *
  * imgUrl（可选）：OSS 对象 key，仅在 user 气泡中渲染。
@@ -21,6 +21,7 @@ import { LatexRender } from '@/components/LatexRender'
 import { PHASE_LABEL } from '@/lib/theme'
 import type { PolyaPhase } from '@/lib/theme'
 import { ossRequest } from '@/services/api-client/OssRequest'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 interface Props {
   role: 'user' | 'assistant' | 'system'
@@ -91,12 +92,11 @@ function formatTimestamp(date: Date): string {
 function PhaseBadge({ phaseLabel }: { phaseLabel: string }) {
   return (
     <div
-      className="inline-flex items-center mb-1.5 text-ink-muted rounded"
+      className="inline-flex items-center mb-1.5 text-muted-foreground rounded bg-muted"
       style={{
         fontSize: '11px',
         fontFamily: 'var(--font-display)',
         letterSpacing: '0.04em',
-        backgroundColor: 'color-mix(in srgb, var(--color-ink-line) 40%, transparent)',
         padding: '2px 8px',
       }}
     >
@@ -155,7 +155,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
     return (
       <div className="flex justify-center my-3">
         <span
-          className="text-ink-muted text-xs tracking-wide px-2"
+          className="text-muted-foreground text-xs tracking-wide px-2"
           style={{ fontFamily: 'var(--font-body)' }}
         >
           {content}
@@ -178,10 +178,8 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
         {/* 气泡内容区：浅灰 paper-deep 圆角软包，max-w-[78%] 保留 */}
         <div className="relative max-w-[78%]">
           <div
-            className="px-4 py-3 text-base leading-relaxed rounded-lg"
+            className="px-4 py-3 text-base leading-relaxed rounded-lg bg-muted text-foreground"
             style={{
-              backgroundColor: 'var(--color-paper-deep)',
-              color: 'var(--color-ink-primary)',
               fontFamily: 'var(--font-body)',
             }}
           >
@@ -189,10 +187,9 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
             {imgUrl ? (
               <div
                 ref={imageWrapperRef}
-                className="relative mb-3 w-56 sm:w-64 rounded-lg overflow-hidden"
+                className="relative mb-3 w-56 sm:w-64 rounded-lg overflow-hidden bg-background"
                 style={{
                   aspectRatio: '4/3',
-                  backgroundColor: 'var(--color-paper-surface)',
                 }}
               >
                 {signedImageUrl ? (
@@ -205,10 +202,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
                     unoptimized
                   />
                 ) : (
-                  <div
-                    className="absolute inset-0 flex items-center justify-center text-xs"
-                    style={{ color: 'var(--color-ink-muted)' }}
-                  >
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
                     {isInView ? '图片加载中...' : '图片待加载'}
                   </div>
                 )}
@@ -223,7 +217,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
             <div
               className={cn(
                 'absolute -bottom-4 right-0',
-                'text-[10px] text-ink-muted',
+                'text-[10px] text-muted-foreground',
                 'opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap',
               )}
               style={{ fontFamily: 'var(--font-body)' }}
@@ -233,28 +227,11 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
           ) : null}
         </div>
         {/* 32px 圆形用户头像，右侧，浅灰底 + 深墨字（与 agent 头像反色对称） */}
-        <div
-          className="flex-shrink-0 flex items-center justify-center rounded-full"
-          style={{
-            width: 32,
-            height: 32,
-            backgroundColor: 'var(--color-paper-deep)',
-            border: '1px solid var(--color-ink-line)',
-          }}
-          aria-hidden
-        >
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '16px',
-              fontWeight: 500,
-              lineHeight: 1,
-              color: 'var(--color-ink-deep)',
-            }}
-          >
+        <Avatar aria-hidden className="border border-border">
+          <AvatarFallback className="bg-muted text-foreground text-base font-medium">
             妹
-          </span>
-        </div>
+          </AvatarFallback>
+        </Avatar>
       </div>
     )
   }
@@ -262,34 +239,17 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
   // assistant 气泡：32px 圆形水墨头像（衬线"引"）+ 右侧纯文字内容，无气泡背景
   return (
     <div className="group flex w-full my-6 justify-start items-start gap-3">
-      {/* 32px 圆形头像，固定水墨色 */}
-      <div
-        className="flex-shrink-0 flex items-center justify-center rounded-full"
-        style={{
-          width: 32,
-          height: 32,
-          backgroundColor: 'var(--color-ink-deep)',
-        }}
-        aria-hidden
-      >
-        <span
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '16px',
-            fontWeight: 500,
-            lineHeight: 1,
-            color: 'var(--color-paper-surface)',
-          }}
-        >
+      {/* 32px 圆形头像，固定水墨色（实心黑底白字） */}
+      <Avatar aria-hidden>
+        <AvatarFallback className="bg-foreground text-background text-base font-medium">
           引
-        </span>
-      </div>
+        </AvatarFallback>
+      </Avatar>
       {/* 右侧内容区：纯文字，无背景无边框 */}
       <div className="relative flex-1 min-w-0 py-1">
         <div
-          className="text-base leading-relaxed"
+          className="text-base leading-relaxed text-foreground"
           style={{
-            color: 'var(--color-ink-primary)',
             fontFamily: 'var(--font-body)',
           }}
         >
@@ -297,10 +257,10 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
           <div className="break-words">
             {renderContent(content)}
             {isStreaming ? (
-              // 块状光标，ink-deep 色闪烁
+              // 块状光标，foreground 色闪烁
               <span
-                className="inline-block ml-0.5 align-middle animate-pulse"
-                style={{ color: 'var(--color-ink-deep)', fontSize: '1em', lineHeight: 1 }}
+                className="inline-block ml-0.5 align-middle animate-pulse text-foreground"
+                style={{ fontSize: '1em', lineHeight: 1 }}
                 aria-hidden
               >
                 ▍
@@ -313,7 +273,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
           <div
             className={cn(
               'absolute -bottom-4 right-0',
-              'text-[10px] text-ink-muted',
+              'text-[10px] text-muted-foreground',
               'opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap',
             )}
             style={{ fontFamily: 'var(--font-body)' }}

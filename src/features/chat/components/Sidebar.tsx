@@ -14,6 +14,7 @@ import { PHASE_LABEL } from '@/lib/theme'
 import type { PolyaPhase } from '@/lib/theme'
 import { parseLatexSegments } from '@/lib/katexHelpers'
 import { LatexRender } from '@/components/LatexRender'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 interface ConversationListItem {
   id: string
@@ -273,15 +274,11 @@ export function Sidebar({
         style={{ borderTop: '1px solid var(--color-ink-line)' }}
       >
         {/* 首字母头像 */}
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0"
-          style={{
-            backgroundColor: 'var(--color-ink-deep)',
-            color: 'var(--color-paper-surface)',
-          }}
-        >
-          {initial}
-        </div>
+        <Avatar size="sm" className="flex-shrink-0">
+          <AvatarFallback className="bg-foreground text-background font-medium">
+            {initial}
+          </AvatarFallback>
+        </Avatar>
         {/* 邮箱缩写 */}
         <span
           className="flex-1 truncate text-xs"
