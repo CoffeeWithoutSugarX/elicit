@@ -12,6 +12,11 @@ import { cn } from '@/lib/utils'
 import { PHASE_LABEL } from '@/lib/theme'
 import type { PolyaPhase } from '@/lib/theme'
 import { toRoman } from '@/lib/numerals'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface Props {
   currentPhase: number            // 0=UNDERSTAND,1=PLAN,2=EXECUTE,3=REVIEW（或直接传 PolyaPhase 字符串）
@@ -62,14 +67,13 @@ function SubProblemBadge({ current, total }: { current: number; total: number })
 
 /** 破题点显示 — 批改红下划线版 */
 function InsightPointPill({ count, latest }: { count: number; latest?: string }) {
-  return (
+  const pill = (
     <span
       className={cn(
         'inline-flex items-baseline gap-1',
         'text-sm text-ink-primary',
         'cursor-default select-none',
       )}
-      title={latest ? `最新破题点：${latest}` : undefined}
     >
       <span className="text-ink-secondary text-xs" style={{ fontFamily: 'var(--font-body)' }}>
         破题点
@@ -87,6 +91,16 @@ function InsightPointPill({ count, latest }: { count: number; latest?: string })
         「{count}」
       </span>
     </span>
+  )
+
+  /* 只有 latest 存在时才包 Tooltip；否则直接渲染 span，避免多余包裹 */
+  if (!latest) return pill
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{pill}</TooltipTrigger>
+      <TooltipContent>最新破题点：{latest}</TooltipContent>
+    </Tooltip>
   )
 }
 

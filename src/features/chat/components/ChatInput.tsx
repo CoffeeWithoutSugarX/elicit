@@ -16,6 +16,11 @@ import { cn } from '@/lib/utils'
 import { useConversation } from '@/stores/useConversation'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface Props {
   onSendMessage: (text: string, imageUrl?: string) => void
@@ -170,18 +175,24 @@ export function ChatInput({
             {/* 左侧：图片按钮（可选） */}
             {showImageButton ? (
               <>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleImageButtonClick}
-                  disabled={disabled || isUploading}
-                  title={isUploading ? '上传中…' : '上传题目（拍照 / 相册）'}
-                  aria-label="上传图片"
-                  className="rounded-full"
-                >
-                  <Camera size={16} />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={handleImageButtonClick}
+                      disabled={disabled || isUploading}
+                      aria-label="上传图片"
+                      className="rounded-full"
+                    >
+                      <Camera size={16} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isUploading ? '上传中…' : '上传题目（拍照 / 相册）'}
+                  </TooltipContent>
+                </Tooltip>
                 {/* 隐藏文件 input，实际由图片按钮触发 */}
                 <input
                   ref={fileInputRef}

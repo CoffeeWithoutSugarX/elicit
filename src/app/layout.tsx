@@ -1,6 +1,7 @@
 import type {Metadata} from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/app/providers";
 
 export const metadata: Metadata = {
     title: "Elict",
@@ -15,7 +16,10 @@ export default function RootLayout({
     return (
         <html lang="en">
         <body className="antialiased">
-        {children}
+        {/* Providers 包裹：TooltipProvider 等全局客户端 Provider */}
+        <Providers>
+          {children}
+        </Providers>
         {/* 全局 Toast 挂载点，统一错误/通知提示 */}
         <Toaster />
         </body>

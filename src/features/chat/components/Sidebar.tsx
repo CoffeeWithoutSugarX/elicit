@@ -15,6 +15,11 @@ import type { PolyaPhase } from '@/lib/theme'
 import { parseLatexSegments } from '@/lib/katexHelpers'
 import { LatexRender } from '@/components/LatexRender'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface ConversationListItem {
   id: string
@@ -212,6 +217,8 @@ export function Sidebar({
 
                     return (
                       <li key={c.id}>
+                        <Tooltip>
+                        <TooltipTrigger asChild>
                         <button
                           type="button"
                           onClick={() => onSelectConversation(c.id)}
@@ -233,7 +240,7 @@ export function Sidebar({
                               e.currentTarget.style.backgroundColor = 'transparent'
                             }
                           }}
-                          title={c.title}
+                          aria-label={c.title}
                         >
                           {/* 第一行：标题 */}
                           <div
@@ -258,6 +265,9 @@ export function Sidebar({
                             </div>
                           ) : null}
                         </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">{c.title}</TooltipContent>
+                        </Tooltip>
                       </li>
                     )
                   })}

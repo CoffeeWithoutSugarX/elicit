@@ -11,6 +11,11 @@
  */
 import { Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface Props {
   state: 'active' | 'swap-confirm' | 'disabled'
@@ -19,30 +24,35 @@ interface Props {
 
 export function ImageButton({ state, onClick }: Props) {
   const isDisabled = state === 'disabled'
+  const tooltipText =
+    state === 'swap-confirm'
+      ? '已有题目——点击将进入换题确认'
+      : state === 'disabled'
+      ? '当前无法上传图片'
+      : '上传题目（拍照 / 相册）'
 
   return (
-    <button
-      type="button"
-      onClick={isDisabled ? undefined : onClick}
-      disabled={isDisabled}
-      title={
-        state === 'swap-confirm'
-          ? '已有题目——点击将进入换题确认'
-          : state === 'disabled'
-          ? '当前无法上传图片'
-          : '上传题目（拍照 / 相册）'
-      }
-      className={cn(
-        'w-8 h-8 rounded-full inline-flex items-center justify-center',
-        'bg-transparent transition-colors',
-        state === 'disabled'
-          ? 'text-ink-muted opacity-40 cursor-not-allowed'
-          : state === 'swap-confirm'
-          ? 'text-ink-deep hover:bg-paper-deep cursor-pointer'
-          : 'text-ink-secondary hover:text-ink-primary hover:bg-paper-deep cursor-pointer',
-      )}
-    >
-      <Camera size={16} />
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={isDisabled ? undefined : onClick}
+          disabled={isDisabled}
+          aria-label={tooltipText}
+          className={cn(
+            'w-8 h-8 rounded-full inline-flex items-center justify-center',
+            'bg-transparent transition-colors',
+            state === 'disabled'
+              ? 'text-ink-muted opacity-40 cursor-not-allowed'
+              : state === 'swap-confirm'
+              ? 'text-ink-deep hover:bg-paper-deep cursor-pointer'
+              : 'text-ink-secondary hover:text-ink-primary hover:bg-paper-deep cursor-pointer',
+          )}
+        >
+          <Camera size={16} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{tooltipText}</TooltipContent>
+    </Tooltip>
   )
 }
