@@ -3,6 +3,16 @@
 
 import Link from 'next/link';
 import { getAdminSupabase } from '@/lib/admin-db';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableHead,
+    TableRow,
+    TableCell,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 // 强制动态渲染：数据来自 DB，不能静态预渲染
 export const dynamic = 'force-dynamic';
@@ -49,55 +59,58 @@ export default async function AdminPage() {
 
     return (
         <div>
-            <p className="text-sm text-ink-secondary mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
                 共 {conversations.length} 条会话记录
             </p>
 
             {conversations.length === 0 ? (
-                <p className="text-ink-muted text-sm">暂无会话记录。</p>
+                <p className="text-muted-foreground text-sm">暂无会话记录。</p>
             ) : (
-                <div className="overflow-x-auto rounded border border-ink-line">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-paper-deep text-ink-secondary text-left">
-                                <th className="px-4 py-3 font-medium">标题</th>
-                                <th className="px-4 py-3 font-medium">用户 ID</th>
-                                <th className="px-4 py-3 font-medium">阶段</th>
-                                <th className="px-4 py-3 font-medium">创建时间</th>
-                                <th className="px-4 py-3 font-medium">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {conversations.map((conv, idx) => (
-                                <tr
-                                    key={conv.conversationId}
-                                    className={idx % 2 === 0 ? 'bg-paper-surface' : 'bg-paper-canvas'}
-                                    style={{ borderTop: '1px solid var(--color-ink-line)' }}
-                                >
-                                    <td className="px-4 py-3 text-ink-primary max-w-xs truncate">
+                <div className="rounded border border-border">
+                    {/* shadcn Table：自带 overflow-x-auto 容器、bg-muted/50 表头、border-border 分割线 */}
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                <TableHead className="px-4 py-3">标题</TableHead>
+                                <TableHead className="px-4 py-3">用户 ID</TableHead>
+                                <TableHead className="px-4 py-3">阶段</TableHead>
+                                <TableHead className="px-4 py-3">创建时间</TableHead>
+                                <TableHead className="px-4 py-3">操作</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {conversations.map(conv => (
+                                <TableRow key={conv.conversationId}>
+                                    {/* 标题列：截断超长标题 */}
+                                    <TableCell className="px-4 py-3 max-w-xs truncate">
                                         {conv.title ?? '（无标题）'}
-                                    </td>
-                                    <td className="px-4 py-3 text-ink-secondary font-mono text-xs">
+                                    </TableCell>
+                                    {/* 用户 ID 列：等宽字体，只展示前 8 位 */}
+                                    <TableCell className="px-4 py-3 font-mono text-xs text-muted-foreground">
                                         {conv.userId.slice(0, 8)}…
-                                    </td>
-                                    <td className="px-4 py-3 text-ink-secondary">
-                                        {PHASE_LABELS[conv.currentPhase] ?? conv.currentPhase}
-                                    </td>
-                                    <td className="px-4 py-3 text-ink-muted text-xs">
+                                    </TableCell>
+                                    {/* 阶段列：用 outline Badge 保持黑白中性 */}
+                                    <TableCell className="px-4 py-3">
+                                        <Badge variant="outline">
+                                            {PHASE_LABELS[conv.currentPhase] ?? conv.currentPhase}
+                                        </Badge>
+                                    </TableCell>
+                                    {/* 创建时间列 */}
+                                    <TableCell className="px-4 py-3 text-xs text-muted-foreground">
                                         {new Date(conv.createdAt).toLocaleString('zh-CN')}
-                                    </td>
-                                    <td className="px-4 py-3">
-                                        <Link
-                                            href={`/admin/${conv.conversationId}`}
-                                            className="text-xs text-ink-secondary underline hover:text-ink-primary transition-colors"
-                                        >
-                                            查看
-                                        </Link>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    {/* 操作列：ghost Button 包裹 Link */}
+                                    <TableCell className="px-4 py-3">
+                                        <Button variant="ghost" size="sm" asChild>
+                                            <Link href={`/admin/${conv.conversationId}`}>
+                                                查看
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
             )}
         </div>

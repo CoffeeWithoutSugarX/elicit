@@ -85,24 +85,24 @@ export default async function AdminConversationDetailPage({ params }: PageProps)
             <div className="mb-4">
                 <Link
                     href="/admin"
-                    className="text-sm text-ink-secondary hover:text-ink-primary transition-colors underline"
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors underline"
                 >
                     ← 返回会话列表
                 </Link>
             </div>
 
             {/* 会话元信息 */}
-            <div className="mb-6 p-4 bg-paper-surface border border-ink-line rounded">
-                <h2 className="text-lg font-semibold text-ink-primary mb-1">
+            <div className="mb-6 p-4 bg-muted/30 border border-border rounded">
+                <h2 className="text-lg font-semibold text-foreground mb-1">
                     {conversation.title ?? '（无标题）'}
                 </h2>
-                <p className="text-xs text-ink-muted font-mono">
+                <p className="text-xs text-muted-foreground font-mono">
                     会话 ID：{conversation.conversationId}
                 </p>
-                <p className="text-xs text-ink-muted font-mono mt-0.5">
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">
                     用户 ID：{conversation.userId}
                 </p>
-                <p className="text-xs text-ink-muted mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                     创建时间：{new Date(conversation.createdAt).toLocaleString('zh-CN')}
                 </p>
             </div>
@@ -110,7 +110,7 @@ export default async function AdminConversationDetailPage({ params }: PageProps)
             {/* 消息列表（只读） */}
             <div className="flex flex-col gap-3">
                 {messages.length === 0 && (
-                    <p className="text-ink-muted text-sm">该会话暂无消息记录。</p>
+                    <p className="text-muted-foreground text-sm">该会话暂无消息记录。</p>
                 )}
                 {messages.map(msg => {
                     // role: 0=USER, 1=ASSISTANT（与 ChatMessageRole 枚举对齐）
@@ -123,12 +123,12 @@ export default async function AdminConversationDetailPage({ params }: PageProps)
                             <div
                                 className={`max-w-[80%] px-4 py-3 rounded-lg text-sm leading-relaxed ${
                                     isUser
-                                        ? 'bg-paper-deep text-ink-primary'
-                                        : 'bg-paper-surface border border-ink-line text-ink-primary'
+                                        ? 'bg-muted text-foreground'
+                                        : 'bg-background border border-border text-foreground'
                                 }`}
                             >
                                 {/* 角色标签 */}
-                                <p className="text-[10px] text-ink-muted mb-1 font-mono">
+                                <p className="text-[10px] text-muted-foreground mb-1 font-mono">
                                     {isUser ? '用户' : '引思助手'}
                                 </p>
 
@@ -138,7 +138,7 @@ export default async function AdminConversationDetailPage({ params }: PageProps)
                                     <img
                                         src={msg.imgUrl}
                                         alt="用户上传图片"
-                                        className="max-h-40 object-contain mb-2 rounded border border-ink-line"
+                                        className="max-h-40 object-contain mb-2 rounded border border-border"
                                     />
                                 )}
 
@@ -146,7 +146,7 @@ export default async function AdminConversationDetailPage({ params }: PageProps)
                                 <p className="whitespace-pre-wrap break-words">{msg.content}</p>
 
                                 {/* 时间戳 */}
-                                <p className="text-[10px] text-ink-muted mt-1">
+                                <p className="text-[10px] text-muted-foreground mt-1">
                                     {new Date(msg.createdAt).toLocaleString('zh-CN')}
                                 </p>
                             </div>
