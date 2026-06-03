@@ -1,21 +1,21 @@
 'use client'
 
 /**
- * 聊天输入框：现代 AI chat 单盒子风格。
+ * 聊天输入框：现代 AI chat 单盒子风格（shadcn 组件版）。
  * 整个输入区是一个统一的圆角大盒子，内部上下分区：
- * - 上区：textarea（无 border / 无 outline），充分 padding
- * - 下区：左下图片按钮（圆形小图标）+ 右下 ArrowUp 发送按钮（圆形填色）
+ * - 上区：Textarea（透明无边框，融入外层盒子）
+ * - 下区：左下图片按钮（ghost icon）+ 右下 ArrowUp 发送按钮（default icon）
  *
- * 外层 bg-paper-canvas 无 border-t，输入区与对话区无硬切。
- * 聚焦时盒子 border 加深（focus-within），不给 textarea 加 ring。
+ * 外层 bg-background，无 border-t，与对话区无硬切。
+ * 聚焦时盒子 border 加深（focus-within），不给 Textarea 加 ring。
  * 回车发送，Shift+Enter 换行；disabled 时整体灰化。
- *
- * 纸面调性：象牙白背景 + 深墨蓝发送按钮 + Fraunces 衬线。
  */
 import { useState, useRef, useEffect } from 'react'
 import { ArrowUp, Camera } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useConversation } from '@/stores/useConversation'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   onSendMessage: (text: string, imageUrl?: string) => void
@@ -106,8 +106,8 @@ export function ChatInput({
   const canSend = !!text.trim() && !disabled && !isUploading
 
   return (
-    /* 外层容器：bg-paper-canvas，无 border-t，与对话区无硬切 */
-    <div className={cn('bg-paper-canvas px-4 py-4', disabled && 'opacity-60 pointer-events-none')}>
+    /* 外层容器：bg-background，无 border-t，与对话区无硬切 */
+    <div className={cn('bg-background px-4 py-4', disabled && 'opacity-60 pointer-events-none')}>
       {/* 内层限宽居中 */}
       <div className="max-w-[768px] mx-auto">
         {/* 图片预览区（有待上传图片时显示） */}
@@ -117,19 +117,21 @@ export function ChatInput({
             <img
               src={pendingImagePreview}
               alt="待发送图片"
-              className="h-16 w-16 object-cover rounded border border-ink-line"
+              className="h-16 w-16 object-cover rounded border border-border"
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 URL.revokeObjectURL(pendingImagePreview)
                 setPendingImageUrl(undefined)
                 setPendingImagePreview(undefined)
               }}
-              className="text-xs text-ink-muted hover:text-ink-primary transition-colors"
+              className="text-xs text-muted-foreground"
             >
               移除
-            </button>
+            </Button>
           </div>
         ) : null}
 
@@ -137,12 +139,12 @@ export function ChatInput({
         <div
           className={cn(
             'flex flex-col',
-            'bg-paper-surface border border-ink-line rounded-2xl shadow-paper-sm',
-            'focus-within:border-ink-secondary transition-colors',
+            'bg-background border border-border rounded-2xl shadow-sm',
+            'focus-within:border-ring transition-colors',
           )}
         >
-          {/* 上区：textarea */}
-          <textarea
+          {/* 上区：Textarea，覆盖 shadcn 默认边框/ring/圆角，使其融入外层盒子 */}
+          <Textarea
             ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -152,12 +154,15 @@ export function ChatInput({
             rows={1}
             disabled={disabled}
             className={cn(
-              'w-full bg-transparent outline-none resize-none',
+              // 移除 shadcn 默认的 border、shadow、ring、圆角、min-height，融入外层盒子
+              'border-0 shadow-none focus-visible:ring-0 focus-visible:border-transparent rounded-none',
+              // 布局与间距
+              'w-full bg-transparent resize-none',
               'px-4 pt-3 pb-1',
-              'text-base text-ink-primary placeholder:text-ink-muted',
               'min-h-[44px] max-h-[200px] overflow-y-auto',
+              // 移除 field-sizing-content（由 onInput 手动控制高度）
+              '[field-sizing:unset]',
             )}
-            style={{ fontFamily: 'var(--font-body)' }}
           />
 
           {/* 下区：操作行 */}
@@ -165,21 +170,18 @@ export function ChatInput({
             {/* 左侧：图片按钮（可选） */}
             {showImageButton ? (
               <>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={handleImageButtonClick}
                   disabled={disabled || isUploading}
                   title={isUploading ? '上传中…' : '上传题目（拍照 / 相册）'}
-                  className={cn(
-                    'w-8 h-8 rounded-full inline-flex items-center justify-center',
-                    'bg-transparent transition-colors',
-                    disabled || isUploading
-                      ? 'text-ink-muted opacity-40 cursor-not-allowed'
-                      : 'text-ink-secondary hover:text-ink-primary hover:bg-paper-deep cursor-pointer',
-                  )}
+                  aria-label="上传图片"
+                  className="rounded-full"
                 >
                   <Camera size={16} />
-                </button>
+                </Button>
                 {/* 隐藏文件 input，实际由图片按钮触发 */}
                 <input
                   ref={fileInputRef}
@@ -193,32 +195,18 @@ export function ChatInput({
               <div /> /* 占位，保持右侧按钮靠右 */
             )}
 
-            {/* 右侧：发送按钮（圆形，ArrowUp） */}
-            <button
+            {/* 右侧：发送按钮（圆形，ArrowUp，default variant = bg-primary） */}
+            <Button
               type="button"
+              variant="default"
+              size="icon-sm"
               onClick={handleSubmit}
               disabled={!canSend}
-              className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center transition-all',
-                canSend
-                  ? 'hover:opacity-90 active:scale-95 cursor-pointer'
-                  : 'cursor-not-allowed opacity-60',
-              )}
-              style={
-                canSend
-                  ? {
-                      backgroundColor: 'var(--color-ink-deep)',
-                      color: 'var(--color-paper-surface)',
-                    }
-                  : {
-                      backgroundColor: 'var(--color-paper-deep)',
-                      color: 'var(--color-ink-muted)',
-                    }
-              }
               aria-label="发送"
+              className="rounded-full"
             >
               <ArrowUp size={16} />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
