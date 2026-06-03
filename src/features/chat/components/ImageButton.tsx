@@ -43,10 +43,10 @@ export function ImageButton({ state, onClick }: Props) {
             'w-8 h-8 rounded-full inline-flex items-center justify-center',
             'bg-transparent transition-colors',
             state === 'disabled'
-              ? 'text-ink-muted opacity-40 cursor-not-allowed'
+              ? 'text-muted-foreground opacity-40 cursor-not-allowed'
               : state === 'swap-confirm'
-              ? 'text-ink-deep hover:bg-paper-deep cursor-pointer'
-              : 'text-ink-secondary hover:text-ink-primary hover:bg-paper-deep cursor-pointer',
+              ? 'text-primary hover:bg-muted cursor-pointer'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer',
           )}
         >
           <Camera size={16} />

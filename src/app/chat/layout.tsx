@@ -17,7 +17,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
     }, []);
 
     return (
-        <div className="flex h-screen bg-paper-canvas">
+        <div className="flex h-screen bg-background">
             <Sidebar
                 conversations={chatConversation.map(c => ({
                     id: c.id,

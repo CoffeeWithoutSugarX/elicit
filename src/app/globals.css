@@ -4,45 +4,13 @@
 
 @theme {
   /* ── 简约白（minimal）主题 — Linear 风 ── */
-
-  /* 纸面 */
-  --color-paper-canvas:   #FFFFFF;
-  --color-paper-surface:  #FAFAFA;
-  --color-paper-deep:     #F4F4F5;
-
-  /* 墨色系 */
-  --color-ink-primary:    #0A0A0A;
-  --color-ink-secondary:  #525252;
-  --color-ink-muted:      #A3A3A3;
-  --color-ink-line:       #E5E5E5;
-
-  /* 强调色（neutral 黑白灰，已去蓝） */
-  --color-ink-deep:       #0A0A0A;
-  --color-vermilion:      #0A0A0A;
-
-  /* Pólya 阶段色（neutral 灰阶，已去彩色） */
-  --color-phase-understand: #0A0A0A;
-  --color-phase-plan:       #3F3F46;
-  --color-phase-execute:    #71717A;
-  --color-phase-review:     #A1A1AA;
-
-  /* 信号色（neutral 灰阶，已去彩色） */
-  --color-signal-completed: #0A0A0A;
-  --color-signal-stay:      #71717A;
-  --color-signal-escalate:  #3F3F46;
-  --color-signal-done:      #52525B;
-  --color-signal-blocked:   #18181B;
+  /* 自定义 paper/ink/phase/signal token 已全部迁移至下方 shadcn 兼容层 */
 
   /* 圆角 */
   --radius-sm:   6px;
   --radius-md:   10px;
   --radius-lg:   12px;
   --radius-pill: 9999px;
-
-  /* 阴影 */
-  --shadow-paper-sm: 0 1px 2px rgb(0 0 0 / 0.04);
-  --shadow-paper-md: 0 1px 3px rgb(0 0 0 / 0.06), 0 4px 8px rgb(0 0 0 / 0.04);
-  --shadow-paper-lg: 0 4px 16px rgb(0 0 0 / 0.08);
 
   /* 字阶 */
   --font-size-xs:   0.75rem;
@@ -102,8 +70,8 @@ html {
 
 body {
   font-family: var(--font-body);
-  color: var(--color-ink-primary);
-  background-color: var(--color-paper-canvas);
+  color: var(--color-foreground);
+  background-color: var(--color-background);
   margin: 0;
   padding: 0;
 }
@@ -114,12 +82,3 @@ body {
   }
 }
 
-/* ── 工具类 ── */
-
-.icon-button {
-  @apply h-8 w-8 flex justify-center items-center rounded-full bg-paper-canvas text-ink-primary hover:bg-ink-line hover:cursor-pointer;
-}
-
-.small-icon {
-  @apply h-4 w-4;
-}

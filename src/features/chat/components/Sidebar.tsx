@@ -2,7 +2,7 @@
 
 /**
  * 左侧会话列表栏 — 主题中性版本。
- * bg-paper-canvas + 右侧 border-r + 纯文字品牌标题 + 幽灵新建按钮。
+ * bg-background + 右侧 border-r + 纯文字品牌标题 + 幽灵新建按钮。
  * 会话列表按时间分组（今天 / 昨天 / 本周 / 更早），双行布局（标题 + 副标题）。
  * 底部固定用户区（首字母头像 + 邮箱 + 设置图标）。
  */
@@ -117,24 +117,24 @@ export function Sidebar({
     <aside
       className="flex flex-col w-60 h-full flex-shrink-0"
       style={{
-        backgroundColor: 'var(--color-paper-canvas)',
-        borderRight: '1px solid var(--color-ink-line)',
+        backgroundColor: 'var(--color-background)',
+        borderRight: '1px solid var(--color-border)',
       }}
     >
       {/* 品牌区 */}
       <div
         className="h-14 px-4 flex items-center justify-between flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--color-ink-line)' }}
+        style={{ borderBottom: '1px solid var(--color-border)' }}
       >
         <span
           className="text-lg font-semibold"
-          style={{ color: 'var(--color-ink-primary)', fontFamily: 'var(--font-body)' }}
+          style={{ color: 'var(--color-foreground)', fontFamily: 'var(--font-body)' }}
         >
           引思
         </span>
         <span
           className="text-xs"
-          style={{ color: 'var(--color-ink-muted)' }}
+          style={{ color: 'var(--color-muted-foreground)' }}
         >
           ·
         </span>
@@ -152,26 +152,26 @@ export function Sidebar({
           )}
           style={{
             background: 'transparent',
-            border: '1px solid var(--color-ink-line)',
-            color: 'var(--color-ink-secondary)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-muted-foreground)',
             fontFamily: 'var(--font-body)',
             fontWeight: 500,
             // ring 色用 inline style 兜底 Tailwind 无法动态生成的颜色
             ...(newButtonHighlight
-              ? { outline: '2px solid var(--color-ink-deep)', outlineOffset: '2px' }
+              ? { outline: '2px solid var(--color-primary)', outlineOffset: '2px' }
               : {}),
           }}
           onMouseEnter={(e) => {
             const el = e.currentTarget
-            el.style.backgroundColor = 'var(--color-paper-deep)'
-            el.style.borderColor = 'var(--color-ink-secondary)'
-            el.style.color = 'var(--color-ink-primary)'
+            el.style.backgroundColor = 'var(--color-muted)'
+            el.style.borderColor = 'var(--color-muted-foreground)'
+            el.style.color = 'var(--color-foreground)'
           }}
           onMouseLeave={(e) => {
             const el = e.currentTarget
             el.style.backgroundColor = 'transparent'
-            el.style.borderColor = 'var(--color-ink-line)'
-            el.style.color = 'var(--color-ink-secondary)'
+            el.style.borderColor = 'var(--color-border)'
+            el.style.color = 'var(--color-muted-foreground)'
           }}
         >
           <Plus size={14} />
@@ -186,7 +186,7 @@ export function Sidebar({
         {conversations.length === 0 ? (
           <p
             className="text-xs text-center px-2 py-4"
-            style={{ color: 'var(--color-ink-muted)', fontFamily: 'var(--font-body)' }}
+            style={{ color: 'var(--color-muted-foreground)', fontFamily: 'var(--font-body)' }}
           >
             还没有对话记录
           </p>
@@ -199,7 +199,7 @@ export function Sidebar({
                   className="px-3 py-1.5 uppercase tracking-widest"
                   style={{
                     fontSize: '10px',
-                    color: 'var(--color-ink-muted)',
+                    color: 'var(--color-muted-foreground)',
                     fontFamily: 'var(--font-body)',
                     letterSpacing: '0.1em',
                   }}
@@ -225,14 +225,14 @@ export function Sidebar({
                           className="w-full text-left px-3 py-2 rounded-md transition-colors"
                           style={{
                             backgroundColor: active
-                              ? 'var(--color-paper-deep)'
+                              ? 'var(--color-muted)'
                               : 'transparent',
                             fontFamily: 'var(--font-body)',
                           }}
                           onMouseEnter={(e) => {
                             if (!active) {
                               e.currentTarget.style.backgroundColor =
-                                'color-mix(in srgb, var(--color-paper-deep) 50%, transparent)'
+                                'color-mix(in srgb, var(--color-muted) 50%, transparent)'
                             }
                           }}
                           onMouseLeave={(e) => {
@@ -246,7 +246,7 @@ export function Sidebar({
                           <div
                             className="truncate text-sm"
                             style={{
-                              color: 'var(--color-ink-primary)',
+                              color: 'var(--color-foreground)',
                               fontWeight: active ? 500 : 400,
                             }}
                           >
@@ -258,7 +258,7 @@ export function Sidebar({
                               className="truncate mt-0.5"
                               style={{
                                 fontSize: '11px',
-                                color: 'var(--color-ink-muted)',
+                                color: 'var(--color-muted-foreground)',
                               }}
                             >
                               {renderTitleWithLatex(subtitle)}
@@ -281,7 +281,7 @@ export function Sidebar({
       {/* 底部用户区 */}
       <div
         className="flex-shrink-0 px-3 py-3 flex items-center gap-2"
-        style={{ borderTop: '1px solid var(--color-ink-line)' }}
+        style={{ borderTop: '1px solid var(--color-border)' }}
       >
         {/* 首字母头像 */}
         <Avatar size="sm" className="flex-shrink-0">
@@ -293,7 +293,7 @@ export function Sidebar({
         <span
           className="flex-1 truncate text-xs"
           style={{
-            color: 'var(--color-ink-secondary)',
+            color: 'var(--color-muted-foreground)',
             fontFamily: 'var(--font-body)',
           }}
         >
@@ -303,9 +303,9 @@ export function Sidebar({
         <button
           type="button"
           className="flex-shrink-0 transition-colors"
-          style={{ color: 'var(--color-ink-muted)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-ink-primary)' }}
-          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-ink-muted)' }}
+          style={{ color: 'var(--color-muted-foreground)', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--color-foreground)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--color-muted-foreground)' }}
           aria-label="设置"
         >
           <Settings size={14} />

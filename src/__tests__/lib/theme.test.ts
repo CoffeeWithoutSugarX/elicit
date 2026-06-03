@@ -56,6 +56,7 @@ describe('colors', () => {
   });
 
   it('所有顶层颜色值均为 # 开头的十六进制字符串', () => {
+    // vermilion 已从 colors 对象移除（迁移至 shadcn --color-foreground）
     const topLevelColors = [
       colors.paperCanvas,
       colors.paperSurface,
@@ -65,7 +66,6 @@ describe('colors', () => {
       colors.inkMuted,
       colors.inkLine,
       colors.inkDeep,
-      colors.vermilion,
     ];
     for (const c of topLevelColors) {
       expect(c).toMatch(/^#[0-9A-Fa-f]{6}$/);

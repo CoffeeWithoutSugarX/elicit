@@ -63,7 +63,7 @@ export default function ChatNewPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-paper-canvas">
+        <div className="flex flex-col h-full bg-background">
             {/* Polya 顶栏 */}
             <PolyaTopBar
                 currentPhase={currentPhase}

@@ -97,7 +97,7 @@ export default function ConversationPage({ params }: PageProps) {
         ?.imgUrl ?? '';
 
     return (
-        <div className="flex flex-col h-full bg-paper-canvas">
+        <div className="flex flex-col h-full bg-background">
             {/* Polya 顶栏 */}
             <PolyaTopBar
                 currentPhase={currentPhase}

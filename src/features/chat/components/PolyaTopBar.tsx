@@ -5,6 +5,7 @@
  * 最上层：4 阶段横向 stepper（理解→规划→执行→回顾）
  * 中层：罗马题号（IBM Plex Mono）+ 细竖分隔 + 衬线阶段名
  * 下层：仅 EXECUTE 阶段显示破题点行
+ * 已迁移至 shadcn 标准 token（background/card/border/foreground/muted-foreground）
  */
 import { useState } from 'react'
 import { X } from 'lucide-react'
@@ -40,7 +41,7 @@ const PHASE_SHORT_LABEL: Record<PolyaPhase, string> = {
 
 /**
  * 阶段圆点颜色 — 全灰阶，不使用彩色 phase token。
- * 当前阶段：实心黑（--color-ink-primary）；已完成：深灰；未到达：淡灰。
+ * 当前阶段：实心黑（--color-foreground）；已完成：深灰；未到达：淡灰。
  * 颜色语义通过填充/粗细/opacity 区分，见 stepper 渲染逻辑。
  */
 // PHASE_COLOR 已移除（原 --color-phase-* 彩色 token，迁移到黑白灰 inline style）
@@ -54,9 +55,9 @@ function SubProblemBadge({ current, total }: { current: number; total: number })
     <span
       className={cn(
         'inline-flex items-center px-2 py-0.5',
-        'text-xs text-ink-secondary',
-        'border border-ink-line rounded-sm',
-        'bg-paper-surface',
+        'text-xs text-muted-foreground',
+        'border border-border rounded-sm',
+        'bg-card',
       )}
       style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}
     >
@@ -71,11 +72,11 @@ function InsightPointPill({ count, latest }: { count: number; latest?: string })
     <span
       className={cn(
         'inline-flex items-baseline gap-1',
-        'text-sm text-ink-primary',
+        'text-sm text-foreground',
         'cursor-default select-none',
       )}
     >
-      <span className="text-ink-secondary text-xs" style={{ fontFamily: 'var(--font-body)' }}>
+      <span className="text-muted-foreground text-xs" style={{ fontFamily: 'var(--font-body)' }}>
         破题点
       </span>
       <span
@@ -83,7 +84,7 @@ function InsightPointPill({ count, latest }: { count: number; latest?: string })
           fontFamily: 'var(--font-mono)',
           fontWeight: 700,
           textDecorationLine: 'underline',
-          textDecorationColor: 'var(--color-vermilion)',
+          textDecorationColor: 'var(--color-foreground)',
           textUnderlineOffset: '4px',
           letterSpacing: '0.04em',
         }}
@@ -115,11 +116,11 @@ function LongConversationToast() {
       className={cn(
         'flex items-center justify-between gap-3',
         'px-4 py-2',
-        'bg-paper-canvas text-ink-primary text-sm',
-        'border-b border-ink-line',
+        'bg-background text-foreground text-sm',
+        'border-b border-border',
       )}
       style={{
-        borderLeft: '3px solid var(--color-vermilion)',
+        borderLeft: '3px solid var(--color-foreground)',
         fontFamily: 'var(--font-body)',
       }}
     >
@@ -127,7 +128,7 @@ function LongConversationToast() {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="flex-shrink-0 text-ink-muted hover:text-vermilion transition-colors"
+        className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         aria-label="关闭提示"
       >
         <X size={14} />
@@ -155,7 +156,7 @@ export function PolyaTopBar({
     <div
       className={cn(
         'flex flex-col',
-        'bg-paper-surface border-b border-ink-line',
+        'bg-card border-b border-border',
       )}
     >
       {showLongWarning ? <LongConversationToast /> : null}
@@ -193,15 +194,15 @@ export function PolyaTopBar({
                     borderRadius: '50%',
                     // 当前阶段：实心黑 + 白 ring（灰阶，不用 phase 彩色）
                     ...(isCurrent ? {
-                      backgroundColor: 'var(--color-ink-primary)',
-                      boxShadow: `0 0 0 2px var(--color-paper-surface), 0 0 0 3.5px var(--color-ink-primary)`,
+                      backgroundColor: 'var(--color-foreground)',
+                      boxShadow: `0 0 0 2px var(--color-card), 0 0 0 3.5px var(--color-foreground)`,
                     } : isDone ? {
                       // 已完成：实心深灰
-                      backgroundColor: 'var(--color-ink-secondary)',
+                      backgroundColor: 'var(--color-muted-foreground)',
                     } : {
                       // 未到达：空心淡灰
                       backgroundColor: 'transparent',
-                      border: '1px solid var(--color-ink-line)',
+                      border: '1px solid var(--color-border)',
                     }),
                   }}
                   aria-hidden
@@ -213,7 +214,7 @@ export function PolyaTopBar({
                         display: 'block',
                         width: '6px',
                         height: '6px',
-                        color: 'var(--color-paper-surface)',
+                        color: 'var(--color-card)',
                         fontSize: '6px',
                         lineHeight: '6px',
                         textAlign: 'center',
@@ -232,10 +233,10 @@ export function PolyaTopBar({
                     fontSize: '9px',
                     lineHeight: '12px',
                     color: isCurrent
-                      ? 'var(--color-ink-primary)'
+                      ? 'var(--color-foreground)'
                       : isDone
-                        ? 'var(--color-ink-muted)'
-                        : 'var(--color-ink-muted)',
+                        ? 'var(--color-muted-foreground)'
+                        : 'var(--color-muted-foreground)',
                     fontWeight: isCurrent ? 600 : 400,
                     opacity: isUpcoming ? 0.55 : 1,
                     letterSpacing: '0.02em',
@@ -252,7 +253,7 @@ export function PolyaTopBar({
                     width: '28px',
                     height: '1px',
                     marginBottom: '12px', /* 补偿阶段名文字高度 */
-                    backgroundColor: 'var(--color-ink-line)',
+                    backgroundColor: 'var(--color-border)',
                     opacity: lineCompleted ? 1 : 0.3,
                   }}
                   aria-hidden
@@ -273,13 +274,13 @@ export function PolyaTopBar({
         {/* 细竖线分隔（灰阶，不用 phase 彩色） */}
         <div
           className="w-px h-4 flex-shrink-0"
-          style={{ backgroundColor: 'var(--color-ink-secondary)' }}
+          style={{ backgroundColor: 'var(--color-muted-foreground)' }}
           aria-hidden
         />
 
         {/* 衬线阶段名 */}
         <span
-          className="text-sm text-ink-primary"
+          className="text-sm text-foreground"
           style={{ fontFamily: 'var(--font-display)' }}
         >
           阶段 │ {PHASE_LABEL[currentPolyaPhase]}

@@ -3,7 +3,7 @@
 /**
  * 三态消息气泡：user / assistant / system。
  * 支持内嵌 LaTeX：检测 $...$ / $$...$$ 分隔符并分段渲染。
- * isStreaming=true 时在尾部显示块状光标（▍，ink-deep 色闪烁）。
+ * isStreaming=true 时在尾部显示块状光标（▍，primary 色闪烁）。
  *
  * 设计：
  * - user：右对齐，bg-muted 圆角软包 + 右侧 Avatar（bg-muted/text-foreground，衬线"妹"），无 border / shadow
@@ -175,7 +175,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
   if (isUser) {
     return (
       <div className="group flex w-full my-6 justify-end items-start gap-3">
-        {/* 气泡内容区：浅灰 paper-deep 圆角软包，max-w-[78%] 保留 */}
+        {/* 气泡内容区：浅灰 muted 圆角软包，max-w-[78%] 保留 */}
         <div className="relative max-w-[78%]">
           <div
             className="px-4 py-3 text-base leading-relaxed rounded-lg bg-muted text-foreground"

@@ -18,9 +18,9 @@ export function OcrErrorButton({ onClick }: Props) {
       onClick={onClick}
       className={cn(
         'inline-flex items-center gap-1.5 px-3 py-1.5',
-        'rounded-sm text-sm text-ink-secondary',
-        'border border-ink-line bg-paper-surface',
-        'hover:border-vermilion hover:text-vermilion',
+        'rounded-sm text-sm text-muted-foreground',
+        'border border-border bg-card',
+        'hover:border-foreground hover:text-foreground',
         'transition-colors',
       )}
       style={{ fontFamily: 'var(--font-body)' }}

@@ -1,8 +1,9 @@
 /**
  * 设计 token TS 镜像 — 简约白（minimal）主题
  * MVP 阶段仅使用 minimal 主题，与 globals.css @theme 块保持一致。
- * 组件直接 import 使用；Tailwind class（text-vermilion 等）是首选，
+ * 组件直接 import 使用；Tailwind class（text-foreground 等）是首选，
  * TS 镜像仅在需要内联 style 传色时使用（如 PhaseSignalBadge）。
+ * 注：原自定义 paper/ink/phase/signal token 已全部迁移至 shadcn 标准 token。
  */
 
 /** Pólya 四阶段 */
@@ -36,7 +37,7 @@ export const colors = {
   inkMuted:      '#A3A3A3',
   inkLine:       '#E5E5E5',
   inkDeep:       '#2563EB',
-  vermilion:     '#2563EB',
+  // 强调色（朱砂/accent）已废弃，对应 shadcn --color-foreground (#0A0A0A)
   signal: {
     completed: '#10B981',
     stay:      '#F59E0B',
