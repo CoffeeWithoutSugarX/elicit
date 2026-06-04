@@ -50,7 +50,7 @@ const UnsolvableOcrSchema = z.object({
     isSolvable:  z.literal(false),
     subject:     z.string(),
     questions:   z.array(SanitizedQuestionSchema).length(0),
-    errorReason: z.enum(['BLURRY', 'NOT_SOLVABLE', 'TIMEOUT', 'PARSE_FAIL'])
+    errorReason: z.enum(['BLURRY', 'NOT_SOLVABLE', 'INCOMPLETE', 'TIMEOUT', 'PARSE_FAIL'])
         .catch('NOT_SOLVABLE')
         .default('NOT_SOLVABLE'), // 缺失/null/枚举外值 coerce 成 NOT_SOLVABLE，不再 reject
 });

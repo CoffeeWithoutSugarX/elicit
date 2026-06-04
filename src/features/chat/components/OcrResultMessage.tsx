@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ossRequest } from '@/services/api-client/OssRequest'
+import { unescapeLiteralNewlines } from '@/lib/textUtils'
 
 interface Props {
   originalImageUrl: string
@@ -185,8 +186,12 @@ export function OcrResultMessage({
           <p
             className="text-sm text-foreground leading-relaxed"
           >
-            {/* 使用 latexFull 字段渲染题目内容（含 LaTeX） */}
-            {selectedQuestion ? renderMixed(selectedQuestion.latexFull) : null}
+            {/* 使用 latexFull 字段渲染题目内容（含 LaTeX）；
+                先用 unescapeLiteralNewlines 清洗字面 \n，
+                防御模型未遵守 prompt 约束时产生的乱码感文本 */}
+            {selectedQuestion
+              ? renderMixed(unescapeLiteralNewlines(selectedQuestion.latexFull))
+              : null}
           </p>
         </div>
 

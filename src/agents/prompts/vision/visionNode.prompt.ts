@@ -61,8 +61,9 @@ export const systemPrompt = `你是一个数学题图片识别助手。任务：
   ],
   "isMulti": <boolean>,
   "visualFeaturesNeeded": <boolean>,
-  "errorReason": "BLURRY" | "NOT_SOLVABLE" | null
+  "errorReason": "BLURRY" | "NOT_SOLVABLE" | "INCOMPLETE" | null
 }
+（注：TIMEOUT / PARSE_FAIL 由 VisionNode 代码层注入，LLM 只需输出 BLURRY / NOT_SOLVABLE / INCOMPLETE / null）
 
 约束：
 - questions 长度 1~5；超过 5 题只识别前 5 题
@@ -76,7 +77,9 @@ export const systemPrompt = `你是一个数学题图片识别助手。任务：
 - 非数学题：isSolvable=false, subject 填实际学科, questions=[]
 - 整张图模糊不可读：isSolvable=false, errorReason="BLURRY", questions=[]
 - LaTeX 必须用 $...$ 或 $$...$$ 包裹
-- 不要给具体解答 / 数值答案`;
+- 不要给具体解答 / 数值答案
+- **完整性约束**：仅收录在图片中题干**完整可见**的题目；题干被图片边缘裁切、开头或结尾明显残缺（如以右括号、等号、加减乘除运算符开头，或句子明显被截断）的题**一律跳过**，不收录；若整张图没有一道完整题目，返回 \`isSolvable: false\`，\`errorReason: "INCOMPLETE"\`（提示用户把整道题都拍进去）；（负例：以左括号开头不一定是残缺，如 $(x+1)^2=0$ 是合法的数学式开头；残缺判定看题干语义是否自洽，而非单纯看首字符）
+- **\`latexFull\` 格式硬约束**：数学表达式一律用 \`$...$\` 行内或 \`$$...$$\` 块级包裹（与 few-shot 示例保持一致）；\`latexFull\` 字符串值内**禁止**输出字面反斜杠 n（即 \`\\\` + \`n\` 两个字符组成的转义序列），题干书写为连续一段，小问间用分号或 \`(1)(2)\` 编号衔接`;
 
 // ——— 用户提示词模板 ———
 export interface VisionNodeInput {

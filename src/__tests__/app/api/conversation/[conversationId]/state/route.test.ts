@@ -197,21 +197,20 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         expect(res.status).toBe(403);
     });
 
-    it('snapshot.values.userId 为空/未定义时不做归属校验，正常返回', async () => {
-        // userId 字段不存在（旧会话兼容）
+    it('snapshot.values 有数据但 userId 缺失时返回 403（fail-closed）', async () => {
+        // checkpoint 有实际业务数据但未记录 userId → 拒绝访问，不泄露数据
         mockGetState.mockResolvedValueOnce({
             values: {
                 currentPhase: 1,
                 currentSubProblemIndex: 0,
                 subProblems: [{ index: 0, insightPoints: [] }],
                 hasResolved: true,
+                // userId 字段故意缺失
             },
         });
 
         const res = await GET(makeRequest(), makeContext());
-        expect(res.status).toBe(200);
-        const body = await res.json();
-        expect(body.currentPhase).toBe(1);
+        expect(res.status).toBe(403);
     });
 
     // --------------------------------------------------

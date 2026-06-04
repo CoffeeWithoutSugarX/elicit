@@ -270,6 +270,17 @@ describe('OcrSchema — UnsolvableOcrSchema：errorReason coerce', () => {
             expect(result.errorReason).toBe('BLURRY');
         }
     });
+
+    // ── errorReason 为 INCOMPLETE → 正常保留（不被 catch 成 NOT_SOLVABLE）────────
+    it('errorReason: "INCOMPLETE" → 正常保留', () => {
+        const payload = makeUnsolvablePayload({ errorReason: 'INCOMPLETE' });
+
+        const result = OcrSchema.parse(payload);
+        expect(result.isSolvable).toBe(false);
+        if (!result.isSolvable) {
+            expect(result.errorReason).toBe('INCOMPLETE');
+        }
+    });
 });
 
 describe('OcrSchema — 结构性硬约束仍然有效', () => {

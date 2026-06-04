@@ -75,10 +75,15 @@ export const visionNode = async (state: ElicitGraphState) => {
                 });
             }
         } else {
-            // isSolvable=false——按 errorReason 选话术推妹妹提示
-            const text = ocrResult.errorReason === 'BLURRY'
-                ? '图片有点模糊，我看不清题目～换一张清晰点的照片再发我吧！'
-                : '这道题好像不是初中数学题哦～我目前只擅长初中数学，换道数学题考考我？';
+            // isSolvable=false——按 errorReason 选话术推妹妹提示（详设 §8.3）
+            let text: string;
+            if (ocrResult.errorReason === 'BLURRY') {
+                text = '图片有点模糊，我看不清题目～换一张清晰点的照片再发我吧！';
+            } else if (ocrResult.errorReason === 'INCOMPLETE') {
+                text = '图里的题目好像被截到了一半，能重新拍一张把整道题都拍进去吗？';
+            } else {
+                text = '这道题好像不是初中数学题哦～我目前只擅长初中数学，换道数学题考考我？';
+            }
             getWriter()?.({ kind: 'assistant_message', text });
         }
 

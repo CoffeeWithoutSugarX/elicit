@@ -3,15 +3,20 @@
 /**
  * 聊天输入框：现代 AI chat 单盒子风格（shadcn 组件版）。
  * 整个输入区是一个统一的圆角大盒子，内部上下分区：
+ * - 顶区：附件 chip 区（有待上传图片时显示，位于盒子内部 Textarea 之前）
  * - 上区：Textarea（透明无边框，融入外层盒子）
  * - 下区：左下图片按钮（ghost icon）+ 右下 ArrowUp 发送按钮（default icon）
+ *
+ * 附件 chip：缩略图 + 右上角叠层移除按钮；上传中时缩略图加半透明遮罩 + Loader2，
+ * 移除按钮隐藏，避免上传期间 state 不一致。
  *
  * 外层 bg-background，无 border-t，与对话区无硬切。
  * 聚焦时盒子 border 加深（focus-within），不给 Textarea 加 ring。
  * 回车发送，Shift+Enter 换行；disabled 时整体灰化。
  */
 import { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Camera } from 'lucide-react'
+import { ArrowUp, Camera, X, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useConversation } from '@/stores/useConversation'
 import { Textarea } from '@/components/ui/textarea'
@@ -96,11 +101,18 @@ export function ChatInput({
     if (!file) return
 
     if (onImageUpload) {
-      setPendingImagePreview(URL.createObjectURL(file))
+      const previewUrl = URL.createObjectURL(file)
+      setPendingImagePreview(previewUrl)
       setIsUploading(true)
       try {
         const url = await onImageUpload(file)
         setPendingImageUrl(url)
+      } catch {
+        // 上传失败：提示用户，revoke 预览 URL 并清空 state
+        toast.error('图片上传失败，请重试')
+        URL.revokeObjectURL(previewUrl)
+        setPendingImagePreview(undefined)
+        setPendingImageUrl(undefined)
       } finally {
         setIsUploading(false)
       }
@@ -116,31 +128,6 @@ export function ChatInput({
     <div className={cn('bg-background px-4 py-4', disabled && 'opacity-60 pointer-events-none')}>
       {/* 内层限宽居中 */}
       <div className="max-w-[768px] mx-auto">
-        {/* 图片预览区（有待上传图片时显示） */}
-        {pendingImagePreview ? (
-          <div className="mb-2 flex items-center gap-2 px-1">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={pendingImagePreview}
-              alt="待发送图片"
-              className="h-16 w-16 object-cover rounded border border-border"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                URL.revokeObjectURL(pendingImagePreview)
-                setPendingImageUrl(undefined)
-                setPendingImagePreview(undefined)
-              }}
-              className="text-xs text-muted-foreground"
-            >
-              移除
-            </Button>
-          </div>
-        ) : null}
-
         {/* 盒子：圆角、border、shadow，focus-within 时 border 加深 */}
         <div
           className={cn(
@@ -149,6 +136,46 @@ export function ChatInput({
             'focus-within:border-ring transition-colors',
           )}
         >
+          {/* 顶区：附件 chip（有待上传图片时显示，位于 Textarea 之前） */}
+          {pendingImagePreview ? (
+            <div className="px-3 pt-3 flex items-center gap-2">
+              {/* chip 容器：relative 以便移除按钮绝对定位到右上角；不设 overflow-hidden，让按钮可溢出 */}
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={pendingImagePreview}
+                  alt="待发送图片"
+                  className="h-16 w-16 object-cover rounded-lg border border-border"
+                />
+                {/* 上传中遮罩：半透明 + Loader2 动效 */}
+                {isUploading && (
+                  <div className="absolute inset-0 bg-foreground/40 rounded-lg flex items-center justify-center">
+                    <Loader2 size={20} className="animate-spin text-background" />
+                  </div>
+                )}
+                {/* 移除按钮：上传完成后才显示，叠在右上角 */}
+                {!isUploading && (
+                  <button
+                    type="button"
+                    aria-label="移除图片"
+                    onClick={() => {
+                      URL.revokeObjectURL(pendingImagePreview)
+                      setPendingImageUrl(undefined)
+                      setPendingImagePreview(undefined)
+                    }}
+                    className={cn(
+                      'absolute -top-1.5 -right-1.5 size-5 rounded-full',
+                      'bg-foreground text-background hover:bg-foreground/80',
+                      'flex items-center justify-center',
+                    )}
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : null}
+
           {/* 上区：Textarea，覆盖 shadcn 默认边框/ring/圆角，使其融入外层盒子 */}
           <Textarea
             ref={textareaRef}

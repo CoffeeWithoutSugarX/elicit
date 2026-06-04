@@ -25,8 +25,10 @@ export const GET = withAuth(async (_request, { params, user }) => {
             });
         }
 
-        // 归属校验：确保会话属于当前用户
-        if (values.userId && values.userId !== user.id) {
+        // 归属校验（fail-closed）：userId 缺失或不匹配均拒绝
+        // 注意：前面"无 checkpoint/currentPhase 未写入"的早返回分支返回的是全常量默认值，
+        // 不含任何用户数据，因此不在此处校验——此处只处理 checkpoint 有实际数据的情况。
+        if (!values.userId || values.userId !== user.id) {
             return NextResponse.json({ error: '无权访问该会话' }, { status: 403 });
         }
 

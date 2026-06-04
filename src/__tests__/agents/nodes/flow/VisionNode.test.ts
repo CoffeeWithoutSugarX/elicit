@@ -294,4 +294,28 @@ describe('visionNode', () => {
             expect(result.ocrResult!.questions).toHaveLength(1);
         }
     });
+
+    // ── 12. isSolvable=false + errorReason=INCOMPLETE → 推"被截到了一半"话术 ──────
+    it('INCOMPLETE → 推专属"被截到了一半"话术 assistant_message', async () => {
+        const mockWriter = vi.fn();
+        vi.mocked(getWriter).mockReturnValue(mockWriter);
+
+        const incompleteJson = JSON.stringify({
+            isSolvable: false,
+            subject: 'math',
+            questions: [],
+            errorReason: 'INCOMPLETE',
+        });
+        vi.mocked(visionModel.invoke).mockResolvedValue({ content: incompleteJson } as never);
+
+        const state = createMockState({ questionImgUrl: TEST_IMG_URL, hasResolved: false });
+        await visionNode(state);
+
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({
+                kind: 'assistant_message',
+                text: expect.stringContaining('截'),
+            })
+        );
+    });
 });
