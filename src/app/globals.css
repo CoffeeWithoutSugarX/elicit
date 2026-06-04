@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import 'tailwind-scrollbar-hide/v4';
+/* KaTeX 数学公式样式：供 LatexRender（user 分支）和 rehype-katex（assistant 分支）共用 */
+@import 'katex/dist/katex.min.css';
 
 @theme {
   /* ── 简约白（minimal）主题 — Linear 风 ── */

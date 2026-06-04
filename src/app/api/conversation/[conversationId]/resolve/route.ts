@@ -14,18 +14,23 @@ export const POST = withAuth(async (request, { params, user }) => {
     console.log('Resolve route invoked', { conversationId, selectedQuestionIndex, userId: user.id });
 
     try {
-        // C9 双写：DB 记录标记 hasResolved=true
-        await conversationMapper.update(conversationId, { hasResolved: true });
-
         const config = {
             configurable: { thread_id: conversationId },
         };
 
-        // 通过 updateState 把新字段合并进 checkpoint，而不是整体替换。
-        // ocrResult 已在第一次 invoke 的 checkpoint 中，只需要更新 selectedQuestionIndex。
-        // LangGraph 的状态合并会将 ocrResult 中已有的字段与下面的 patch 合并。
+        // 先读 checkpoint，从 ocrResult 取题目概括（topic），用于更新会话标题
+        // 必须在 mapper.update 之前调用，以便一次性把 title 和 hasResolved 合并写入 DB
         const currentState = await compiledElicitGraph.getState(config);
         const existingOcrResult = currentState.values.ocrResult;
+
+        // 取被确认题目的 topic（≤40 字），取不到（undefined / 空串）则不写入 title
+        const topic: string | undefined = existingOcrResult?.questions?.[selectedQuestionIndex]?.topic || undefined;
+
+        // C9 双写：DB 记录标记 hasResolved=true，同时更新标题（有 topic 时）
+        await conversationMapper.update(conversationId, {
+            hasResolved: true,
+            ...(topic ? { title: topic } : {}),
+        });
 
         await compiledElicitGraph.updateState(config, {
             hasResolved: true,

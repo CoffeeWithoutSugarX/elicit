@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { use } from 'react';
 import { toast } from 'sonner';
 import { PolyaTopBar } from '@/features/chat/components/PolyaTopBar';
-import { ChatBubble } from '@/features/chat/components/ChatBubble';
+import { ChatBubble, AgentBubbleShell } from '@/features/chat/components/ChatBubble';
 import { ChatInput } from '@/features/chat/components/ChatInput';
 import { OcrResultMessage } from '@/features/chat/components/OcrResultMessage';
 import { KnowledgeCard } from '@/features/chat/components/KnowledgeCard';
@@ -101,7 +101,7 @@ export default function ConversationPage({ params }: PageProps) {
             {/* Polya 顶栏 */}
             <PolyaTopBar
                 currentPhase={currentPhase}
-                totalSubProblems={Math.max(totalSubProblems, 1)}
+                totalSubProblems={totalSubProblems}
                 currentSubProblemIndex={currentSubProblemIndex}
                 insightPointCount={currentInsightPoints.length}
             />
@@ -117,13 +117,13 @@ export default function ConversationPage({ params }: PageProps) {
                         try {
                             const { question } = JSON.parse(msg.message) as { question: import('@/agents/schemas/OcrSchema').SanitizedQuestion };
                             return (
-                                <div key={msg.id} className="my-4">
+                                <AgentBubbleShell key={msg.id}>
                                     <OcrResultMessage
                                         originalImageUrl={msg.imgUrl ?? ''}
                                         questions={[question]}
                                         readOnly
                                     />
-                                </div>
+                                </AgentBubbleShell>
                             );
                         } catch {
                             // 解析失败：数据损坏时回落成普通气泡，不整页崩溃
@@ -153,14 +153,14 @@ export default function ConversationPage({ params }: PageProps) {
 
                 {/* P-103：OCR 确认卡片（单题/多题均显示，用户确认后消失） */}
                 {showOcrSelector && questionImageUrl && (
-                    <div className="my-4">
+                    <AgentBubbleShell>
                         <OcrResultMessage
                             originalImageUrl={questionImageUrl}
                             questions={pendingQuestions}
                             onConfirm={(selectedIndex) => confirmSelectedQuestion(selectedIndex)}
                             onOcrError={handleOcrError}
                         />
-                    </div>
+                    </AgentBubbleShell>
                 )}
 
                 {/* P-105：知识卡片 */}

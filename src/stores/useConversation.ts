@@ -68,10 +68,62 @@ export const useConversation = create<ConversationStore>((set, get) => {
         if (id !== "" && id === get().currentConversationId) return;
         set({currentConversationId: id});
         if (id === "") {
+            // 避免上一会话的进度/卡片串台到新会话
+            resetForNewConversation();
             set({chatMessages: [defaultMessage]});
             return;
         }
-        const chatMessageList = await loadChatMessagesByConversationIdRequest(id);
+        // 切到不同会话时，先重置 Pólya 进度展示态（避免串台），
+        // 随后并发发起 state hydration + 消息加载，将服务端 checkpoint 中的真实阶段回填回来
+        // （hasResolved 也由 hydration 从服务端回填，checkpoint 是唯一事实源）。
+        // knowledgeCard/pendingQuestions/isMultiQuestion 关系到 OCR/选题流程，不在此处重置。
+        set({
+            currentPhase: 0,
+            currentSubProblemIndex: 0,
+            totalSubProblems: 0,
+            currentInsightPoints: [],
+        });
+
+        // 并发加载：消息列表 + 服务端 state hydration（互不依赖，不串行延迟）
+        const [chatMessageList] = await Promise.all([
+            loadChatMessagesByConversationIdRequest(id),
+            // state hydration：从 LangGraph checkpoint 回填 Pólya 展示态
+            (async () => {
+                try {
+                    const {data: {session}} = await supabase.auth.getSession();
+                    const response = await fetch(`/api/conversation/${id}/state`, {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${session?.access_token}`,
+                        },
+                    });
+                    if (!response.ok) {
+                        console.warn(`[useConversation] state hydration 失败: ${response.status}`);
+                        return;
+                    }
+                    const data = await response.json() as {
+                        currentPhase: number;
+                        currentSubProblemIndex: number;
+                        totalSubProblems: number;
+                        insightPoints: string[];
+                        hasResolved: boolean;
+                    };
+                    // 竞态守卫：用户可能已再次切会话，只在 id 仍是当前会话时才回填
+                    if (get().currentConversationId !== id) return;
+                    set({
+                        currentPhase: data.currentPhase,
+                        currentSubProblemIndex: data.currentSubProblemIndex,
+                        totalSubProblems: data.totalSubProblems,
+                        currentInsightPoints: data.insightPoints,
+                        hasResolved: data.hasResolved,
+                    });
+                } catch (err) {
+                    // 网络错误等失败情况：静默保留重置后的默认值，不打断消息加载
+                    console.warn('[useConversation] state hydration 异常，保留默认值', err);
+                }
+            })(),
+        ]);
+
         set({chatMessages: [defaultMessage, ...chatMessageList]});
     };
 
@@ -233,8 +285,33 @@ export const useConversation = create<ConversationStore>((set, get) => {
             imgKey,
         );
 
-        // 乐观置 hasResolved，catch 里回滚
-        set({hasResolved: true, isStreaming: true, isWaitingFirstChunk: true});
+        // 捕获乐观更新前的 pendingQuestions，供 catch 回滚时恢复交互卡
+        const prevPendingQuestions = get().pendingQuestions;
+
+        // 捕获侧边栏中对应会话的原 title，供 catch 回滚时恢复
+        const prevConversationTitle = get().chatConversation.find(c => c.id === conversationId)?.title;
+
+        // 乐观原子更新：hasResolved + cardMsg 追加进 chatMessages + pendingQuestions 清空
+        // + 侧边栏对应会话 title 更新为 confirmedQuestion.topic（如存在）
+        // 四者合并为一次 set，消除网络往返期间的闪烁空窗期
+        set(state => ({
+            hasResolved: true,
+            isStreaming: true,
+            isWaitingFirstChunk: true,
+            chatMessages: [...state.chatMessages, cardMsg],
+            pendingQuestions: [],
+            // 仅当 topic 非空且侧边栏中找得到该会话时更新 title；找不到则保持列表不变
+            ...(confirmedQuestion.topic
+                ? {
+                    chatConversation: state.chatConversation.map(c =>
+                        c.id === conversationId
+                            ? new ChatConversationProps(c.id, confirmedQuestion.topic)
+                            : c
+                    ),
+                }
+                : {}
+            ),
+        }));
         try {
             const {data: {session}} = await supabase.auth.getSession();
             const response = await fetch(`/api/conversation/${conversationId}/resolve`, {
@@ -249,9 +326,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
             if (!response.ok || !response.body) {
                 throw new Error(`resolve 请求失败: ${response.status}`);
             }
-            // fetch 成功后，processStream 之前：把确认卡推入消息流并清空待确认列表
-            set(state => ({ chatMessages: [...state.chatMessages, cardMsg], pendingQuestions: [] }));
-            // 落库确认卡（type=3，供刷新后复现）
+            // 落库确认卡（type=3，供刷新后复现）；cardMsg 已在乐观 set 时追加进 chatMessages
             await insertChatMessageRequest(cardMsg);
 
             await processStream(response);
@@ -263,8 +338,25 @@ export const useConversation = create<ConversationStore>((set, get) => {
         } catch (error) {
             console.error('confirmSelectedQuestion failed:', error);
             // 回滚乐观状态；isStreaming/isWaitingFirstChunk 由 finally 复位
-            // pendingQuestions 此时可能已被清空，确认卡已落库——可接受，不强求恢复交互卡
-            set({ hasResolved: false, sendError: '选题失败，请重试' });
+            // 同时移除已乐观追加的确认卡，并恢复捕获的 pendingQuestions，
+            // 使交互卡重新显示，让用户可以重试；侧边栏 title 也回滚为原值
+            set(state => ({
+                hasResolved: false,
+                sendError: '选题失败，请重试',
+                chatMessages: state.chatMessages.filter(m => m.id !== cardMsg.id),
+                pendingQuestions: prevPendingQuestions,
+                // 回滚侧边栏 title：找得到该会话且原 title 有值时才恢复
+                ...(prevConversationTitle !== undefined
+                    ? {
+                        chatConversation: state.chatConversation.map(c =>
+                            c.id === conversationId
+                                ? new ChatConversationProps(c.id, prevConversationTitle)
+                                : c
+                        ),
+                    }
+                    : {}
+                ),
+            }));
         } finally {
             set({isStreaming: false, isWaitingFirstChunk: false});
         }

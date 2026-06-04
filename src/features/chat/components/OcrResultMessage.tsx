@@ -31,6 +31,8 @@ import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema'
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { ossRequest } from '@/services/api-client/OssRequest'
@@ -225,8 +227,10 @@ export function OcrResultMessage({
         <DialogContent
           className="max-w-[90vw] max-h-[90vh] p-0 flex items-center justify-center bg-black/80 border-0"
           showCloseButton={true}
-          aria-label="原图预览"
         >
+          {/* 视觉隐藏的标题与描述，供屏幕阅读器使用；Radix 会自动通过 aria-labelledby 关联 DialogTitle */}
+          <DialogTitle className="sr-only">原图预览</DialogTitle>
+          <DialogDescription className="sr-only">原题图片全屏预览，点击任意处或按 Esc 关闭</DialogDescription>
           {signedImageUrl ? (
             <img
               src={signedImageUrl}

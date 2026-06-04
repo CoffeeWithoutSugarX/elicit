@@ -3,7 +3,7 @@
 /**
  * Pólya 双层顶栏 — 数学笔记本风。
  * 最上层：4 阶段横向 stepper（理解→规划→执行→回顾）
- * 中层：罗马题号（IBM Plex Mono）+ 细竖分隔 + 衬线阶段名
+ * 中层：罗马题号（IBM Plex Mono）+ 细竖分隔 + 衬线阶段名（totalSubProblems >= 2 时才显示题号）
  * 下层：仅 EXECUTE 阶段显示破题点行
  * 已迁移至 shadcn 标准 token（background/card/border/foreground/muted-foreground）
  */
@@ -40,13 +40,13 @@ const PHASE_SHORT_LABEL: Record<PolyaPhase, string> = {
 }
 
 /**
- * 阶段圆点颜色 — 全灰阶，不使用彩色 phase token。
- * 当前阶段：实心黑（--color-foreground）；已完成：深灰；未到达：淡灰。
- * 颜色语义通过填充/粗细/opacity 区分，见 stepper 渲染逻辑。
+ * 阶段圆圈 stepper 颜色说明（全灰阶，不使用彩色 phase token）：
+ * - 已完成：实心 muted-foreground + 白色 ✓
+ * - 当前：实心 foreground + 白色序号 + ring
+ * - 未到达：透明底 + border 描边 + muted-foreground 序号
  */
-// PHASE_COLOR 已移除（原 --color-phase-* 彩色 token，迁移到黑白灰 inline style）
 
-/** 小问题号徽标 — 罗马数字版 */
+/** 小问题号徽标 — 仅在 totalSubProblems >= 2 时由父组件渲染 */
 function SubProblemBadge({ current, total }: { current: number; total: number }) {
   const currentRoman = toRoman(current)
   const totalRoman   = toRoman(total)
@@ -61,7 +61,7 @@ function SubProblemBadge({ current, total }: { current: number; total: number })
       )}
       style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}
     >
-      {total <= 1 ? currentRoman : `${currentRoman} / ${totalRoman}`}
+      {currentRoman} / {totalRoman}
     </span>
   )
 }
@@ -152,6 +152,9 @@ export function PolyaTopBar({
   // EXECUTE 阶段才显示破题点下层
   const showInsightRow = currentPolyaPhase === 'EXECUTE'
 
+  // totalSubProblems >= 2 时才显示题号徽标及竖分隔线（单题/未知题数不显示，避免误导）
+  const showBadge = totalSubProblems >= 2
+
   return (
     <div
       className={cn(
@@ -161,9 +164,9 @@ export function PolyaTopBar({
     >
       {showLongWarning ? <LongConversationToast /> : null}
 
-      {/* 最上层：4 阶段横向 stepper */}
+      {/* 最上层：4 阶段横向 stepper — 编号圆圈横向版 */}
       <div
-        className="flex items-center justify-center gap-0 px-4 pt-2.5 pb-1"
+        className="flex items-center justify-center gap-0 px-4 pt-3 pb-2"
         role="progressbar"
         aria-label="Pólya 阶段进度"
         aria-valuenow={currentPhaseIndex + 1}
@@ -174,25 +177,25 @@ export function PolyaTopBar({
           const isDone = idx < currentPhaseIndex
           const isCurrent = idx === currentPhaseIndex
           const isUpcoming = idx > currentPhaseIndex
-          // 连线状态：连线在圆点右侧，最后一个无连线
+          // 连线已完成：连线在圆圈右侧且左侧阶段已完成
           const lineCompleted = idx < currentPhaseIndex
           const isLast = idx === PHASE_ORDER.length - 1
 
           return (
             <div key={phase} className="flex items-center">
-              {/* 圆点 + 阶段名（纵向排列） */}
-              <div className="flex flex-col items-center gap-0.5">
-                {/* 圆点 */}
+              {/* 圆圈 + 阶段名（纵向排列） */}
+              <div className="flex flex-col items-center" style={{ gap: '6px' }}>
+                {/* 圆圈：直径 20px（当前态 22px），含序号或对勾 */}
                 <div
                   className={cn(
                     'flex-shrink-0 flex items-center justify-center',
                     'transition-all duration-300',
                   )}
                   style={{
-                    width: isCurrent ? '10px' : '8px',
-                    height: isCurrent ? '10px' : '8px',
+                    width: isCurrent ? '22px' : '20px',
+                    height: isCurrent ? '22px' : '20px',
                     borderRadius: '50%',
-                    // 当前阶段：实心黑 + 白 ring（灰阶，不用 phase 彩色）
+                    // 当前阶段：实心黑 + ring（灰阶，不用 phase 彩色）
                     ...(isCurrent ? {
                       backgroundColor: 'var(--color-foreground)',
                       boxShadow: `0 0 0 2px var(--color-card), 0 0 0 3.5px var(--color-foreground)`,
@@ -200,61 +203,77 @@ export function PolyaTopBar({
                       // 已完成：实心深灰
                       backgroundColor: 'var(--color-muted-foreground)',
                     } : {
-                      // 未到达：空心淡灰
+                      // 未到达：透明底 + 描边
                       backgroundColor: 'transparent',
                       border: '1px solid var(--color-border)',
                     }),
                   }}
                   aria-hidden
                 >
-                  {/* 已完成阶段：checkmark */}
+                  {/* 已完成：白色对勾；当前/未到达：序号 */}
                   {isDone ? (
                     <span
+                      className="font-mono"
                       style={{
-                        display: 'block',
-                        width: '6px',
-                        height: '6px',
-                        color: 'var(--color-card)',
-                        fontSize: '6px',
-                        lineHeight: '6px',
-                        textAlign: 'center',
+                        fontSize: '11px',
+                        lineHeight: 1,
+                        color: 'white',
                         fontWeight: 700,
+                        userSelect: 'none',
                       }}
                     >
                       ✓
                     </span>
-                  ) : null}
+                  ) : (
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: '11px',
+                        lineHeight: 1,
+                        color: isCurrent ? 'white' : 'var(--color-muted-foreground)',
+                        fontWeight: isCurrent ? 700 : 400,
+                        userSelect: 'none',
+                        opacity: isUpcoming ? 0.7 : 1,
+                      }}
+                    >
+                      {idx + 1}
+                    </span>
+                  )}
                 </div>
 
-                {/* 阶段名衬线小字 */}
+                {/* 阶段名标签：移到圆圈下方，字号 13px，衬线体 */}
                 <span
                   style={{
                     fontFamily: 'var(--font-display)',
-                    fontSize: '9px',
-                    lineHeight: '12px',
+                    fontSize: '13px',
+                    lineHeight: '16px',
                     color: isCurrent
                       ? 'var(--color-foreground)'
-                      : isDone
-                        ? 'var(--color-muted-foreground)'
-                        : 'var(--color-muted-foreground)',
+                      : 'var(--color-muted-foreground)',
                     fontWeight: isCurrent ? 600 : 400,
                     opacity: isUpcoming ? 0.55 : 1,
                     letterSpacing: '0.02em',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {PHASE_SHORT_LABEL[phase]}
                 </span>
               </div>
 
-              {/* 连接线（最后一个圆点无连线） */}
+              {/* 连接线（最后一个圆圈右侧无连线）— 垂直居中对齐圆圈中心 */}
               {!isLast ? (
                 <div
                   style={{
-                    width: '28px',
-                    height: '1px',
-                    marginBottom: '12px', /* 补偿阶段名文字高度 */
-                    backgroundColor: 'var(--color-border)',
+                    width: '40px',
+                    height: '1.5px',
+                    // 补偿下方标签高度（约 22px = 16px line-height + 6px gap）
+                    // 使连线垂直对齐圆圈中心而非标签底部
+                    marginBottom: '22px',
+                    backgroundColor: lineCompleted
+                      ? 'var(--color-muted-foreground)'
+                      : 'var(--color-border)',
                     opacity: lineCompleted ? 1 : 0.3,
+                    transition: 'all 300ms',
                   }}
                   aria-hidden
                 />
@@ -264,19 +283,23 @@ export function PolyaTopBar({
         })}
       </div>
 
-      {/* 中层：罗马题号 + 细竖线 + 衬线阶段名 */}
+      {/* 中层：罗马题号（totalSubProblems >= 2 才显示）+ 细竖线 + 衬线阶段名 */}
       <div className="flex items-center gap-3 px-4 py-2">
-        <SubProblemBadge
-          current={currentSubProblemIndex + 1}
-          total={totalSubProblems}
-        />
+        {showBadge ? (
+          <>
+            <SubProblemBadge
+              current={currentSubProblemIndex + 1}
+              total={totalSubProblems}
+            />
 
-        {/* 细竖线分隔（灰阶，不用 phase 彩色） */}
-        <div
-          className="w-px h-4 flex-shrink-0"
-          style={{ backgroundColor: 'var(--color-muted-foreground)' }}
-          aria-hidden
-        />
+            {/* 细竖线分隔（灰阶，不用 phase 彩色）*/}
+            <div
+              className="w-px h-4 flex-shrink-0"
+              style={{ backgroundColor: 'var(--color-muted-foreground)' }}
+              aria-hidden
+            />
+          </>
+        ) : null}
 
         {/* 衬线阶段名 */}
         <span

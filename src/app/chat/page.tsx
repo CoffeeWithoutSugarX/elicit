@@ -67,7 +67,7 @@ export default function ChatNewPage() {
             {/* Polya 顶栏 */}
             <PolyaTopBar
                 currentPhase={currentPhase}
-                totalSubProblems={Math.max(totalSubProblems, 1)}
+                totalSubProblems={totalSubProblems}
                 currentSubProblemIndex={currentSubProblemIndex}
                 insightPointCount={currentInsightPoints.length}
             />

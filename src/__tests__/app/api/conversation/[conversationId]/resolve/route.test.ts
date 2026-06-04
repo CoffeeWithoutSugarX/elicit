@@ -95,14 +95,105 @@ describe('POST /api/conversation/[conversationId]/resolve', () => {
         mockGetState.mockResolvedValue({ values: { ocrResult: null } });
     });
 
-    it('先将会话标记为 hasResolved=true 写入 DB', async () => {
+    it('ocrResult 缺失（null）时 mapper.update 只传 hasResolved=true，不带 title', async () => {
+        // ocrResult 为 null → 取不到 topic → 不写入空标题
+        mockGetState.mockResolvedValue({ values: { ocrResult: null } });
+
         const req = makeRequest({ selectedQuestionIndex: 0 });
         const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
 
         await POST(req, context);
 
         expect(mockConversationUpdate).toHaveBeenCalledOnce();
-        expect(mockConversationUpdate).toHaveBeenCalledWith('conv-123', { hasResolved: true });
+        const [, updateData] = mockConversationUpdate.mock.calls[0];
+        expect(updateData.hasResolved).toBe(true);
+        expect(updateData.title).toBeUndefined();
+    });
+
+    it('ocrResult.questions[index].topic 存在时 mapper.update 带上 title', async () => {
+        // 有效 topic → update 应同时写入 hasResolved + title
+        mockGetState.mockResolvedValue({
+            values: {
+                ocrResult: {
+                    questions: [
+                        { index: 0, topic: '一元二次方程求根' },
+                        { index: 1, topic: '等差数列' },
+                    ],
+                    selectedQuestionIndex: 0,
+                },
+            },
+        });
+
+        const req = makeRequest({ selectedQuestionIndex: 1 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-456' }) };
+
+        await POST(req, context);
+
+        expect(mockConversationUpdate).toHaveBeenCalledOnce();
+        const [convId, updateData] = mockConversationUpdate.mock.calls[0];
+        expect(convId).toBe('conv-456');
+        expect(updateData.hasResolved).toBe(true);
+        expect(updateData.title).toBe('等差数列');
+    });
+
+    it('selectedQuestionIndex 对应题目 topic 为空串时不写入 title', async () => {
+        // topic 是空串 → 等价于"取不到" → 不写入 title
+        mockGetState.mockResolvedValue({
+            values: {
+                ocrResult: {
+                    questions: [{ index: 0, topic: '' }],
+                },
+            },
+        });
+
+        const req = makeRequest({ selectedQuestionIndex: 0 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-789' }) };
+
+        await POST(req, context);
+
+        const [, updateData] = mockConversationUpdate.mock.calls[0];
+        expect(updateData.hasResolved).toBe(true);
+        expect(updateData.title).toBeUndefined();
+    });
+
+    it('selectedQuestionIndex 越界（questions 数组无对应项）时不写入 title', async () => {
+        mockGetState.mockResolvedValue({
+            values: {
+                ocrResult: {
+                    questions: [{ index: 0, topic: '数学题' }],
+                },
+            },
+        });
+
+        // index=5 超出 questions 长度
+        const req = makeRequest({ selectedQuestionIndex: 5 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-oob' }) };
+
+        await POST(req, context);
+
+        const [, updateData] = mockConversationUpdate.mock.calls[0];
+        expect(updateData.hasResolved).toBe(true);
+        expect(updateData.title).toBeUndefined();
+    });
+
+    it('getState 在 mapper.update 之前调用（先读 ocrResult 再写 DB）', async () => {
+        // 验证调用顺序：getState 先于 mapper.update
+        const callOrder: string[] = [];
+        mockGetState.mockImplementation(async () => {
+            callOrder.push('getState');
+            return { values: { ocrResult: { questions: [{ index: 0, topic: '题目' }] } } };
+        });
+        mockConversationUpdate.mockImplementation(async () => {
+            callOrder.push('update');
+            return [];
+        });
+
+        const req = makeRequest({ selectedQuestionIndex: 0 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-order' }) };
+
+        await POST(req, context);
+
+        expect(callOrder.indexOf('getState')).toBeLessThan(callOrder.indexOf('update'));
     });
 
     it('调用 getState 读取当前 checkpoint 状态', async () => {

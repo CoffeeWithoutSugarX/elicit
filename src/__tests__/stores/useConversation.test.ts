@@ -183,6 +183,65 @@ describe('useConversation', () => {
             expect(msgs.find(m => m.id === 'msg-optimistic')).toBeDefined();
             expect(msgs).toHaveLength(2);
         });
+
+        it('切到不同有效会话时重置 Pólya 展示态（phase/subProblemIndex/totalSubProblems/insightPoints）', async () => {
+            // 预置非零的展示态（模拟正在做一道多子问题的题）
+            useConversation.setState({
+                currentConversationId: 'conv-a',
+                currentPhase: 2,
+                currentSubProblemIndex: 1,
+                totalSubProblems: 3,
+                currentInsightPoints: ['洞察1'],
+            });
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
+
+            // 切到不同会话
+            await useConversation.getState().setCurrentConversationId('conv-b');
+
+            // 仅展示态字段应被重置为 0/空
+            const state = useConversation.getState();
+            expect(state.currentPhase).toBe(0);
+            expect(state.currentSubProblemIndex).toBe(0);
+            expect(state.totalSubProblems).toBe(0);
+            expect(state.currentInsightPoints).toHaveLength(0);
+        });
+
+        it('切到不同会话时不重置 hasResolved/knowledgeCard/pendingQuestions', async () => {
+            // 预置 OCR/选题相关字段（这些不应被切会话重置）
+            useConversation.setState({
+                currentConversationId: 'conv-c',
+                hasResolved: true,
+                knowledgeCard: {
+                    schemaVersion: 1,
+                    type: 'knowledge_card',
+                    knowledgePoints: [],
+                    methods: [],
+                    insight: 'test',
+                },
+                pendingQuestions: [{
+                    index: 0,
+                    topic: '数',
+                    latexFull: 'x=1',
+                    givenConditions: [],
+                    implicitConditions: [],
+                    goal: '求x',
+                    milestones: [],
+                    visualFeaturesNeeded: false,
+                    visualDescription: '',
+                    subProblems: [],
+                }],
+            });
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
+
+            await useConversation.getState().setCurrentConversationId('conv-d');
+
+            // 这些字段不应被 setCurrentConversationId 主动清零；
+            // 历史会话真实阶段恢复是另一个 feature，暂不在范围。
+            const state = useConversation.getState();
+            expect(state.hasResolved).toBe(true);
+            expect(state.knowledgeCard).not.toBeNull();
+            expect(state.pendingQuestions).toHaveLength(1);
+        });
     });
 
     // --------------------------------------------------
@@ -1165,6 +1224,165 @@ describe('useConversation', () => {
                 expect.objectContaining({ type: 3 })
             );
         });
+
+        // --------------------------------------------------
+        // 乐观更新时序：点击「确认」后立即（网络往返期间）
+        // chatMessages 已含 OCR_CARD + pendingQuestions 已清空
+        // --------------------------------------------------
+        it('点击确认后、fetch 尚未 resolve 时，chatMessages 已含 OCR_CARD 且 pendingQuestions 已清空', async () => {
+            const mockQuestion = {
+                index: 0, topic: '数学', latexFull: 'x^2=4',
+                givenConditions: [], implicitConditions: [], goal: '求x',
+                milestones: [], visualFeaturesNeeded: false, visualDescription: '',
+                subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }],
+            };
+            useConversation.setState({
+                currentConversationId: 'conv-optimistic',
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+
+            // 用手动控制的 Promise 让 fetch 挂起，模拟"网络往返中"
+            let resolveFetch!: (v: Response) => void;
+            const pendingFetch = new Promise<Response>((res) => { resolveFetch = res; });
+            mockFetch.mockReturnValueOnce(pendingFetch);
+
+            // 不 await，让 confirmSelectedQuestion 运行到 fetch 阻塞处
+            const confirmPromise = useConversation.getState().confirmSelectedQuestion(0);
+
+            // 微任务切换：让同步乐观 set 执行完
+            await Promise.resolve();
+
+            // 此时 fetch 尚未返回——断言乐观更新已生效
+            const stateBeforeFetch = useConversation.getState();
+            expect(stateBeforeFetch.pendingQuestions).toHaveLength(0);
+            const ocrCard = stateBeforeFetch.chatMessages.find(m => m.type === ChatMessageType.OCR_CARD);
+            expect(ocrCard).toBeDefined();
+            expect(ocrCard!.message).toContain('x^2=4');
+
+            // 放行 fetch，让后续逻辑完成
+            resolveFetch(makeOkResolveResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+            await confirmPromise;
+        });
+
+        // --------------------------------------------------
+        // fetch 失败回滚：OCR_CARD 移除 + hasResolved 回滚 + pendingQuestions 恢复
+        // --------------------------------------------------
+        it('fetch 失败时 OCR_CARD 从 chatMessages 移除、hasResolved 回滚为 false、pendingQuestions 恢复原值', async () => {
+            const mockQuestion = {
+                index: 0, topic: '物理', latexFull: 'F=ma',
+                givenConditions: [], implicitConditions: [], goal: '求F',
+                milestones: [], visualFeaturesNeeded: false, visualDescription: '',
+                subProblems: [{ index: 0, goal: '求F', givenConditions: [], milestones: [] }],
+            };
+            useConversation.setState({
+                currentConversationId: 'conv-rollback',
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // fetch 返回 500，触发 catch
+            mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: {} } as unknown as Response);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            const state = useConversation.getState();
+            // hasResolved 被回滚
+            expect(state.hasResolved).toBe(false);
+            // OCR_CARD 已从 chatMessages 移除
+            expect(state.chatMessages.find(m => m.type === ChatMessageType.OCR_CARD)).toBeUndefined();
+            // pendingQuestions 恢复原值（单题）
+            expect(state.pendingQuestions).toHaveLength(1);
+            expect(state.pendingQuestions[0].latexFull).toBe('F=ma');
+            // sendError 已设置
+            expect(state.sendError).toBe('选题失败，请重试');
+        });
+
+        // --------------------------------------------------
+        // 会话标题更新：确认后侧边栏 title 变为 topic
+        // --------------------------------------------------
+        it('确认成功后侧边栏对应会话 title 更新为 confirmedQuestion.topic', async () => {
+            const mockQuestion = {
+                index: 0, topic: '一元二次方程求根', latexFull: 'x^2-3x+2=0',
+                givenConditions: [], implicitConditions: [], goal: '求x',
+                milestones: [], visualFeaturesNeeded: false, visualDescription: '',
+                subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }],
+            };
+            // 侧边栏中已有该会话，标题为初始第一句话
+            useConversation.setState({
+                currentConversationId: 'conv-title-update',
+                chatConversation: [
+                    new ChatConversationProps('conv-title-update', '这道题怎么做'),
+                    new ChatConversationProps('conv-other', '另一道题'),
+                ],
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            const convs = useConversation.getState().chatConversation;
+            const updated = convs.find(c => c.id === 'conv-title-update');
+            expect(updated?.title).toBe('一元二次方程求根');
+            // 其他会话不受影响
+            const other = convs.find(c => c.id === 'conv-other');
+            expect(other?.title).toBe('另一道题');
+        });
+
+        it('确认后 chatConversation 中找不到对应会话时不插入新项（静默忽略）', async () => {
+            const mockQuestion = {
+                index: 0, topic: '等差数列', latexFull: 'a_n=a_1+(n-1)d',
+                givenConditions: [], implicitConditions: [], goal: '求a_n',
+                milestones: [], visualFeaturesNeeded: false, visualDescription: '',
+                subProblems: [{ index: 0, goal: '求a_n', givenConditions: [], milestones: [] }],
+            };
+            // 侧边栏为空（新会话尚未插入）
+            useConversation.setState({
+                currentConversationId: 'conv-not-in-sidebar',
+                chatConversation: [],
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce(makeOkResolveResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            // 不插入新项
+            expect(useConversation.getState().chatConversation).toHaveLength(0);
+        });
+
+        it('fetch 失败时侧边栏 title 回滚为原值', async () => {
+            const mockQuestion = {
+                index: 0, topic: '新题目标题', latexFull: 'y=kx+b',
+                givenConditions: [], implicitConditions: [], goal: '求k',
+                milestones: [], visualFeaturesNeeded: false, visualDescription: '',
+                subProblems: [{ index: 0, goal: '求k', givenConditions: [], milestones: [] }],
+            };
+            const originalTitle = '这道题怎么解';
+            useConversation.setState({
+                currentConversationId: 'conv-title-rollback',
+                chatConversation: [
+                    new ChatConversationProps('conv-title-rollback', originalTitle),
+                ],
+                pendingQuestions: [mockQuestion],
+            });
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // fetch 失败，触发 catch
+            mockFetch.mockResolvedValueOnce({ ok: false, status: 500, body: {} } as unknown as Response);
+
+            await useConversation.getState().confirmSelectedQuestion(0);
+
+            const convs = useConversation.getState().chatConversation;
+            const rollbacked = convs.find(c => c.id === 'conv-title-rollback');
+            // 标题应回滚为原值
+            expect(rollbacked?.title).toBe(originalTitle);
+        });
     });
 
     // --------------------------------------------------
@@ -1200,6 +1418,61 @@ describe('useConversation', () => {
             expect(state.currentInsightPoints).toHaveLength(0);
             expect(state.knowledgeCard).toBeNull();
             expect(state.hasResolved).toBe(false);
+        });
+    });
+
+    // --------------------------------------------------
+    // setCurrentConversationId("") — Pólya 进度重置（新会话串台修复）
+    // --------------------------------------------------
+    describe('setCurrentConversationId("") — Pólya 进度重置', () => {
+        it('传入空字符串时全套 Pólya 状态均重置为初始值，chatMessages 只剩欢迎消息', async () => {
+            // 先把 store 置为非默认状态，模拟上一个会话已经进入「回顾」阶段
+            useConversation.setState({
+                currentPhase: 3,
+                totalSubProblems: 2,
+                currentSubProblemIndex: 1,
+                currentInsightPoints: ['洞察A', '洞察B'],
+                hasResolved: true,
+                knowledgeCard: {
+                    schemaVersion: 1,
+                    type: 'knowledge_card',
+                    knowledgePoints: [{ name: '方程' }],
+                    methods: [{ name: '换元法', category: 1 }],
+                    insight: 'test insight',
+                },
+                pendingQuestions: [{
+                    index: 0,
+                    topic: '数',
+                    latexFull: 'x=1',
+                    givenConditions: [],
+                    implicitConditions: [],
+                    goal: '求x',
+                    milestones: [],
+                    visualFeaturesNeeded: false,
+                    visualDescription: '',
+                    subProblems: [],
+                }],
+                chatMessages: [
+                    new ChatMessageProps(DEFAULT_MSG_ID, 'conv-1', ChatMessageRole.ASSISTANT, '你好', ChatMessageType.TEXT),
+                    makeUserMsg('u-prev', 'conv-prev'),
+                ],
+            });
+
+            await useConversation.getState().setCurrentConversationId('');
+
+            const state = useConversation.getState();
+            // chatMessages 只剩欢迎消息
+            expect(state.chatMessages).toHaveLength(1);
+            expect(state.chatMessages[0].id).toBe(DEFAULT_MSG_ID);
+            // Pólya 全套状态重置为初始值
+            expect(state.currentPhase).toBe(0);
+            expect(state.totalSubProblems).toBe(0);
+            expect(state.currentSubProblemIndex).toBe(0);
+            expect(state.currentInsightPoints).toHaveLength(0);
+            expect(state.hasResolved).toBe(false);
+            expect(state.knowledgeCard).toBeNull();
+            expect(state.pendingQuestions).toHaveLength(0);
+            expect(state.isMultiQuestion).toBe(false);
         });
     });
 
@@ -1285,6 +1558,137 @@ describe('useConversation', () => {
 
             expect(wasWaiting).toBe(true);
             expect(useConversation.getState().isWaitingFirstChunk).toBe(false);
+        });
+    });
+
+    // --------------------------------------------------
+    // setCurrentConversationId — state hydration
+    // --------------------------------------------------
+    describe('setCurrentConversationId — state hydration', () => {
+        it('切会话后 hydration 字段生效（currentPhase/currentSubProblemIndex 等被服务端值覆盖）', async () => {
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    currentPhase: 2,
+                    currentSubProblemIndex: 1,
+                    totalSubProblems: 3,
+                    insightPoints: ['洞察A', '洞察B'],
+                    hasResolved: true,
+                }),
+            } as unknown as Response);
+
+            await useConversation.getState().setCurrentConversationId('conv-hydrate');
+
+            const state = useConversation.getState();
+            expect(state.currentPhase).toBe(2);
+            expect(state.currentSubProblemIndex).toBe(1);
+            expect(state.totalSubProblems).toBe(3);
+            expect(state.currentInsightPoints).toEqual(['洞察A', '洞察B']);
+            expect(state.hasResolved).toBe(true);
+        });
+
+        it('hydration 请求以正确 Authorization header 调用 /state 接口', async () => {
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'secret-tok' } } });
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    currentPhase: 0,
+                    currentSubProblemIndex: 0,
+                    totalSubProblems: 0,
+                    insightPoints: [],
+                    hasResolved: false,
+                }),
+            } as unknown as Response);
+
+            await useConversation.getState().setCurrentConversationId('conv-auth-check');
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                '/api/conversation/conv-auth-check/state',
+                expect.objectContaining({
+                    method: 'GET',
+                    headers: expect.objectContaining({
+                        'Authorization': 'Bearer secret-tok',
+                    }),
+                }),
+            );
+        });
+
+        it('hydration 返回前再次切会话（竞态守卫）：不回填旧会话数据', async () => {
+            // 模拟切到 conv-A 后，hydration 返回之前又切到了 conv-B
+            let resolveFetch!: (v: Response) => void;
+            const pendingFetch = new Promise<Response>((res) => { resolveFetch = res; });
+
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValue([]);
+            mockGetSession.mockResolvedValue({ data: { session: { access_token: 'tok' } } });
+            // 第一次 fetch（conv-A hydration）挂起
+            mockFetch.mockReturnValueOnce(pendingFetch);
+            // 第二次 fetch（conv-B hydration）立刻返回默认值
+            mockFetch.mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({
+                    currentPhase: 0,
+                    currentSubProblemIndex: 0,
+                    totalSubProblems: 0,
+                    insightPoints: [],
+                    hasResolved: false,
+                }),
+            } as unknown as Response);
+
+            // 先切到 conv-A（不等待）
+            const switchA = useConversation.getState().setCurrentConversationId('conv-race-A');
+            // 立刻再切到 conv-B（此时 conv-A hydration 仍在飞行中）
+            await useConversation.getState().setCurrentConversationId('conv-race-B');
+
+            // 现在放行 conv-A 的 hydration 响应（带着 phase=3 的脏数据）
+            resolveFetch({
+                ok: true,
+                json: async () => ({
+                    currentPhase: 3,
+                    currentSubProblemIndex: 2,
+                    totalSubProblems: 5,
+                    insightPoints: ['旧洞察'],
+                    hasResolved: true,
+                }),
+            } as unknown as Response);
+            await switchA;
+
+            // 竞态守卫应阻止 conv-A 的数据回填，currentConversationId 是 conv-B，phase 应是 0
+            const state = useConversation.getState();
+            expect(state.currentConversationId).toBe('conv-race-B');
+            expect(state.currentPhase).toBe(0);
+        });
+
+        it('fetch 失败（非 2xx）时静默保留重置后的默认值', async () => {
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // 服务端返回 500
+            mockFetch.mockResolvedValueOnce({ ok: false, status: 500 } as unknown as Response);
+
+            await useConversation.getState().setCurrentConversationId('conv-hydrate-fail');
+
+            // 回填失败，保留重置后的 0 值（不抛出、不打断消息加载）
+            const state = useConversation.getState();
+            expect(state.currentPhase).toBe(0);
+            expect(state.currentSubProblemIndex).toBe(0);
+            expect(state.totalSubProblems).toBe(0);
+            expect(state.currentInsightPoints).toHaveLength(0);
+        });
+
+        it('fetch 网络异常时静默保留默认值，不打断消息加载', async () => {
+            mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
+            mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // 模拟网络错误
+            mockFetch.mockRejectedValueOnce(new Error('Network failure'));
+
+            // 不应抛出异常
+            await expect(
+                useConversation.getState().setCurrentConversationId('conv-network-err')
+            ).resolves.not.toThrow();
+
+            expect(useConversation.getState().currentPhase).toBe(0);
         });
     });
 });

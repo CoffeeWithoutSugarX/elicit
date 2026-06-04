@@ -28,9 +28,10 @@ class ConversationMapper {
         hasResolved?: boolean;
         currentPhase?: number;
         problemType?: number;
+        title?: string;
     }) {
         console.log('ConversationMapper.update invoked with conversationId:', conversationId, 'data:', data)
-        return await db.update(elicitConversations)
+        return db.update(elicitConversations)
             .set(data)
             .where(eq(elicitConversations.conversationId, conversationId))
             .returning();

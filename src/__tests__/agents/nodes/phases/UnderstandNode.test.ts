@@ -467,4 +467,54 @@ describe('understandNode', () => {
         expect(String(humanMsg.content)).not.toContain('[系统提示] 妹妹同阶段');
         expect(result.messages).toHaveLength(1);
     });
+
+    // ── 18. 进入理解阶段时 emit sub_problem_changed（A1 修复验证）────────────────
+    it('进入理解阶段时 emit sub_problem_changed（totalCount = subProblems.length）', async () => {
+        const mockWriter = vi.fn();
+        vi.mocked(getWriter).mockReturnValue(mockWriter);
+        vi.mocked(chatModel.invoke).mockResolvedValue({
+            content: '你先理解一下条件。\nphase_signal: "STAY"',
+        } as never);
+
+        // 准备含两个子问题的 state（多子问场景，totalCount 应为 2）
+        const state = createMockState({
+            ocrResult: makeSolvableOcrResult(),
+            hasResolved: true,
+            currentSubProblemIndex: 0,
+            subProblems: [
+                makeSubProblem({ index: 0, goal: '求x' }),
+                makeSubProblem({ index: 1, goal: '求y' }),
+            ],
+        });
+
+        await understandNode(state);
+
+        // 验证：进入理解阶段时，必须在第一时间 emit sub_problem_changed，
+        // 让前端在理解/规划阶段也能正确显示 totalSubProblems
+        expect(mockWriter).toHaveBeenCalledWith(
+            expect.objectContaining({
+                kind: 'sub_problem_changed',
+                currentIndex: 0,
+                totalCount: 2,
+            })
+        );
+    });
+
+    // ── 19. getWriter 返回 null 时，sub_problem_changed emit 安全跳过 ────────────
+    it('getWriter 返回 null 时，sub_problem_changed emit 安全跳过，不抛异常', async () => {
+        vi.mocked(getWriter).mockReturnValue(null as never);
+        vi.mocked(chatModel.invoke).mockResolvedValue({
+            content: '理解题目吧。\nphase_signal: "STAY"',
+        } as never);
+
+        const state = createMockState({
+            ocrResult: makeSolvableOcrResult(),
+            hasResolved: true,
+            subProblems: [makeSubProblem()],
+            currentSubProblemIndex: 0,
+        });
+
+        // 不应抛出异常
+        await expect(understandNode(state)).resolves.not.toThrow();
+    });
 });

@@ -2,19 +2,29 @@
 
 /**
  * 三态消息气泡：user / assistant / system。
- * 支持内嵌 LaTeX：检测 $...$ / $$...$$ 分隔符并分段渲染。
- * isStreaming=true 时在尾部显示块状光标（▍，primary 色闪烁）。
+ * isStreaming=true 时在尾部显示块状光标（▍，foreground 色闪烁）。
  *
  * 设计：
  * - user：右对齐，bg-muted 圆角软包 + 右侧 Avatar（bg-muted/text-foreground，衬线"妹"），无 border / shadow
+ *   正文走 renderContent（parseLatexSegments → LatexRender），保留 $...$ 公式支持
  * - assistant：左对齐，Avatar（bg-foreground/text-background，衬线"引"）+ 右侧纯文字内容，无气泡背景
+ *   正文走 react-markdown v10（remark-gfm / remark-math / remark-breaks + rehype-katex），
+ *   渲染 markdown + LaTeX 数学公式；黑白灰 components 映射保持水墨风，无彩色
  * - system：居中纯文字，无气泡
  *
  * imgUrl（可选）：OSS 对象 key，仅在 user 气泡中渲染。
  * 使用 IntersectionObserver 懒加载，进入视口后调用 ossRequest.signImageForPreview() 获取签名 URL。
+ *
+ * KaTeX CSS：由 globals.css 的 @import 'katex/dist/katex.min.css' 全局引入，
+ * 同时兼顾 LatexRender（user 分支）和 rehype-katex（assistant 分支）的样式需求。
  */
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import Image from 'next/image'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import remarkBreaks from 'remark-breaks'
+import rehypeKatex from 'rehype-katex'
 import { cn } from '@/lib/utils'
 import { parseLatexSegments } from '@/lib/katexHelpers'
 import { LatexRender } from '@/components/LatexRender'
@@ -22,6 +32,43 @@ import { PHASE_LABEL } from '@/lib/theme'
 import type { PolyaPhase } from '@/lib/theme'
 import { ossRequest } from '@/services/api-client/OssRequest'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+
+/** react-markdown components 映射：黑白灰水墨排版，无彩色 */
+const markdownComponents: React.ComponentProps<typeof Markdown>['components'] = {
+  // 段落：上下留白，首段顶部 / 末段底部不留空
+  p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+  // 强调：加粗即可，不改色
+  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+  // 斜体
+  em: ({ children }) => <em>{children}</em>,
+  // 无序列表
+  ul: ({ children }) => <ul className="list-disc pl-5 my-2">{children}</ul>,
+  // 有序列表
+  ol: ({ children }) => <ol className="list-decimal pl-5 my-2">{children}</ol>,
+  // 列表项
+  li: ({ children }) => <li className="my-0.5">{children}</li>,
+  // 行内代码
+  code: ({ children }) => (
+    <code className="rounded bg-muted px-1 py-0.5 text-[0.9em] font-mono">{children}</code>
+  ),
+  // 链接：下划线，不改色
+  a: ({ children, href }) => (
+    <a href={href} className="underline underline-offset-2" target="_blank" rel="noreferrer">
+      {children}
+    </a>
+  ),
+  // 标题降级为加粗小标题（聊天气泡不需要大标题层级）
+  h1: ({ children }) => <p className="text-base font-semibold my-2">{children}</p>,
+  h2: ({ children }) => <p className="text-base font-semibold my-2">{children}</p>,
+  h3: ({ children }) => <p className="text-base font-semibold my-2">{children}</p>,
+  h4: ({ children }) => <p className="text-base font-semibold my-2">{children}</p>,
+  // 引用块：左边框 + muted 色
+  blockquote: ({ children }) => (
+    <blockquote className="border-l-2 border-border pl-3 text-muted-foreground my-2">
+      {children}
+    </blockquote>
+  ),
+}
 
 interface Props {
   role: 'user' | 'assistant' | 'system'
@@ -101,6 +148,28 @@ function PhaseBadge({ phaseLabel }: { phaseLabel: string }) {
       }}
     >
       {phaseLabel}
+    </div>
+  )
+}
+
+/**
+ * AgentBubbleShell — 给 OCR 卡等非纯文本内容套上与 assistant 气泡相同的头像 + 外层布局壳。
+ * 复用 assistant 气泡的 32px 圆形水墨头像（bg-foreground 黑底白字衬线「引」）和
+ * flex 左对齐布局，保证 OCR 确认卡、历史已确认卡与普通回复视觉一致。
+ */
+export function AgentBubbleShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex w-full my-6 justify-start items-start gap-3">
+      {/* 32px 圆形水墨头像，与 assistant 气泡完全一致 */}
+      <Avatar aria-hidden>
+        <AvatarFallback className="bg-foreground text-background text-base font-medium">
+          引
+        </AvatarFallback>
+      </Avatar>
+      {/* 右侧内容区，flex-1 防止宽度溢出 */}
+      <div className="flex-1 min-w-0">
+        {children}
+      </div>
     </div>
   )
 }
@@ -254,10 +323,17 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
           }}
         >
           {resolvedPhaseLabel ? <PhaseBadge phaseLabel={resolvedPhaseLabel} /> : null}
+          {/* assistant 正文：react-markdown 渲染 markdown + 数学公式 */}
           <div className="break-words">
-            {renderContent(content)}
+            <Markdown
+              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+              rehypePlugins={[rehypeKatex]}
+              components={markdownComponents}
+            >
+              {content}
+            </Markdown>
             {isStreaming ? (
-              // 块状光标，foreground 色闪烁
+              // 块状光标，foreground 色闪烁，Markdown 的兄弟节点
               <span
                 className="inline-block ml-0.5 align-middle animate-pulse text-foreground"
                 style={{ fontSize: '1em', lineHeight: 1 }}

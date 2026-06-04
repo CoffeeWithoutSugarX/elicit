@@ -36,10 +36,10 @@ describe('phaseSignalParse', () => {
     expect(result.signal).toBe('STAY');
   });
 
-  it('phase_signal 缺少引号（格式错误）时返回 STAY', () => {
-    // 正则要求值被双引号包裹，这里没有引号，不应匹配
+  it('phase_signal 无引号仍可正常解析（DeepSeek 实际输出格式）', () => {
+    // 正则已放宽为引号可选，无引号格式应正确匹配
     const result = phaseSignalParse('phase_signal: COMPLETED');
-    expect(result.signal).toBe('STAY');
+    expect(result.signal).toBe('COMPLETED');
   });
 
   it('phase_signal 值为未知枚举时返回 STAY', () => {
@@ -100,5 +100,74 @@ describe('phaseSignalParse', () => {
     expect(result.cleanContent).toContain('一些正常文本');
     expect(result.cleanContent).toContain('phase_signal');
     expect(result.probedQuestionId).toBe(2);
+  });
+
+  // ── 无引号格式（DeepSeek 实际输出，线上泄漏复现场景）────────────
+
+  it('无引号信号：正文 + phase_signal: STAY', () => {
+    // 复现 DeepSeek 实际输出：信号值不带双引号
+    const result = phaseSignalParse('这是正文内容。\nphase_signal: STAY');
+    expect(result.signal).toBe('STAY');
+    expect(result.cleanContent).toBe('这是正文内容。');
+    expect(result.cleanContent).not.toContain('phase_signal');
+  });
+
+  it('无引号 + probed 组合（线上泄漏复现场景）', () => {
+    // 复现线上 bug：probed_question_id 和 phase_signal 均无引号，两行全部泄漏进正文
+    const result = phaseSignalParse('这是正文内容。\nprobed_question_id: 1\nphase_signal: STAY');
+    expect(result.signal).toBe('STAY');
+    expect(result.probedQuestionId).toBe(1);
+    expect(result.cleanContent).toBe('这是正文内容。');
+    expect(result.cleanContent).not.toContain('probed_question_id');
+    expect(result.cleanContent).not.toContain('phase_signal');
+  });
+
+  it('带引号信号（回归保障：现有格式仍然工作）', () => {
+    const result = phaseSignalParse('正文。\nphase_signal: "COMPLETED"');
+    expect(result.signal).toBe('COMPLETED');
+    expect(result.cleanContent).toBe('正文。');
+  });
+
+  it('尾部有空行时仍能正常解析（末尾单换行）', () => {
+    const result = phaseSignalParse('正文。\nphase_signal: "COMPLETED"\n');
+    expect(result.signal).toBe('COMPLETED');
+    expect(result.cleanContent).toBe('正文。');
+  });
+
+  it('尾部有多个空行时仍能正常解析', () => {
+    const result = phaseSignalParse('正文。\nphase_signal: "COMPLETED"\n\n');
+    expect(result.signal).toBe('COMPLETED');
+    expect(result.cleanContent).toBe('正文。');
+  });
+
+  it('全角冒号不匹配，不会解析为协议行（防误判）', () => {
+    // 全角冒号不属于协议行格式，应当当作普通正文
+    const result = phaseSignalParse('正文。\nphase_signal：STAY');
+    expect(result.signal).toBe('STAY'); // 默认 fallback
+    expect(result.cleanContent).toContain('phase_signal：STAY'); // 不被剔除
+  });
+
+  it('无引号 new_insight：解析成功且截断逻辑不变', () => {
+    // DeepSeek 实际可能输出无引号的 new_insight
+    const result = phaseSignalParse('好的。\nnew_insight: 两边平方\nphase_signal: "STAY"');
+    expect(result.newInsight).toBe('两边平方');
+    expect(result.cleanContent).toBe('好的。');
+    expect(result.cleanContent).not.toContain('new_insight');
+  });
+
+  it('无引号 new_insight 超过 30 字符时截断为 30 字符', () => {
+    const longInsight = 'a'.repeat(40);
+    const result = phaseSignalParse(`好的。\nnew_insight: ${longInsight}\nphase_signal: "STAY"`);
+    expect(result.newInsight).toHaveLength(30);
+  });
+
+  it('协议行之间夹空行：两个协议行均被解析，正文干净', () => {
+    // 逆序扫描遇到空行应跳过，而非 break
+    const result = phaseSignalParse('这是正文。\nprobed_question_id: 2\n\nphase_signal: STAY');
+    expect(result.signal).toBe('STAY');
+    expect(result.probedQuestionId).toBe(2);
+    expect(result.cleanContent).toBe('这是正文。');
+    expect(result.cleanContent).not.toContain('probed_question_id');
+    expect(result.cleanContent).not.toContain('phase_signal');
   });
 });

@@ -23,6 +23,15 @@ export const understandNode = async (state: ElicitGraphState) => {
     const currentSubProblem: SubProblemState = state.subProblems[state.currentSubProblemIndex];
     if (!currentSubProblem) return {};
 
+    // 每次进入理解阶段时，主动推送子问题总数到前端。
+    // 这样无论是第一次（ClassifyNode 刚分类完）还是切到下一个子问题，
+    // 前端都能在进入 UNDERSTAND 时得到最新的 totalSubProblems。
+    // getWriter() 在流式 invoke 上下文中返回写入函数，非流式时返回 undefined（安全调用）。
+    const writerForInit = getWriter();
+    if (writerForInit && state.subProblems.length > 0) {
+        writerForInit({ kind: 'sub_problem_changed', currentIndex: state.currentSubProblemIndex, totalCount: state.subProblems.length });
+    }
+
     // ——— Guard Chain ———
     // 优先级：visionFailure > outOfScope > deviation > stuck
     const guardAction = runGuardChain(state);
