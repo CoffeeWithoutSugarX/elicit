@@ -2,10 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { PHASE_LABEL, SIGNAL_LABEL, colors, radius, shadow, fontSize } from '@/lib/theme';
 
 describe('PHASE_LABEL', () => {
-  it('包含 4 个 Pólya 阶段的 key', () => {
-    expect(Object.keys(PHASE_LABEL)).toHaveLength(4);
+  it('包含 4 个 Pólya 阶段 + 终态 DONE，共 5 个 key', () => {
+    expect(Object.keys(PHASE_LABEL)).toHaveLength(5);
     expect(Object.keys(PHASE_LABEL)).toEqual(
-      expect.arrayContaining(['UNDERSTAND', 'PLAN', 'EXECUTE', 'REVIEW'])
+      expect.arrayContaining(['UNDERSTAND', 'PLAN', 'EXECUTE', 'REVIEW', 'DONE'])
     );
   });
 
@@ -20,6 +20,7 @@ describe('PHASE_LABEL', () => {
   it('PLAN → 拟定计划', () => expect(PHASE_LABEL.PLAN).toBe('拟定计划'));
   it('EXECUTE → 执行', () => expect(PHASE_LABEL.EXECUTE).toBe('执行'));
   it('REVIEW → 回顾', () => expect(PHASE_LABEL.REVIEW).toBe('回顾'));
+  it('DONE → 已完成', () => expect(PHASE_LABEL.DONE).toBe('已完成'));
 });
 
 describe('SIGNAL_LABEL', () => {

@@ -37,6 +37,7 @@ const PHASE_SHORT_LABEL: Record<PolyaPhase, string> = {
   PLAN:       '规划',
   EXECUTE:    '执行',
   REVIEW:     '回顾',
+  DONE:       '完成',  // 终态不作为第五个 stepper 圆圈渲染，仅满足类型约束
 }
 
 /**
@@ -145,11 +146,12 @@ export function PolyaTopBar({
   insightPointLatest,
   showLongWarning = false,
 }: Props) {
-  // currentPhase 接受 0-3 的数字索引
-  const currentPhaseIndex = Math.max(0, Math.min(3, currentPhase))
-  const currentPolyaPhase = PHASE_ORDER[currentPhaseIndex]
+  // currentPhase 接受 0-3（进行中）或 4（DONE 终态）
+  // clamp 上限放宽到 4：DONE 时 currentPhaseIndex=4，PHASE_ORDER[4] 为 undefined，故兜底为 'DONE'
+  const currentPhaseIndex = Math.max(0, Math.min(4, currentPhase))
+  const currentPolyaPhase = PHASE_ORDER[currentPhaseIndex] ?? 'DONE'
 
-  // EXECUTE 阶段才显示破题点下层
+  // EXECUTE 阶段才显示破题点下层；DONE 时 currentPolyaPhase === 'DONE'，自然为 false
   const showInsightRow = currentPolyaPhase === 'EXECUTE'
 
   // totalSubProblems >= 2 时才显示题号徽标及竖分隔线（单题/未知题数不显示，避免误导）
@@ -169,7 +171,7 @@ export function PolyaTopBar({
         className="flex items-center justify-center gap-0 px-4 pt-3 pb-2"
         role="progressbar"
         aria-label="Pólya 阶段进度"
-        aria-valuenow={currentPhaseIndex + 1}
+        aria-valuenow={Math.min(currentPhaseIndex + 1, 4)}
         aria-valuemin={1}
         aria-valuemax={4}
       >

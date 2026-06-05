@@ -6,12 +6,13 @@
  * 注：原自定义 paper/ink/phase/signal token 已全部迁移至 shadcn 标准 token。
  */
 
-/** Pólya 四阶段 */
+/** Pólya 四阶段 + 终态 */
 export const PHASE_LABEL = {
   UNDERSTAND: '理解题意',
   PLAN: '拟定计划',
   EXECUTE: '执行',
   REVIEW: '回顾',
+  DONE: '已完成',
 } as const
 
 export type PolyaPhase = keyof typeof PHASE_LABEL

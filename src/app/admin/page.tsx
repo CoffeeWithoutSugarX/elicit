@@ -1,8 +1,11 @@
-// 家长后台：会话列表（Server Component）
-// 通过 admin API 拉取所有用户的会话记录并展示
+'use client';
 
+// 家长后台：会话列表（Client Component）
+// 通过 admin API（带 Bearer token）拉取会话记录，鉴权由 API 白名单完成
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { getAdminSupabase } from '@/lib/admin-db';
+import { PolyaPhaseEnum } from '@/types/enums/polyaPhase.enum';
 import {
     Table,
     TableHeader,
@@ -13,49 +16,45 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { adminRequest, AdminConversation, AdminUnauthorizedError } from '@/services/api-client/AdminRequest';
 
-// 强制动态渲染：数据来自 DB，不能静态预渲染
-export const dynamic = 'force-dynamic';
+type PageState = 'loading' | 'unauthorized' | 'error' | 'success';
 
-interface ConversationRow {
-    conversationId: string;
-    title: string | null;
-    userId: string;
-    createdAt: string;
-    currentPhase: number;
-}
+export default function AdminPage() {
+    const [state, setState] = useState<PageState>('loading');
+    const [conversations, setConversations] = useState<AdminConversation[]>([]);
 
-async function fetchAdminConversations(): Promise<ConversationRow[]> {
-    const adminSupabase = getAdminSupabase();
-    const { data, error } = await adminSupabase
-        .from('elicit_conversations')
-        .select('conversation_id, title, user_id, created_at, current_phase')
-        .order('created_at', { ascending: false })
-        .limit(200);
+    useEffect(() => {
+        adminRequest.getConversations()
+            .then(data => {
+                setConversations(data);
+                setState('success');
+            })
+            .catch(err => {
+                if (err instanceof AdminUnauthorizedError) {
+                    setState('unauthorized');
+                } else {
+                    console.error('Admin: 拉取会话列表失败', err);
+                    setState('error');
+                }
+            });
+    }, []);
 
-    if (error) {
-        console.error('Admin: 拉取会话列表失败', error);
-        return [];
+    if (state === 'loading') {
+        return <p className="text-sm text-muted-foreground">加载中…</p>;
     }
 
-    return (data ?? []).map(row => ({
-        conversationId: row.conversation_id,
-        title: row.title,
-        userId: row.user_id,
-        createdAt: row.created_at,
-        currentPhase: row.current_phase,
-    }));
-}
+    if (state === 'unauthorized') {
+        return (
+            <p className="text-sm text-muted-foreground">
+                无权限：请先用管理员账号登录后再访问
+            </p>
+        );
+    }
 
-const PHASE_LABELS: Record<number, string> = {
-    0: '理解',
-    1: '规划',
-    2: '执行',
-    3: '回顾',
-};
-
-export default async function AdminPage() {
-    const conversations = await fetchAdminConversations();
+    if (state === 'error') {
+        return <p className="text-sm text-muted-foreground">加载失败，请刷新重试。</p>;
+    }
 
     return (
         <div>
@@ -89,10 +88,10 @@ export default async function AdminPage() {
                                     <TableCell className="px-4 py-3 font-mono text-xs text-muted-foreground">
                                         {conv.userId.slice(0, 8)}…
                                     </TableCell>
-                                    {/* 阶段列：用 outline Badge 保持黑白中性 */}
+                                    {/* 阶段列：用 outline Badge 保持黑白中性；PolyaPhaseEnum.getLabel 找不到时自动返回 '未知' */}
                                     <TableCell className="px-4 py-3">
                                         <Badge variant="outline">
-                                            {PHASE_LABELS[conv.currentPhase] ?? conv.currentPhase}
+                                            {PolyaPhaseEnum.getLabel(conv.currentPhase)}
                                         </Badge>
                                     </TableCell>
                                     {/* 创建时间列 */}

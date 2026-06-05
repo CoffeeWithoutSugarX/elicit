@@ -108,3 +108,4 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 - `src/__tests__/stores/` — Zustand store 单元测试（useConversation、useUserInfo、useHistoryConversation、useShowWelcome、useThemeFlag）
 - `src/__tests__/app/api/` — Next.js API 路由单元测试（chat、oss、conversation、admin，镜像 `src/app/api/` 路径）
 - `src/__tests__/integration/` — Wire 形状集成护栏测试（真实 `toUIMessageStream` + `streamIterator` → store 全链路；防止 mock 形状漂移复发）
+- `src/__tests__/services/api-client/` — api-client 请求层单元测试（AdminRequest 等）
