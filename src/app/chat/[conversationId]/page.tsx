@@ -37,7 +37,6 @@ export default function ConversationPage({ params }: PageProps) {
     const currentInsightPoints = useConversation(state => state.currentInsightPoints);
     const pendingQuestions = useConversation(state => state.pendingQuestions);
     const hasResolved = useConversation(state => state.hasResolved);
-    const knowledgeCard = useConversation(state => state.knowledgeCard);
 
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -136,6 +135,29 @@ export default function ConversationPage({ params }: PageProps) {
                             );
                         }
                     }
+                    // type=4 KNOWLEDGE_CARD：渲染知识卡片（从消息列表中读取，刷新后仍在）
+                    if (msg.type === ChatMessageType.KNOWLEDGE_CARD) {
+                        try {
+                            const { card } = JSON.parse(msg.message) as { card: import('@/agents/schemas/KnowledgeCardSchema').KnowledgeCard };
+                            return (
+                                <div key={msg.id} className="my-6">
+                                    <KnowledgeCard
+                                        data={card}
+                                        onRetry={resetForNewConversation}
+                                    />
+                                </div>
+                            );
+                        } catch {
+                            // 解析失败：数据损坏时回落成普通气泡，不整页崩溃
+                            return (
+                                <ChatBubble
+                                    key={msg.id}
+                                    role="assistant"
+                                    content={msg.message}
+                                />
+                            );
+                        }
+                    }
                     return (
                         <ChatBubble
                             key={msg.id}
@@ -161,16 +183,6 @@ export default function ConversationPage({ params }: PageProps) {
                             onOcrError={handleOcrError}
                         />
                     </AgentBubbleShell>
-                )}
-
-                {/* P-105：知识卡片 */}
-                {knowledgeCard && (
-                    <div className="my-6">
-                        <KnowledgeCard
-                            data={knowledgeCard}
-                            onRetry={resetForNewConversation}
-                        />
-                    </div>
                 )}
 
                 {/* 等待第一个 chunk：语境化提示

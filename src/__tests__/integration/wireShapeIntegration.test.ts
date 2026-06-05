@@ -85,7 +85,6 @@ function resetStore() {
         pendingQuestions: [],
         isMultiQuestion: false,
         currentInsightPoints: [],
-        knowledgeCard: null,
         hasResolved: false,
     });
 }

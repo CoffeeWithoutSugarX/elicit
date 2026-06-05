@@ -5,7 +5,7 @@
  * 顶部 ≡ ≡ ≡ 装饰 / 标题居中
  * 区块标题用 Fraunces small caps / 思路步骤用罗马数字编号
  * 小问进展用图标 + Badge(outline/secondary) 区分状态（全灰阶，无彩色）
- * 「再来一题」使用 shadcn Button default
+ * 「再来一题」使用 shadcn Button default；onRetry 缺省时按钮隐藏（只读场景）
  */
 import { CheckCircle2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -229,21 +229,23 @@ export function KnowledgeCard({ data, onRetry }: Props) {
         ) : null}
       </CardContent>
 
-      {/* CardFooter：再来一题按钮，右对齐 */}
-      <CardFooter className="justify-end pt-0">
-        <Button
-          type="button"
-          variant="default"
-          onClick={onRetry}
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontFeatureSettings: '"smcp"',
-            letterSpacing: '0.06em',
-          }}
-        >
-          再来一题
-        </Button>
-      </CardFooter>
+      {/* CardFooter：再来一题按钮，右对齐；onRetry 缺省时不渲染（只读场景） */}
+      {onRetry && (
+        <CardFooter className="justify-end pt-0">
+          <Button
+            type="button"
+            variant="default"
+            onClick={onRetry}
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontFeatureSettings: '"smcp"',
+              letterSpacing: '0.06em',
+            }}
+          >
+            再来一题
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }

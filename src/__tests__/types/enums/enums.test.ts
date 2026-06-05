@@ -84,11 +84,12 @@ describe('ChatMessageType', () => {
   it('TEXT = 1', () => expect(ChatMessageType.TEXT).toBe(1));
   it('IMAGE = 2', () => expect(ChatMessageType.IMAGE).toBe(2));
   it('OCR_CARD = 3', () => expect(ChatMessageType.OCR_CARD).toBe(3));
+  it('KNOWLEDGE_CARD = 4', () => expect(ChatMessageType.KNOWLEDGE_CARD).toBe(4));
 });
 
 describe('ChatMessageTypeEnum', () => {
-  it('items 有 3 个', () => {
-    expect(ChatMessageTypeEnum.items).toHaveLength(3);
+  it('items 有 4 个', () => {
+    expect(ChatMessageTypeEnum.items).toHaveLength(4);
   });
 
   it('getLabel(TEXT) → "文本"', () => {
@@ -101,6 +102,10 @@ describe('ChatMessageTypeEnum', () => {
 
   it('getLabel(OCR_CARD) → "题目卡"', () => {
     expect(ChatMessageTypeEnum.getLabel(ChatMessageType.OCR_CARD)).toBe('题目卡');
+  });
+
+  it('getLabel(KNOWLEDGE_CARD) → "知识卡"', () => {
+    expect(ChatMessageTypeEnum.getLabel(ChatMessageType.KNOWLEDGE_CARD)).toBe('知识卡');
   });
 
   it('getLabel 未知值 → "未知"', () => {

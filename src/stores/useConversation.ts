@@ -10,7 +10,6 @@ import {chatRequest} from "@/services/api-client/ChatRequest";
 import {streamIterator} from "@/lib/utils";
 import {supabase} from "@/db/supabase/supabase";
 import type { SanitizedQuestion } from "@/agents/schemas/OcrSchema";
-import type { KnowledgeCard } from "@/agents/schemas/KnowledgeCardSchema";
 import type { CustomChunk } from "@/types/sse/ChunkTypes";
 
 type ConversationStore = {
@@ -30,7 +29,6 @@ type ConversationStore = {
     pendingQuestions: SanitizedQuestion[];  // OCR 检测到的候选题目，等待用户选择
     isMultiQuestion: boolean;          // 是否需要 P-103 多题选择流程
     currentInsightPoints: string[];    // 当前子问题的 insight points
-    knowledgeCard: KnowledgeCard | null;   // 最终知识卡片
     hasResolved: boolean;              // 用户是否已选定题目
 
     // 方法
@@ -76,7 +74,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
         // 切到不同会话时，先重置 Pólya 进度展示态（避免串台），
         // 随后并发发起 state hydration + 消息加载，将服务端 checkpoint 中的真实阶段回填回来
         // （hasResolved 也由 hydration 从服务端回填，checkpoint 是唯一事实源）。
-        // knowledgeCard/pendingQuestions/isMultiQuestion 关系到 OCR/选题流程，不在此处重置。
+        // pendingQuestions/isMultiQuestion 关系到 OCR/选题流程，不在此处重置。
         set({
             currentPhase: 0,
             currentSubProblemIndex: 0,
@@ -169,7 +167,22 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 set({currentPhase: custom.phase});
                 break;
             case 'knowledge_card':
-                set({knowledgeCard: custom.card});
+                // P-105：知识卡片消息化（格式对齐 OCR_CARD 的 JSON.stringify({question}) 模式），
+                // 落库由流结束后的批量落库逻辑统一处理，无需此处单独 insert
+                set(state => ({
+                    chatMessages: [
+                        ...state.chatMessages,
+                        new ChatMessageProps(
+                            generateId(),
+                            get().currentConversationId,
+                            ChatMessageRole.ASSISTANT,
+                            JSON.stringify({ card: custom.card }),
+                            ChatMessageType.KNOWLEDGE_CARD,
+                        ),
+                    ],
+                    // data-custom 分支不触发普通 isWaitingFirstChunk 复位，此处手动复位
+                    isWaitingFirstChunk: false,
+                }));
                 break;
             case 'questions_detected':
                 // 无论单题还是多题，都弹卡等用户手动确认，不再自动确认
@@ -223,6 +236,18 @@ export const useConversation = create<ConversationStore>((set, get) => {
         }
     };
 
+    // 流结束后批量落库本轮新增的 ASSISTANT 消息（TEXT + KNOWLEDGE_CARD）
+    // startLen：processStream 调用前记录的 chatMessages 长度，用于 slice 出本轮新增消息
+    const persistNewAssistantMessages = async (startLen: number) => {
+        const newMsgs = get().chatMessages.slice(startLen).filter(m =>
+            m.role === ChatMessageRole.ASSISTANT &&
+            (m.type === ChatMessageType.TEXT || m.type === ChatMessageType.KNOWLEDGE_CARD)
+        );
+        for (const m of newMsgs) {
+            await insertChatMessageRequest(m);
+        }
+    };
+
     const sendMessage = async (message: ChatMessageProps) => {
         if (get().currentConversationId === "") {
             if (get().tempConversationId) {
@@ -245,11 +270,10 @@ export const useConversation = create<ConversationStore>((set, get) => {
             const response = await chatRequest.getRawResponse(message);
             // 4xx/5xx 时 fetch 不 reject，需手动检查 ok 以触发 catch（撤销乐观渲染 + 回填草稿）
             if (!response.ok) throw new Error('发送失败: ' + response.status);
+            // 记录流开始前的消息列表长度，流结束后 slice 出本轮新增消息批量落库
+            const startLen = get().chatMessages.length;
             await processStream(response);
-            const lastMsg = get().chatMessages[get().chatMessages.length - 1];
-            if (lastMsg.id !== message.id) {
-                await insertChatMessageRequest(lastMsg);
-            }
+            await persistNewAssistantMessages(startLen);
         } catch (error) {
             console.error('sendMessage failed:', error);
             // 1. 撤销乐观渲染
@@ -329,12 +353,11 @@ export const useConversation = create<ConversationStore>((set, get) => {
             // 落库确认卡（type=3，供刷新后复现）；cardMsg 已在乐观 set 时追加进 chatMessages
             await insertChatMessageRequest(cardMsg);
 
+            // 记录流开始前的消息列表长度，流结束后 slice 出本轮新增消息批量落库
+            // OCR_CARD（type=3）在乐观更新时已单独 insert，不在批量范围内
+            const startLen = get().chatMessages.length;
             await processStream(response);
-            // 成功路径：仅当最后一条消息是 ASSISTANT 且 type=TEXT 时才落库（避免把 OCR_CARD 卡误当妹妹文本落库）
-            const lastMsg = get().chatMessages[get().chatMessages.length - 1];
-            if (lastMsg && lastMsg.role === ChatMessageRole.ASSISTANT && lastMsg.type === ChatMessageType.TEXT) {
-                await insertChatMessageRequest(lastMsg);
-            }
+            await persistNewAssistantMessages(startLen);
         } catch (error) {
             console.error('confirmSelectedQuestion failed:', error);
             // 回滚乐观状态；isStreaming/isWaitingFirstChunk 由 finally 复位
@@ -373,7 +396,6 @@ export const useConversation = create<ConversationStore>((set, get) => {
             pendingQuestions: [],
             isMultiQuestion: false,
             currentInsightPoints: [],
-            knowledgeCard: null,
             hasResolved: false,
         });
     };
@@ -408,7 +430,6 @@ export const useConversation = create<ConversationStore>((set, get) => {
         pendingQuestions: [],
         isMultiQuestion: false,
         currentInsightPoints: [],
-        knowledgeCard: null,
         hasResolved: false,
 
         // 方法

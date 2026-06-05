@@ -103,7 +103,6 @@ function resetStore() {
         pendingQuestions: [],
         isMultiQuestion: false,
         currentInsightPoints: [],
-        knowledgeCard: null,
         hasResolved: false,
     });
 }
@@ -206,18 +205,11 @@ describe('useConversation', () => {
             expect(state.currentInsightPoints).toHaveLength(0);
         });
 
-        it('切到不同会话时不重置 hasResolved/knowledgeCard/pendingQuestions', async () => {
+        it('切到不同会话时不重置 hasResolved/pendingQuestions', async () => {
             // 预置 OCR/选题相关字段（这些不应被切会话重置）
             useConversation.setState({
                 currentConversationId: 'conv-c',
                 hasResolved: true,
-                knowledgeCard: {
-                    schemaVersion: 1,
-                    type: 'knowledge_card',
-                    knowledgePoints: [],
-                    methods: [],
-                    insight: 'test',
-                },
                 pendingQuestions: [{
                     index: 0,
                     topic: '数',
@@ -239,7 +231,6 @@ describe('useConversation', () => {
             // 历史会话真实阶段恢复是另一个 feature，暂不在范围。
             const state = useConversation.getState();
             expect(state.hasResolved).toBe(true);
-            expect(state.knowledgeCard).not.toBeNull();
             expect(state.pendingQuestions).toHaveLength(1);
         });
     });
@@ -748,9 +739,10 @@ describe('useConversation', () => {
 
     // --------------------------------------------------
     // handleCustomChunk — knowledge_card
+    // P-105：知识卡消息化，type=4 落 chatMessages 而不是 set({knowledgeCard})
     // --------------------------------------------------
     describe('handleCustomChunk — knowledge_card', () => {
-        it('收到 knowledge_card chunk 时更新 knowledgeCard', async () => {
+        it('收到 knowledge_card chunk 时追加一条 type=KNOWLEDGE_CARD 的 assistant 消息', async () => {
             useConversation.setState({ currentConversationId: 'conv-kc', chatConversation: [] });
 
             const card = {
@@ -772,7 +764,73 @@ describe('useConversation', () => {
 
             await useConversation.getState().sendMessage(makeUserMsg('msg-kc', 'conv-kc'));
 
-            expect(useConversation.getState().knowledgeCard).toEqual(card);
+            // 知识卡以 type=4 追加进 chatMessages，而不是写入已删除的 knowledgeCard 字段
+            const msgs = useConversation.getState().chatMessages;
+            const kcMsg = msgs.find(m => m.type === ChatMessageType.KNOWLEDGE_CARD);
+            expect(kcMsg).toBeDefined();
+            expect(kcMsg!.role).toBe(ChatMessageRole.ASSISTANT);
+            // message 内容是 JSON.stringify({ card: ... })，可解析出原始 card 对象
+            const parsed = JSON.parse(kcMsg!.message) as { card: typeof card };
+            expect(parsed.card.insight).toBe('通过因式分解可以快速找到方程的根');
+            expect(parsed.card.knowledgePoints[0].name).toBe('一元二次方程');
+        });
+
+        it('knowledge_card chunk 到来时复位 isWaitingFirstChunk=false', async () => {
+            useConversation.setState({
+                currentConversationId: 'conv-kc2',
+                chatConversation: [],
+                isWaitingFirstChunk: true,
+            });
+
+            const card = {
+                schemaVersion: 1 as const,
+                type: 'knowledge_card' as const,
+                knowledgePoints: [],
+                methods: [],
+                insight: '测试',
+            };
+            const kcChunk: ChunkMessage = {
+                id: 'kc2',
+                type: 'data-custom',
+                delta: '',
+                data: { kind: 'knowledge_card', card },
+            };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([kcChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-kc2', 'conv-kc2'));
+
+            // isWaitingFirstChunk 应在 handleCustomChunk 内被复位（不等待普通 text delta）
+            expect(useConversation.getState().isWaitingFirstChunk).toBe(false);
+        });
+
+        it('knowledge_card 消息在流结束后通过批量落库被 insert', async () => {
+            useConversation.setState({ currentConversationId: 'conv-kc3', chatConversation: [] });
+
+            const card = {
+                schemaVersion: 1 as const,
+                type: 'knowledge_card' as const,
+                knowledgePoints: [{ name: '积分' }],
+                methods: [{ name: '换元法', category: 1 as const }],
+                insight: '换元法简化计算',
+            };
+            const kcChunk: ChunkMessage = {
+                id: 'kc3',
+                type: 'data-custom',
+                delta: '',
+                data: { kind: 'knowledge_card', card },
+            };
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream([kcChunk]));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            await useConversation.getState().sendMessage(makeUserMsg('msg-kc3', 'conv-kc3'));
+
+            // 批量落库：知识卡消息（type=4）应被 insertChatMessageRequest 落库
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ type: ChatMessageType.KNOWLEDGE_CARD })
+            );
         });
     });
 
@@ -1116,7 +1174,7 @@ describe('useConversation', () => {
             expect(useConversation.getState().sendError).toBe('选题失败，请重试');
         });
 
-        it('流结束后仅当最后一条消息是 ASSISTANT+TEXT 时才落库妹妹消息（DB guard）', async () => {
+        it('流结束后批量落库：OCR_CARD（单独落库）和 TEXT assistant 消息（批量落库）各一次', async () => {
             const mockQuestion = { index: 0, topic: '数学', latexFull: 'x+1=2', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
             useConversation.setState({
                 currentConversationId: 'conv-guard',
@@ -1131,7 +1189,7 @@ describe('useConversation', () => {
 
             await useConversation.getState().confirmSelectedQuestion(0);
 
-            // 应落库：确认卡（type=3）和妹妹 TEXT 消息各一次
+            // 应落库：确认卡（type=3，单独 insert）和妹妹 TEXT 消息（批量落库）
             expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
                 expect.objectContaining({ type: ChatMessageType.OCR_CARD })
             );
@@ -1140,7 +1198,7 @@ describe('useConversation', () => {
             );
         });
 
-        it('流结束后最后一条消息为 USER 时不落库（DB guard）', async () => {
+        it('流结束后无 ASSISTANT 消息时：仅 OCR_CARD 落库（批量落库 slice 为空）', async () => {
             // 初始状态有一条用户消息作为最后一条（流未产出 ASSISTANT 消息）
             const userMsg = makeUserMsg('u-last', 'conv-guard2');
             const mockQuestion = { index: 0, topic: '数学', latexFull: 'x+1=2', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
@@ -1160,11 +1218,10 @@ describe('useConversation', () => {
 
             await useConversation.getState().confirmSelectedQuestion(0);
 
-            // 确认卡应落库（type=3）
+            // 确认卡应落库（type=3），批量落库 slice 为空（无新 ASSISTANT 消息）
             expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
                 expect.objectContaining({ type: ChatMessageType.OCR_CARD })
             );
-            // 但最后一条是 OCR_CARD 而非 TEXT，妹妹消息落库 guard 不应再落库 OCR_CARD 本身
             // insertChatMessageRequest 调用次数恰好 1 次（仅确认卡）
             expect(mockInsertChatMessageRequest).toHaveBeenCalledTimes(1);
         });
@@ -1397,13 +1454,6 @@ describe('useConversation', () => {
                 pendingQuestions: [{ index: 0, topic: '数', latexFull: 'x=1', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] }],
                 isMultiQuestion: true,
                 currentInsightPoints: ['洞察1', '洞察2'],
-                knowledgeCard: {
-                    schemaVersion: 1,
-                    type: 'knowledge_card',
-                    knowledgePoints: [{ name: '方程' }],
-                    methods: [{ name: '换元法', category: 1 }],
-                    insight: 'test insight',
-                },
                 hasResolved: true,
             });
 
@@ -1416,7 +1466,6 @@ describe('useConversation', () => {
             expect(state.pendingQuestions).toHaveLength(0);
             expect(state.isMultiQuestion).toBe(false);
             expect(state.currentInsightPoints).toHaveLength(0);
-            expect(state.knowledgeCard).toBeNull();
             expect(state.hasResolved).toBe(false);
         });
     });
@@ -1433,13 +1482,6 @@ describe('useConversation', () => {
                 currentSubProblemIndex: 1,
                 currentInsightPoints: ['洞察A', '洞察B'],
                 hasResolved: true,
-                knowledgeCard: {
-                    schemaVersion: 1,
-                    type: 'knowledge_card',
-                    knowledgePoints: [{ name: '方程' }],
-                    methods: [{ name: '换元法', category: 1 }],
-                    insight: 'test insight',
-                },
                 pendingQuestions: [{
                     index: 0,
                     topic: '数',
@@ -1470,7 +1512,6 @@ describe('useConversation', () => {
             expect(state.currentSubProblemIndex).toBe(0);
             expect(state.currentInsightPoints).toHaveLength(0);
             expect(state.hasResolved).toBe(false);
-            expect(state.knowledgeCard).toBeNull();
             expect(state.pendingQuestions).toHaveLength(0);
             expect(state.isMultiQuestion).toBe(false);
         });
@@ -1494,10 +1535,10 @@ describe('useConversation', () => {
     });
 
     // --------------------------------------------------
-    // assistant message insert after streaming
+    // 流结束后批量落库 assistant 消息（sendMessage 路径）
     // --------------------------------------------------
-    describe('流结束后持久化 assistant 消息', () => {
-        it('流结束时若最后一条消息 id 不等于用户消息 id，insert 该消息', async () => {
+    describe('流结束后批量落库 assistant 消息', () => {
+        it('流中一条 TEXT assistant 消息：insert 被调用一次', async () => {
             useConversation.setState({ currentConversationId: 'conv-persist', chatConversation: [] });
 
             const aiChunks: ChunkMessage[] = [
@@ -1510,13 +1551,13 @@ describe('useConversation', () => {
             const userMsg = makeUserMsg('u-persist', 'conv-persist');
             await useConversation.getState().sendMessage(userMsg);
 
-            // The last message is ai-final (different from user msg id), so it should be inserted
+            // 流中产生的 assistant TEXT 消息应被落库
             expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ id: 'ai-final' })
+                expect.objectContaining({ id: 'ai-final', role: ChatMessageRole.ASSISTANT })
             );
         });
 
-        it('流结束时若没有 AI 消息生成（最后仍是用户消息），不重复 insert', async () => {
+        it('流结束时若没有 AI 消息生成，不调用 insertChatMessageRequest', async () => {
             useConversation.setState({ currentConversationId: 'conv-nopersist', chatConversation: [] });
 
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
@@ -1526,8 +1567,50 @@ describe('useConversation', () => {
             const userMsg = makeUserMsg('u-nopersist', 'conv-nopersist');
             await useConversation.getState().sendMessage(userMsg);
 
-            // lastMsg.id === message.id → should NOT insert
+            // 没有新 assistant 消息 → 不调用 insert
             expect(mockInsertChatMessageRequest).not.toHaveBeenCalled();
+        });
+
+        it('一轮流中两条 assistant_message + 一条 knowledge_card：三条均被落库', async () => {
+            // 模拟 ExecuteNode 收尾 + ReviewNode 总结 + 知识卡三者同在一轮流的场景
+            useConversation.setState({ currentConversationId: 'conv-multi-persist', chatConversation: [] });
+
+            const card = {
+                schemaVersion: 1 as const,
+                type: 'knowledge_card' as const,
+                knowledgePoints: [{ name: '定积分' }],
+                methods: [{ name: '换元法', category: 1 as const }],
+                insight: '换元化简积分',
+            };
+            const chunks: ChunkMessage[] = [
+                // ExecuteNode 收尾（assistant_message chunk，整段下发）
+                { id: 'am-exec', type: 'data-custom', delta: '', data: { kind: 'assistant_message', text: '本小问分析完毕' } },
+                // ReviewNode 总结（assistant_message chunk，整段下发）
+                { id: 'am-review', type: 'data-custom', delta: '', data: { kind: 'assistant_message', text: '整体思路总结如下' } },
+                // 知识卡（knowledge_card chunk，消息化）
+                { id: 'kc-multi', type: 'data-custom', delta: '', data: { kind: 'knowledge_card', card } },
+            ];
+            mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
+            mockStreamIterator.mockReturnValueOnce(makeChunkStream(chunks));
+            mockInsertChatMessageRequest.mockResolvedValue(true);
+
+            const userMsg = makeUserMsg('u-multi', 'conv-multi-persist');
+            await useConversation.getState().sendMessage(userMsg);
+
+            // 三条消息（2 TEXT + 1 KNOWLEDGE_CARD）均应被落库
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledTimes(3);
+            // 第一条 assistant_message
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ message: '本小问分析完毕', type: ChatMessageType.TEXT })
+            );
+            // 第二条 assistant_message
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ message: '整体思路总结如下', type: ChatMessageType.TEXT })
+            );
+            // 知识卡（type=4）
+            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
+                expect.objectContaining({ type: ChatMessageType.KNOWLEDGE_CARD })
+            );
         });
     });
 
