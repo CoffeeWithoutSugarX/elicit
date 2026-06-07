@@ -1,15 +1,10 @@
 import { z } from "zod";
 
 // 截断到 max 而非 reject——LLM 啰嗦输出不应让整个 OCR 失败
-const clampString = (max: number) =>
-    z.string().transform((s) => (s.length > max ? s.slice(0, max).trim() : s));
 const clampStringMin1 = (max: number) =>
     z.string().min(1).transform((s) => (s.length > max ? s.slice(0, max).trim() : s));
 const clampArray = <T extends z.ZodTypeAny>(item: T, max: number) =>
     z.array(item).transform((a) => (a.length > max ? a.slice(0, max) : a));
-
-// clampString 暂未在字段中直接引用，声明供未来扩展（typecheck 会提示未使用，故用 void 消除）
-void clampString;
 
 const SubProblemDefinitionSchema = z.object({
     index:           z.number().int().min(0),

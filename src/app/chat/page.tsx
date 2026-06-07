@@ -14,6 +14,8 @@ import ChatMessageProps from '@/features/chat/props/ChatMessageProps';
 import { ChatMessageRole } from '@/types/enums/chatMessageRole.enum';
 import { ChatMessageType } from '@/types/enums/chatMessageType.enum';
 import { ossRequest } from '@/services/api-client/OssRequest';
+import { isLastStreamingMessage } from '@/features/chat/chatPageUtils';
+import { WaitingIndicator } from '@/features/chat/components/WaitingIndicator';
 
 
 export default function ChatNewPage() {
@@ -149,18 +151,19 @@ export default function ChatNewPage() {
                         role={msg.role === ChatMessageRole.USER ? 'user' : 'assistant'}
                         content={msg.message}
                         imgUrl={msg.imgUrl}
-                        isStreaming={isStreaming && msg.id === chatMessages[chatMessages.length - 1]?.id && msg.role === ChatMessageRole.ASSISTANT}
+                        isStreaming={isLastStreamingMessage(
+                            isStreaming,
+                            msg.id,
+                            chatMessages[chatMessages.length - 1]?.id,
+                            msg.role,
+                        )}
                     />
                 ))}
                 {/* 等待第一个 chunk：语境化提示
                     最后一条是带图用户消息 = vision 识别中；确认题目后等待最后一条是 OCR 卡/文本，自然回落到思考中 */}
-                {isWaitingFirstChunk && (() => {
-                    const lastMsg = chatMessages[chatMessages.length - 1];
-                    const waitingText = lastMsg?.role === ChatMessageRole.USER && lastMsg?.imgUrl
-                        ? '正在识别题目…'
-                        : '正在思考…';
-                    return <ChatBubble role="assistant" content={waitingText} isStreaming />;
-                })()}
+                {isWaitingFirstChunk && (
+                    <WaitingIndicator lastMsg={chatMessages[chatMessages.length - 1]} />
+                )}
             </div>
 
             {/* 输入框：同名 view-transition-name，与 hero 态做 FLIP 位移动画 */}

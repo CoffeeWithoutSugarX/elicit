@@ -53,11 +53,16 @@ describe('AdminRequest', () => {
     // ── getConversations ─────────────────────────────────────────────────────
 
     describe('getConversations', () => {
-        it('成功 → 返回 conversations 数组', async () => {
+        it('成功 → 返回 conversations 数组（从 BaseResponse.data 中提取）', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                json: async () => ({ conversations: [sampleConversation] }),
+                // API 现在返回 BaseResponse 形状：{ status, message, data: { conversations } }
+                json: async () => ({
+                    status: 200,
+                    message: 'Success',
+                    data: { conversations: [sampleConversation] },
+                }),
             });
 
             const result = await adminRequest.getConversations();
@@ -70,7 +75,11 @@ describe('AdminRequest', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                json: async () => ({ conversations: [] }),
+                json: async () => ({
+                    status: 200,
+                    message: 'Success',
+                    data: { conversations: [] },
+                }),
             });
 
             await adminRequest.getConversations();
@@ -105,13 +114,18 @@ describe('AdminRequest', () => {
     // ── getConversationDetail ────────────────────────────────────────────────
 
     describe('getConversationDetail', () => {
-        it('成功 → 返回 { conversation, messages }', async () => {
+        it('成功 → 返回 { conversation, messages }（从 BaseResponse.data 中提取）', async () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 status: 200,
+                // API 现在返回 BaseResponse 形状：{ status, message, data: { conversation, messages } }
                 json: async () => ({
-                    conversation: sampleConversation,
-                    messages: [sampleMessage],
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        conversation: sampleConversation,
+                        messages: [sampleMessage],
+                    },
                 }),
             });
 
@@ -126,7 +140,11 @@ describe('AdminRequest', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 status: 200,
-                json: async () => ({ conversation: sampleConversation, messages: [] }),
+                json: async () => ({
+                    status: 200,
+                    message: 'Success',
+                    data: { conversation: sampleConversation, messages: [] },
+                }),
             });
 
             await adminRequest.getConversationDetail('conv-001');

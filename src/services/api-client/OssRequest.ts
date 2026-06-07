@@ -7,18 +7,16 @@ class OssRequest {
 
 
     uploadImageToOss = async (imageFile: File, conversationId: string): Promise<string> => {
-        const response: BaseResponse<OssUploadSignInfo> = await fetch(`/api/oss/sign-for-upload/${conversationId}`, {
+        const res = await fetch(`/api/oss/sign-for-upload/${conversationId}`, {
             method: "GET",
             headers: {
                 ...await getAuthHeaders(),
             }
-        })
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("获取签名失败");
-                }
-                return response.json();
-            });
+        });
+        if (!res.ok) {
+            throw new Error("获取签名失败");
+        }
+        const response: BaseResponse<OssUploadSignInfo> = await res.json() as BaseResponse<OssUploadSignInfo>;
         if (BaseResponse.isSuccess(response)) {
             const data = response.data;
             const formData = new FormData();
@@ -47,19 +45,18 @@ class OssRequest {
 
     signImageForPreview = async (url: string): Promise<string> => {
         console.log('Signing OSS preview url for', url)
-        const response: BaseResponse<string> = await fetch("/api/oss/sign-for-preview", {
+        const res = await fetch("/api/oss/sign-for-preview", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 ...await getAuthHeaders(),
             },
             body: JSON.stringify({url})
-        }).then((response) => {
-            if (!response.ok) {
-                throw new Error("获取预览签名失败");
-            }
-            return response.json();
         });
+        if (!res.ok) {
+            throw new Error("获取预览签名失败");
+        }
+        const response: BaseResponse<string> = await res.json() as BaseResponse<string>;
 
         if (BaseResponse.isSuccess(response)) {
             return response.data;

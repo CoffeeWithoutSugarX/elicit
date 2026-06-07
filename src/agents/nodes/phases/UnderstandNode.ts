@@ -1,6 +1,6 @@
 import { ElicitGraphState, SubProblemState } from "@/agents/schemas/ElicitGraphStateSchema";
 import { chatModel } from "@/agents/models/deepseek-model";
-import { systemPrompt, userPromptTemplate, modelParams } from "@/agents/prompts/phases/understandNode.prompt";
+import { systemPrompt, userPromptTemplate } from "@/agents/prompts/phases/understandNode.prompt";
 import { phaseSignalParse } from "@/agents/nodes/algorithm/phaseSignalParse";
 import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
 import { getWriter } from "@langchain/langgraph";
@@ -8,6 +8,7 @@ import { PolyaPhase } from "@/types/enums/polyaPhase.enum";
 import { runGuardChain } from "@/agents/nodes/guards/runGuardChain";
 import { handleTerminalGuard } from "@/agents/nodes/guards/handleTerminalGuard";
 import { applySignalSideEffects } from "@/agents/state/applySignalSideEffects";
+import { adaptRecentMessages } from "@/agents/prompts/phases/_shared";
 
 export const understandNodeName = 'understandNode';
 
@@ -46,10 +47,7 @@ export const understandNode = async (state: ElicitGraphState) => {
     }
 
     // 取最近 10 条消息（约 5 轮对话）
-    const recentMessages = state.messages.slice(-10).map(m => ({
-        getType: () => (m._getType() === 'human' ? 'human' as const : 'ai' as const),
-        content: typeof m.content === 'string' ? m.content : '',
-    }));
+    const recentMessages = adaptRecentMessages(state.messages.slice(-10));
 
     // 构造 user prompt（若有 guard 注入则追加）
     const baseUserContent = userPromptTemplate({
@@ -60,11 +58,10 @@ export const understandNode = async (state: ElicitGraphState) => {
     });
     const userContent = guardInjection ? `${baseUserContent}\n\n${guardInjection}` : baseUserContent;
 
-    // 调用 DeepSeek（temperature 由 modelParams 定义，但 ChatOpenAICallOptions 不接受运行时覆盖，
-    // 故此处仅传消息列表，temperature / max_tokens 通过 modelParams 文档化供未来模型绑定使用）
+    // 调用 DeepSeek（temperature / max_tokens 见 understandNode.prompt.ts 中的 modelParams 文档，
+    // ChatOpenAICallOptions 不接受运行时覆盖，故仅传消息列表）
     // 加 "langsmith:nostream" tag：让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit，
     // 避免协议行（phase_signal 等）被当作妹妹回复推送到前端文本流。干净正文由下方 getWriter() 主动推出。
-    void modelParams; // 保持对 modelParams 的引用，避免 unused import
     const response = await chatModel.invoke([
         new SystemMessage(systemPrompt),
         new HumanMessage(userContent),

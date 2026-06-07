@@ -15,6 +15,8 @@ import ChatMessageProps from '@/features/chat/props/ChatMessageProps';
 import { ChatMessageRole } from '@/types/enums/chatMessageRole.enum';
 import { ChatMessageType } from '@/types/enums/chatMessageType.enum';
 import { ossRequest } from '@/services/api-client/OssRequest';
+import { isLastStreamingMessage } from '@/features/chat/chatPageUtils';
+import { WaitingIndicator } from '@/features/chat/components/WaitingIndicator';
 
 interface PageProps {
     params: Promise<{ conversationId: string }>;
@@ -85,9 +87,8 @@ export default function ConversationPage({ params }: PageProps) {
         resetForNewConversation();
     };
 
-    // 最后一条助手消息的 id（用于判断流式光标位置）
+    // 最后一条消息 id（用于判断流式光标位置）
     const lastMsgId = chatMessages[chatMessages.length - 1]?.id;
-    const lastMsgRole = chatMessages[chatMessages.length - 1]?.role;
 
     // P-103：有待确认题目且用户尚未 resolve 时展示 OcrResultMessage（单题/多题均弹卡）
     const showOcrSelector = pendingQuestions.length > 0 && !hasResolved;
@@ -171,11 +172,12 @@ export default function ConversationPage({ params }: PageProps) {
                             role={msg.role === ChatMessageRole.USER ? 'user' : 'assistant'}
                             content={msg.message}
                             imgUrl={msg.imgUrl}
-                            isStreaming={
-                                isStreaming &&
-                                msg.id === lastMsgId &&
-                                lastMsgRole === ChatMessageRole.ASSISTANT
-                            }
+                            isStreaming={isLastStreamingMessage(
+                                isStreaming,
+                                msg.id,
+                                lastMsgId,
+                                msg.role,
+                            )}
                         />
                     );
                 })}
@@ -194,13 +196,9 @@ export default function ConversationPage({ params }: PageProps) {
 
                 {/* 等待第一个 chunk：语境化提示
                     最后一条是带图用户消息 = vision 识别中；确认题目后等待最后一条是 OCR 卡/文本，自然回落到思考中 */}
-                {isWaitingFirstChunk && (() => {
-                    const lastMsg = chatMessages[chatMessages.length - 1];
-                    const waitingText = lastMsg?.role === ChatMessageRole.USER && lastMsg?.imgUrl
-                        ? '正在识别题目…'
-                        : '正在思考…';
-                    return <ChatBubble role="assistant" content={waitingText} isStreaming />;
-                })()}
+                {isWaitingFirstChunk && (
+                    <WaitingIndicator lastMsg={chatMessages[chatMessages.length - 1]} />
+                )}
             </div>
 
             {/* 输入框 */}

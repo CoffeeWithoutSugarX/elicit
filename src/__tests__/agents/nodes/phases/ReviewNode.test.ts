@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createMockState, makeSubProblem, makeSolvableOcrResult } from '@/__tests__/helpers/mockState';
 import type { OcrResult } from '@/agents/schemas/OcrSchema';
 
+// ——— 阻止 server-only 校验（ReviewNode 直接导入 server-only）———
+vi.mock('server-only', () => ({}));
+
 // ——— mock chatModel（禁止真实 DeepSeek 调用）———
 vi.mock('@/agents/models/deepseek-model', () => ({
     chatModel: {

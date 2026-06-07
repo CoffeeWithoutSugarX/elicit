@@ -12,14 +12,15 @@ export default function Home() {
 
     useEffect(() => {
         // 静默检测登录态：已登录则直接跳 /chat，未登录则展示欢迎页
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        (async () => {
+            const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 router.replace('/chat');
             } else {
                 setAuthed(false);
                 setChecking(false);
             }
-        });
+        })();
     }, [router]);
 
     if (checking) {

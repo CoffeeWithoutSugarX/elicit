@@ -1,5 +1,6 @@
 import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema';
 import type { ElicitGraphState } from '@/agents/schemas/ElicitGraphStateSchema';
+import type { BaseMessage } from '@langchain/core/messages';
 
 /**
  * R-011 落地：为含图题目生成"# 题目图示"块。
@@ -10,6 +11,20 @@ import type { ElicitGraphState } from '@/agents/schemas/ElicitGraphStateSchema';
 export function formatVisualBlock(q: SanitizedQuestion): string {
     if (!q.visualFeaturesNeeded || !q.visualDescription) return '';
     return `# 题目图示（妹妹看到的图，你看不到，按下方描述还原图意进行引导，不要假设描述外的视觉信息）\n${q.visualDescription}`;
+}
+
+/**
+ * 将 LangGraph messages 适配为 prompt 模板所需的轻量消息格式。
+ * PlanNode 与 UnderstandNode 共用此适配器，避免重复手写相同的 map 逻辑。
+ * @param messages - LangGraph state 中的原始消息数组（取切片后传入）
+ */
+export function adaptRecentMessages(
+    messages: BaseMessage[]
+): Pick<BaseMessage, 'getType' | 'content'>[] {
+    return messages.map(m => ({
+        getType: () => (m._getType() === 'human' ? 'human' as const : 'ai' as const),
+        content: typeof m.content === 'string' ? m.content : '',
+    }));
 }
 
 /**

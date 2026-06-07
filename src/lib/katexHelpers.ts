@@ -13,6 +13,7 @@ export function renderTexToString(tex: string, displayMode: boolean): string {
   return katex.renderToString(tex, {
     displayMode,
     throwOnError: false,
+    // KaTeX API 仅接受色值字符串，此处须与 globals.css 的 --color-destructive 保持人工同步
     errorColor: '#dc2626',
     output: 'html',
   })

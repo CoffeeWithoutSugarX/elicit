@@ -5,11 +5,12 @@ import {compiledElicitGraph} from "@/agents/graphs/ChatGraph";
 import {HumanMessage} from "@langchain/core/messages";
 import {withAuth} from "@/lib/auth";
 import {ossService} from "@/services/OssService";
+import {BaseResponse} from "@/types/response/BaseResponse";
 
 
 export const POST = withAuth(async (request, {params, user}) => {
     const body = (await request.json()) as ChatMessageRequest;
-    const {conversationId} = await params as { conversationId: string };
+    const { conversationId } = (await params) as { conversationId: string };
     console.log(body);
 
     try {
@@ -49,9 +50,7 @@ export const POST = withAuth(async (request, {params, user}) => {
     } catch (err) {
         // getSignedUrl / compiledElicitGraph.stream 同步抛错（如 ZodError）时兜底
         console.error('Chat route error', err);
-        return new Response(
-            JSON.stringify({ error: err instanceof Error ? err.message : '聊天请求失败，请重试' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } },
-        );
+        const message = err instanceof Error ? err.message : '聊天请求失败，请重试';
+        return Response.json(BaseResponse.ofError(message), { status: 500 });
     }
 })

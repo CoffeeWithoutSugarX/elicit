@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 
+// ——— 阻止 server-only 校验（ReviewNode 现已直接导入 server-only）———
+vi.mock('server-only', () => ({}));
+
 // ——— mock ConversationMapper（含 server-only 导入，阻止测试加载失败）———
 vi.mock('@/db/mappers/ConversationMapper', () => ({
   conversationMapper: { update: vi.fn(), findById: vi.fn() },

@@ -5,7 +5,7 @@
  * 1. Checks user.email against ADMIN_EMAILS → 403 if not admin.
  * 2. Queries elicit_conversations for the specific conversation → 404 if not found.
  * 3. Queries elicit_messages for that conversation's messages.
- * 4. Returns combined data with camelCase keys.
+ * 4. Returns combined data with camelCase keys wrapped in BaseResponse.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
@@ -63,8 +63,8 @@ vi.mock('@/lib/auth', () => ({
 // ── server-only mock ──────────────────────────────────────────────────────────
 vi.mock('server-only', () => ({}));
 
-// ── admin-db mock ─────────────────────────────────────────────────────────────
-vi.mock('@/lib/admin-db', () => ({
+// ── adminDb mock ──────────────────────────────────────────────────────────────
+vi.mock('@/lib/adminDb', () => ({
     getAdminSupabase: vi.fn(() => ({
         from: mockAdminSupabaseFrom,
     })),
@@ -127,7 +127,7 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
         mockMsgOrder.mockResolvedValue({ data: fakeMsgRows, error: null });
     });
 
-    it('非管理员邮箱 → 返回 403', async () => {
+    it('非管理员邮箱 → 返回 403（BaseResponse 形状）', async () => {
         mockWithAuthImpl.mockImplementation((handler: (req: Request, ctx: { params: unknown; user: { id: string; email: string } }) => Promise<Response>, request: Request, context: { params: unknown }) =>
             handler(request, {
                 ...context,
@@ -141,10 +141,13 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(403);
         const body = await res.json();
-        expect(body.error).toBe('无权限');
+        // BaseResponse 形状：{ status: -1, message: '无权限', data: null }
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('无权限');
+        expect(body.data).toBeNull();
     });
 
-    it('会话不存在（single 返回 error）→ 返回 404', async () => {
+    it('会话不存在（single 返回 error）→ 返回 404（BaseResponse 形状）', async () => {
         withAdminUser();
         mockConvSingle.mockResolvedValue({
             data: null,
@@ -157,10 +160,12 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(404);
         const body = await res.json();
-        expect(body.error).toBe('会话不存在');
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('会话不存在');
+        expect(body.data).toBeNull();
     });
 
-    it('会话存在但 data 为 null → 返回 404', async () => {
+    it('会话存在但 data 为 null → 返回 404（BaseResponse 形状）', async () => {
         withAdminUser();
         mockConvSingle.mockResolvedValue({ data: null, error: null });
 
@@ -170,10 +175,12 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(404);
         const body = await res.json();
-        expect(body.error).toBe('会话不存在');
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('会话不存在');
+        expect(body.data).toBeNull();
     });
 
-    it('消息查询返回 error → 返回 500', async () => {
+    it('消息查询返回 error → 返回 500（BaseResponse 形状）', async () => {
         withAdminUser();
         mockMsgOrder.mockResolvedValue({
             data: null,
@@ -186,10 +193,12 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body.error).toBe('消息查询失败');
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('消息查询失败');
+        expect(body.data).toBeNull();
     });
 
-    it('成功返回会话信息，snake_case 映射为 camelCase', async () => {
+    it('成功返回会话信息，snake_case 映射为 camelCase（BaseResponse 形状）', async () => {
         withAdminUser();
 
         const req = makeRequest();
@@ -198,8 +207,10 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-
-        expect(body.conversation).toEqual({
+        // BaseResponse 形状：{ status: 200, message: 'Success', data: { conversation, messages } }
+        expect(body.status).toBe(200);
+        expect(body.message).toBe('Success');
+        expect(body.data.conversation).toEqual({
             conversationId: 'conv-123',
             title: 'Test conversation',
             userId: 'user-1',
@@ -209,7 +220,7 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
         });
     });
 
-    it('成功返回消息列表，snake_case 映射为 camelCase', async () => {
+    it('成功返回消息列表，snake_case 映射为 camelCase（BaseResponse 形状）', async () => {
         withAdminUser();
 
         const req = makeRequest();
@@ -218,9 +229,8 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-
-        expect(body.messages).toHaveLength(2);
-        expect(body.messages[0]).toEqual({
+        expect(body.data.messages).toHaveLength(2);
+        expect(body.data.messages[0]).toEqual({
             messageId: 'msg-1',
             role: 'user',
             content: 'Hello',
@@ -228,7 +238,7 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
             createdAt: '2026-01-01T00:00:01Z',
             type: 'text',
         });
-        expect(body.messages[1]).toEqual({
+        expect(body.data.messages[1]).toEqual({
             messageId: 'msg-2',
             role: 'assistant',
             content: 'World',
@@ -248,6 +258,7 @@ describe('GET /api/admin/conversations/[conversationId]', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.messages).toEqual([]);
+        expect(body.status).toBe(200);
+        expect(body.data.messages).toEqual([]);
     });
 });

@@ -36,8 +36,12 @@ elicitGraph
     .addNode(reviewNodeName, reviewNode)
 
     // 入口：条件 fan-out
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .addConditionalEdges(START, startFinOutNode as any)
+    // LangGraph 内部 StateType 对字段可选性的推断与 ElicitGraphState 存在结构差异（optional vs required），
+    // 运行时完全兼容；用受控断言收窄断言范围，避免裸 as any。
+    .addConditionalEdges(
+        START,
+        startFinOutNode as unknown as Parameters<typeof elicitGraph.addConditionalEdges>[1]
+    )
 
     // 首次 invoke 路径：建会话 → OCR → END（等待用户选题）
     .addEdge(conversationNodeName, ocrNodeName)
@@ -51,8 +55,10 @@ elicitGraph
     .addEdge(planNodeName, END)
     // executeNode 使用条件边：SUB_PROBLEM_DONE/PROBLEM_BLOCKED → understandNode/reviewNode，
     // ESCALATE → planNode，STAY → END
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .addConditionalEdges(executeNodeName, executeRouter as any)
+    .addConditionalEdges(
+        executeNodeName,
+        executeRouter as unknown as Parameters<typeof elicitGraph.addConditionalEdges>[1]
+    )
     .addEdge(reviewNodeName, END);
 
 export const compiledElicitGraph = elicitGraph.compile({

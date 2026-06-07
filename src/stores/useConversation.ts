@@ -9,6 +9,7 @@ import {generateId} from "@/lib/utils";
 import {chatRequest} from "@/services/api-client/ChatRequest";
 import {streamIterator} from "@/lib/utils";
 import {supabase} from "@/db/supabase/supabase";
+import {getAuthHeaders} from "@/services/api-client/getAuthHeaders";
 import type { SanitizedQuestion } from "@/agents/schemas/OcrSchema";
 import type { CustomChunk, ChunkMessage } from "@/types/sse/ChunkTypes";
 
@@ -44,6 +45,51 @@ type ConversationStore = {
     clearSendError: () => void;                                // 清除错误
 }
 
+// state hydration 辅助函数：从 LangGraph checkpoint 回填 Pólya 展示态
+// 竞态守卫：回填前校验 id 是否仍是当前激活会话
+const hydrateConversationState = async (
+    id: string,
+    get: () => ConversationStore,
+    set: (partial: Partial<ConversationStore>) => void,
+) => {
+    try {
+        const {data: {session}} = await supabase.auth.getSession();
+        const response = await fetch(`/api/conversation/${id}/state`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${session?.access_token}`,
+            },
+        });
+        if (!response.ok) {
+            console.warn(`[useConversation] state hydration 失败: ${response.status}`);
+            return;
+        }
+        const body = await response.json() as {
+            status: number;
+            data: {
+                currentPhase: number;
+                currentSubProblemIndex: number;
+                totalSubProblems: number;
+                insightPoints: string[];
+                hasResolved: boolean;
+            };
+        };
+        const data = body.data;
+        // 竞态守卫：用户可能已再次切会话，只在 id 仍是当前会话时才回填
+        if (get().currentConversationId !== id) return;
+        set({
+            currentPhase: data.currentPhase,
+            currentSubProblemIndex: data.currentSubProblemIndex,
+            totalSubProblems: data.totalSubProblems,
+            currentInsightPoints: data.insightPoints,
+            hasResolved: data.hasResolved,
+        });
+    } catch (err) {
+        // 网络错误等失败情况：静默保留重置后的默认值，不打断消息加载
+        console.warn('[useConversation] state hydration 异常，保留默认值', err);
+    }
+};
+
 export const useConversation = create<ConversationStore>((set, get) => {
 
     const chatMessages: ChatMessageProps[] = [];
@@ -57,67 +103,39 @@ export const useConversation = create<ConversationStore>((set, get) => {
     chatMessages.push(defaultMessage);
 
     const setCurrentConversationId = async (id: string) => {
-        // 已是当前激活会话：不重载、不用 DB 覆盖内存中的乐观消息（修复发消息时用户气泡被冲掉的竞态）
-        if (id !== "" && id === get().currentConversationId) return;
-        set({currentConversationId: id});
-        if (id === "") {
-            // 避免上一会话的进度/卡片串台到新会话
-            resetForNewConversation();
-            set({chatMessages: [defaultMessage]});
-            return;
+        try {
+            // 已是当前激活会话：不重载、不用 DB 覆盖内存中的乐观消息（修复发消息时用户气泡被冲掉的竞态）
+            if (id !== "" && id === get().currentConversationId) return;
+            set({currentConversationId: id});
+            if (id === "") {
+                // 避免上一会话的进度/卡片串台到新会话
+                resetForNewConversation();
+                set({chatMessages: [defaultMessage]});
+                return;
+            }
+            // 切到不同会话时，先重置 Pólya 进度展示态（避免串台），
+            // 随后并发发起 state hydration + 消息加载，将服务端 checkpoint 中的真实阶段回填回来
+            // （hasResolved 也由 hydration 从服务端回填，checkpoint 是唯一事实源）。
+            // pendingQuestions/isMultiQuestion 关系到 OCR/选题流程，不在此处重置。
+            set({
+                currentPhase: 0,
+                currentSubProblemIndex: 0,
+                totalSubProblems: 0,
+                currentInsightPoints: [],
+            });
+
+            // 并发加载：消息列表 + 服务端 state hydration（互不依赖，不串行延迟）
+            const [chatMessageList] = await Promise.all([
+                loadChatMessagesByConversationIdRequest(id),
+                hydrateConversationState(id, get, set),
+            ]);
+
+            set({chatMessages: [defaultMessage, ...chatMessageList]});
+        } catch (err) {
+            // 切会话异常（如网络故障）：打印日志，UI 维持当前状态，不让异常向上扩散
+            console.warn('[useConversation] setCurrentConversationId 异常', err);
+            set({ sendError: '切换会话失败，请重试' });
         }
-        // 切到不同会话时，先重置 Pólya 进度展示态（避免串台），
-        // 随后并发发起 state hydration + 消息加载，将服务端 checkpoint 中的真实阶段回填回来
-        // （hasResolved 也由 hydration 从服务端回填，checkpoint 是唯一事实源）。
-        // pendingQuestions/isMultiQuestion 关系到 OCR/选题流程，不在此处重置。
-        set({
-            currentPhase: 0,
-            currentSubProblemIndex: 0,
-            totalSubProblems: 0,
-            currentInsightPoints: [],
-        });
-
-        // 并发加载：消息列表 + 服务端 state hydration（互不依赖，不串行延迟）
-        const [chatMessageList] = await Promise.all([
-            loadChatMessagesByConversationIdRequest(id),
-            // state hydration：从 LangGraph checkpoint 回填 Pólya 展示态
-            (async () => {
-                try {
-                    const {data: {session}} = await supabase.auth.getSession();
-                    const response = await fetch(`/api/conversation/${id}/state`, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${session?.access_token}`,
-                        },
-                    });
-                    if (!response.ok) {
-                        console.warn(`[useConversation] state hydration 失败: ${response.status}`);
-                        return;
-                    }
-                    const data = await response.json() as {
-                        currentPhase: number;
-                        currentSubProblemIndex: number;
-                        totalSubProblems: number;
-                        insightPoints: string[];
-                        hasResolved: boolean;
-                    };
-                    // 竞态守卫：用户可能已再次切会话，只在 id 仍是当前会话时才回填
-                    if (get().currentConversationId !== id) return;
-                    set({
-                        currentPhase: data.currentPhase,
-                        currentSubProblemIndex: data.currentSubProblemIndex,
-                        totalSubProblems: data.totalSubProblems,
-                        currentInsightPoints: data.insightPoints,
-                        hasResolved: data.hasResolved,
-                    });
-                } catch (err) {
-                    // 网络错误等失败情况：静默保留重置后的默认值，不打断消息加载
-                    console.warn('[useConversation] state hydration 异常，保留默认值', err);
-                }
-            })(),
-        ]);
-
-        set({chatMessages: [defaultMessage, ...chatMessageList]});
     };
 
     const setTempConversationId = () => {
@@ -332,12 +350,11 @@ export const useConversation = create<ConversationStore>((set, get) => {
             ),
         }));
         try {
-            const {data: {session}} = await supabase.auth.getSession();
             const response = await fetch(`/api/conversation/${conversationId}/resolve`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`,
+                    ...await getAuthHeaders(),
                 },
                 body: JSON.stringify({selectedQuestionIndex: index}),
             });
@@ -403,6 +420,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
             }
         } catch (error) {
             console.error("Failed to load all conversations:", error);
+            // 加载历史会话失败：给出用户可感知的错误提示（与 sendMessage 错误处理模式一致）
+            set({ sendError: '加载历史会话失败，请刷新后重试' });
             return false;
         }
         return true;

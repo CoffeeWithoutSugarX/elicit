@@ -31,10 +31,11 @@ class ConversationMapper {
         title?: string;
     }) {
         console.log('ConversationMapper.update invoked with conversationId:', conversationId, 'data:', data)
-        return db.update(elicitConversations)
+        const result = await db.update(elicitConversations)
             .set(data)
             .where(eq(elicitConversations.conversationId, conversationId))
             .returning();
+        return result;
     }
 
 }

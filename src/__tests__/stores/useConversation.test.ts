@@ -1665,14 +1665,19 @@ describe('useConversation', () => {
         it('切会话后 hydration 字段生效（currentPhase/currentSubProblemIndex 等被服务端值覆盖）', async () => {
             mockLoadChatMessagesByConversationIdRequest.mockResolvedValueOnce([]);
             mockGetSession.mockResolvedValueOnce({ data: { session: { access_token: 'tok' } } });
+            // state 接口响应已统一为 BaseResponse 包装：{ status, message, data: {...} }
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({
-                    currentPhase: 2,
-                    currentSubProblemIndex: 1,
-                    totalSubProblems: 3,
-                    insightPoints: ['洞察A', '洞察B'],
-                    hasResolved: true,
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        currentPhase: 2,
+                        currentSubProblemIndex: 1,
+                        totalSubProblems: 3,
+                        insightPoints: ['洞察A', '洞察B'],
+                        hasResolved: true,
+                    },
                 }),
             } as unknown as Response);
 
@@ -1692,11 +1697,15 @@ describe('useConversation', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({
-                    currentPhase: 0,
-                    currentSubProblemIndex: 0,
-                    totalSubProblems: 0,
-                    insightPoints: [],
-                    hasResolved: false,
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        currentPhase: 0,
+                        currentSubProblemIndex: 0,
+                        totalSubProblems: 0,
+                        insightPoints: [],
+                        hasResolved: false,
+                    },
                 }),
             } as unknown as Response);
 
@@ -1726,11 +1735,15 @@ describe('useConversation', () => {
             mockFetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => ({
-                    currentPhase: 0,
-                    currentSubProblemIndex: 0,
-                    totalSubProblems: 0,
-                    insightPoints: [],
-                    hasResolved: false,
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        currentPhase: 0,
+                        currentSubProblemIndex: 0,
+                        totalSubProblems: 0,
+                        insightPoints: [],
+                        hasResolved: false,
+                    },
                 }),
             } as unknown as Response);
 
@@ -1743,11 +1756,15 @@ describe('useConversation', () => {
             resolveFetch({
                 ok: true,
                 json: async () => ({
-                    currentPhase: 3,
-                    currentSubProblemIndex: 2,
-                    totalSubProblems: 5,
-                    insightPoints: ['旧洞察'],
-                    hasResolved: true,
+                    status: 200,
+                    message: 'Success',
+                    data: {
+                        currentPhase: 3,
+                        currentSubProblemIndex: 2,
+                        totalSubProblems: 5,
+                        insightPoints: ['旧洞察'],
+                        hasResolved: true,
+                    },
                 }),
             } as unknown as Response);
             await switchA;

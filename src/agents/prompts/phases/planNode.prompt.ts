@@ -88,9 +88,7 @@ export function userPromptTemplate({
         ? `# 当前小问已积累的破题点（不要再重复抛同类提示）\n${currentSubProblem.insightPoints.map((p, i) => `${i + 1}. ${p}`).join('\n')}`
         : '';
     // R-011 落地关键：DeepSeek 看不到原图，只能从 visualDescription 还原图意
-    const visual = selectedQuestion.visualFeaturesNeeded && selectedQuestion.visualDescription
-        ? `# 题目图示（妹妹看到的图，你看不到，按下方描述还原图意进行引导，不要假设描述外的视觉信息）\n${selectedQuestion.visualDescription}`
-        : '';
+    const visual = formatVisualBlock(selectedQuestion);
     const subCtx = describeSubProblemContext(state);
     return `# 题目（已理解）
 ${selectedQuestion.topic} / 题型 code = ${state.problemType}

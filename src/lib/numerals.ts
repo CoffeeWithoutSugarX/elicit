@@ -17,7 +17,7 @@ const ROMAN_MAP: readonly [number, string][] = [
 
 /**
  * 将正整数转为罗马数字字符串。
- * 仅保证 1~10 正确（UI 场景够用）。
+ * 1~3999 均正确；当前 UI 场景最大为 10。
  */
 export function toRoman(n: number): string {
   if (n < 1 || n > 3999) return String(n)

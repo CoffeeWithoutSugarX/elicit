@@ -170,7 +170,7 @@ describe('POST /api/chat/[conversationId]', () => {
         expect(stateArg.questionImgUrl).toBeUndefined();
     });
 
-    it('graph.stream 同步抛出错误时返回结构化 500 JSON', async () => {
+    it('graph.stream 同步抛出错误时返回 BaseResponse 包装的 500 JSON', async () => {
         // 模拟 stream 同步抛出（如 ZodError）
         mockGraphStream.mockRejectedValueOnce(new Error('ZodError: expected string, received null'));
 
@@ -179,9 +179,10 @@ describe('POST /api/chat/[conversationId]', () => {
 
         const res = await POST(req, context);
 
+        // 错误响应为 BaseResponse 包装：{ status: -1, message: '...', data: null }
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body).toHaveProperty('error');
-        expect(typeof body.error).toBe('string');
+        expect(body).toHaveProperty('message');
+        expect(typeof body.message).toBe('string');
     });
 });

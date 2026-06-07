@@ -3,6 +3,7 @@ import { toUIMessageStream } from "@ai-sdk/langchain";
 import { compiledElicitGraph } from "@/agents/graphs/ChatGraph";
 import { withAuth } from "@/lib/auth";
 import { conversationMapper } from "@/db/mappers/ConversationMapper";
+import { BaseResponse } from "@/types/response/BaseResponse";
 
 export const POST = withAuth(async (request, { params, user }) => {
     const body = await request.json();
@@ -61,9 +62,7 @@ export const POST = withAuth(async (request, { params, user }) => {
     } catch (err) {
         // update/getState/updateState/stream 本身抛出的同步或异步错误
         console.error('Resolve route error', err);
-        return new Response(
-            JSON.stringify({ error: err instanceof Error ? err.message : '解题初始化失败，请重试' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } },
-        );
+        const message = err instanceof Error ? err.message : '解题初始化失败，请重试';
+        return Response.json(BaseResponse.ofError(message), { status: 500 });
     }
 });

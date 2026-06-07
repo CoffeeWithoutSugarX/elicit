@@ -22,7 +22,7 @@ export default defineConfig({
         'src/app/**/page.tsx',
         'src/db/index.ts',
         'src/db/supabase/supabase.ts',
-        'src/lib/admin-db.ts',
+        'src/lib/adminDb.ts',
       ],
       thresholds: { lines: 90, branches: 90 },
     },

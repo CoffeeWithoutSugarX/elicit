@@ -1,4 +1,5 @@
 import { getAuthHeaders } from '@/services/api-client/getAuthHeaders';
+import { BaseResponse } from '@/types/response/BaseResponse';
 
 // ── 响应类型（与 /api/admin/conversations 和 /api/admin/conversations/[id] 对齐） ──
 
@@ -34,30 +35,12 @@ export class AdminUnauthorizedError extends Error {
 }
 
 class AdminRequest {
-    /** 拉取所有会话列表（GET /api/admin/conversations） */
-    getConversations = async (): Promise<AdminConversation[]> => {
-        const response = await fetch('/api/admin/conversations', {
-            method: 'GET',
-            headers: {
-                ...await getAuthHeaders(),
-            },
-        });
-
-        if (response.status === 401 || response.status === 403) {
-            throw new AdminUnauthorizedError();
-        }
-
-        if (!response.ok) {
-            throw new Error(`获取会话列表失败: ${response.status}`);
-        }
-
-        const data: { conversations: AdminConversation[] } = await response.json();
-        return data.conversations;
-    };
-
-    /** 拉取单条会话详情（GET /api/admin/conversations/[conversationId]） */
-    getConversationDetail = async (conversationId: string): Promise<AdminConversationDetail> => {
-        const response = await fetch(`/api/admin/conversations/${conversationId}`, {
+    /**
+     * 私有方法：统一执行带鉴权的 GET 请求，处理 401/403/非 ok 的公共逻辑。
+     * 返回已解析的 response 对象，由调用方进一步提取 data 字段。
+     */
+    private async adminFetch<T>(url: string): Promise<BaseResponse<T>> {
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 ...await getAuthHeaders(),
@@ -73,10 +56,26 @@ class AdminRequest {
         }
 
         if (!response.ok) {
-            throw new Error(`获取会话详情失败: ${response.status}`);
+            throw new Error(`请求失败: ${response.status}`);
         }
 
-        return response.json() as Promise<AdminConversationDetail>;
+        return await response.json() as BaseResponse<T>;
+    }
+
+    /** 拉取所有会话列表（GET /api/admin/conversations） */
+    getConversations = async (): Promise<AdminConversation[]> => {
+        const body = await this.adminFetch<{ conversations: AdminConversation[] }>(
+            '/api/admin/conversations',
+        );
+        return body.data.conversations;
+    };
+
+    /** 拉取单条会话详情（GET /api/admin/conversations/[conversationId]） */
+    getConversationDetail = async (conversationId: string): Promise<AdminConversationDetail> => {
+        const body = await this.adminFetch<AdminConversationDetail>(
+            `/api/admin/conversations/${conversationId}`,
+        );
+        return body.data;
     };
 }
 

@@ -5,27 +5,34 @@ import {getCredential} from 'ali-oss/lib/common/signUtils';
 
 import {formatDateToUTC} from "@/lib/date";
 
-const sts = new OSS.STS({
-    accessKeyId: process.env.OSS_ACCESS_KEY_ID!,  // 从环境变量中获取RAM用户的AccessKey ID
-    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET! // 从环境变量中获取RAM用户的AccessKey Secret
-});
+// 惰性初始化：首次调用时才实例化，避免 import 阶段 env 缺失爆炸
+let _sts: InstanceType<typeof OSS.STS> | null = null;
+function getSts(): InstanceType<typeof OSS.STS> {
+    return (_sts ??= new OSS.STS({
+        accessKeyId: process.env.OSS_ACCESS_KEY_ID!,  // 从环境变量中获取RAM用户的AccessKey ID
+        accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET! // 从环境变量中获取RAM用户的AccessKey Secret
+    }));
+}
 
-const ossClient = new OSS({
-    // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
-    accessKeyId: process.env.OSS_ACCESS_KEY_ID,
-    accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
-    bucket: process.env.OSS_BUCKET,
-    // yourregion填写Bucket所在地域。以华东1（杭州）为例，Region填写为oss-cn-hangzhou。
-    region: process.env.OSS_REGION,
-    // 设置secure为true，使用HTTPS，避免生成的下载链接被浏览器拦截
-    secure: true,
-    authorizationV4: true
-})
+let _ossClient: InstanceType<typeof OSS> | null = null;
+function getOssClient(): InstanceType<typeof OSS> {
+    return (_ossClient ??= new OSS({
+        // 从环境变量中获取访问凭证。运行本代码示例之前，请确保已设置环境变量OSS_ACCESS_KEY_ID和OSS_ACCESS_KEY_SECRET。
+        accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+        accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+        bucket: process.env.OSS_BUCKET,
+        // yourregion填写Bucket所在地域。以华东1（杭州）为例，Region填写为oss-cn-hangzhou。
+        region: process.env.OSS_REGION,
+        // 设置secure为true，使用HTTPS，避免生成的下载链接被浏览器拦截
+        secure: true,
+        authorizationV4: true
+    }));
+}
 
 
 const buildTempOssClient = async () => {
     // 调用assumeRole接口获取STS临时访问凭证
-    const result = await sts.assumeRole(process.env.OSS_STS_ROLE_ARN!, '', 3600, 'ElicitUploadQuestionImage');
+    const result = await getSts().assumeRole(process.env.OSS_STS_ROLE_ARN!, '', 3600, 'ElicitUploadQuestionImage');
 
     // 提取临时访问凭证中的AccessKeyId、AccessKeySecret和SecurityToken
     const accessKeyId = result.credentials.AccessKeyId;
@@ -75,7 +82,7 @@ class OssService {
         const policy: { expiration: string; conditions: unknown[] } = {
             expiration: expirationDate.toISOString(),
             conditions: [
-                {'bucket': 'muzi-elicit'}, // 替换为目标bucket名称
+                {'bucket': process.env.OSS_BUCKET!}, // 目标 bucket；须与 ossClient 的 bucket 字段保持一致
                 {'x-oss-credential': credential},
                 {'x-oss-signature-version': 'OSS4-HMAC-SHA256'},
                 {'x-oss-date': formattedDate},
@@ -104,18 +111,9 @@ class OssService {
     }
 
     getSignedUrl = async (fileNameOrUrl: string) => {
-        return await ossClient.signatureUrlV4('GET', 3600, {
+        return await getOssClient().signatureUrlV4('GET', 3600, {
             headers: {} // 请根据实际发送的请求头设置此处的请求头
         }, fileNameOrUrl)
-    }
-
-    private normalizeObjectName = (fileNameOrUrl: string) => {
-        try {
-            const url = new URL(fileNameOrUrl);
-            return url.pathname.replace(/^\/+/, "");
-        } catch {
-            return fileNameOrUrl.replace(/^\/+/, "");
-        }
     }
 }
 

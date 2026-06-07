@@ -1,3 +1,4 @@
+import 'server-only';
 import {ElicitGraphState} from "@/agents/schemas/ElicitGraphStateSchema";
 import {conversationMapper} from "@/db/mappers/ConversationMapper";
 import {getWriter} from "@langchain/langgraph";

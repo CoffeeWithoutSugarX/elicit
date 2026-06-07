@@ -3,7 +3,6 @@
 // 家长后台：会话列表（Client Component）
 // 通过 admin API（带 Bearer token）拉取会话记录，鉴权由 API 白名单完成
 
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { PolyaPhaseEnum } from '@/types/enums/polyaPhase.enum';
 import {
@@ -16,29 +15,14 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { adminRequest, AdminConversation, AdminUnauthorizedError } from '@/services/api-client/AdminRequest';
-
-type PageState = 'loading' | 'unauthorized' | 'error' | 'success';
+import { adminRequest, AdminConversation } from '@/services/api-client/AdminRequest';
+import { useAdminFetch } from '@/app/admin/_hooks';
 
 export default function AdminPage() {
-    const [state, setState] = useState<PageState>('loading');
-    const [conversations, setConversations] = useState<AdminConversation[]>([]);
-
-    useEffect(() => {
-        adminRequest.getConversations()
-            .then(data => {
-                setConversations(data);
-                setState('success');
-            })
-            .catch(err => {
-                if (err instanceof AdminUnauthorizedError) {
-                    setState('unauthorized');
-                } else {
-                    console.error('Admin: 拉取会话列表失败', err);
-                    setState('error');
-                }
-            });
-    }, []);
+    const { state, data: conversations } = useAdminFetch<AdminConversation[]>(
+        () => adminRequest.getConversations(),
+        [],
+    );
 
     if (state === 'loading') {
         return <p className="text-sm text-muted-foreground">加载中…</p>;
@@ -56,13 +40,15 @@ export default function AdminPage() {
         return <p className="text-sm text-muted-foreground">加载失败，请刷新重试。</p>;
     }
 
+    const convList = conversations ?? [];
+
     return (
         <div>
             <p className="text-sm text-muted-foreground mb-4">
-                共 {conversations.length} 条会话记录
+                共 {convList.length} 条会话记录
             </p>
 
-            {conversations.length === 0 ? (
+            {convList.length === 0 ? (
                 <p className="text-muted-foreground text-sm">暂无会话记录。</p>
             ) : (
                 <div className="rounded border border-border">
@@ -78,7 +64,7 @@ export default function AdminPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {conversations.map(conv => (
+                            {convList.map(conv => (
                                 <TableRow key={conv.conversationId}>
                                     {/* 标题列：截断超长标题 */}
                                     <TableCell className="px-4 py-3 max-w-xs truncate">

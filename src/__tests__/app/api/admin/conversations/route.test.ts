@@ -3,9 +3,9 @@
  *
  * The handler:
  * 1. Checks user.email against ADMIN_EMAILS env var whitelist → 403 if not admin.
- * 2. Dynamically imports @/lib/admin-db and calls getAdminSupabase().
+ * 2. Dynamically imports @/lib/adminDb and calls getAdminSupabase().
  * 3. Queries elicit_conversations ordered by created_at desc, limit 200.
- * 4. Maps DB snake_case rows to camelCase and returns them.
+ * 4. Maps DB snake_case rows to camelCase and returns them wrapped in BaseResponse.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
@@ -40,11 +40,11 @@ vi.mock('@/lib/auth', () => ({
     }),
 }));
 
-// ── server-only mock (admin-db has 'server-only' import) ─────────────────────
+// ── server-only mock (adminDb has 'server-only' import) ──────────────────────
 vi.mock('server-only', () => ({}));
 
-// ── admin-db mock (dynamic import in route is resolved to this) ───────────────
-vi.mock('@/lib/admin-db', () => ({
+// ── adminDb mock (dynamic import in route is resolved to this) ────────────────
+vi.mock('@/lib/adminDb', () => ({
     getAdminSupabase: vi.fn(() => ({
         from: mockAdminSupabaseFrom,
     })),
@@ -100,7 +100,7 @@ describe('GET /api/admin/conversations', () => {
         mockSupabaseLimit.mockResolvedValue({ data: fakeRows, error: null });
     });
 
-    it('非管理员邮箱 → 返回 403 无权限', async () => {
+    it('非管理员邮箱 → 返回 403 无权限（BaseResponse 形状）', async () => {
         withUser('notadmin@example.com');
 
         const req = makeRequest();
@@ -108,10 +108,13 @@ describe('GET /api/admin/conversations', () => {
 
         expect(res.status).toBe(403);
         const body = await res.json();
-        expect(body.error).toBe('无权限');
+        // BaseResponse 形状：{ status: -1, message: '无权限', data: null }
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('无权限');
+        expect(body.data).toBeNull();
     });
 
-    it('用户无 email → 返回 403', async () => {
+    it('用户无 email → 返回 403（BaseResponse 形状）', async () => {
         withUser(null);
 
         const req = makeRequest();
@@ -119,7 +122,9 @@ describe('GET /api/admin/conversations', () => {
 
         expect(res.status).toBe(403);
         const body = await res.json();
-        expect(body.error).toBe('无权限');
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('无权限');
+        expect(body.data).toBeNull();
     });
 
     it('管理员邮箱不区分大小写', async () => {
@@ -131,10 +136,12 @@ describe('GET /api/admin/conversations', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.conversations).toEqual([]);
+        // BaseResponse 形状：{ status: 200, message: 'Success', data: { conversations: [] } }
+        expect(body.status).toBe(200);
+        expect(body.data.conversations).toEqual([]);
     });
 
-    it('成功返回会话列表，snake_case 映射为 camelCase', async () => {
+    it('成功返回会话列表，snake_case 映射为 camelCase（BaseResponse 形状）', async () => {
         withUser('admin@example.com');
 
         const req = makeRequest();
@@ -142,9 +149,12 @@ describe('GET /api/admin/conversations', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.conversations).toHaveLength(2);
+        // BaseResponse 形状：{ status: 200, message: 'Success', data: { conversations: [...] } }
+        expect(body.status).toBe(200);
+        expect(body.message).toBe('Success');
+        expect(body.data.conversations).toHaveLength(2);
 
-        const first = body.conversations[0];
+        const first = body.data.conversations[0];
         expect(first.conversationId).toBe('conv-1');
         expect(first.title).toBe('First conversation');
         expect(first.userId).toBe('user-1');
@@ -153,7 +163,7 @@ describe('GET /api/admin/conversations', () => {
         expect(first.hasResolved).toBe(false);
     });
 
-    it('DB 查询返回 error → 返回 500', async () => {
+    it('DB 查询返回 error → 返回 500（BaseResponse 形状）', async () => {
         withUser('admin@example.com');
         mockSupabaseLimit.mockResolvedValue({
             data: null,
@@ -165,7 +175,9 @@ describe('GET /api/admin/conversations', () => {
 
         expect(res.status).toBe(500);
         const body = await res.json();
-        expect(body.error).toBe('查询失败');
+        expect(body.status).toBe(-1);
+        expect(body.message).toBe('查询失败');
+        expect(body.data).toBeNull();
     });
 
     it('DB 返回 null data 时返回空数组', async () => {
@@ -177,6 +189,7 @@ describe('GET /api/admin/conversations', () => {
 
         expect(res.status).toBe(200);
         const body = await res.json();
-        expect(body.conversations).toEqual([]);
+        expect(body.status).toBe(200);
+        expect(body.data.conversations).toEqual([]);
     });
 });

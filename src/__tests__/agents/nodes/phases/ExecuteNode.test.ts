@@ -65,9 +65,8 @@ describe('executeNode', () => {
         expect(result.messages).toHaveLength(1);
         expect(result.messages![0].getType()).toBe('ai');
         // subProblems 状态不变（STAY）
-        if (result.subProblems) {
-            expect(result.subProblems[0].status).toBe('pending');
-        }
+        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems![0].status).toBe('pending');
         // STAY 不推 phase_changed（kind 字段新契约）
         expect(mockWriter).not.toHaveBeenCalledWith(
             expect.objectContaining({ kind: 'phase_changed' }),
@@ -146,9 +145,8 @@ describe('executeNode', () => {
         const result = await executeNode(state);
 
         // status 保持不变
-        if (result.subProblems) {
-            expect(result.subProblems[0].status).toBe('pending');
-        }
+        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems![0].status).toBe('pending');
         // 推送 PLAN 信号（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
             expect.objectContaining({ kind: 'phase_changed', phase: PolyaPhase.PLAN }),

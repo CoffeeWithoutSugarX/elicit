@@ -15,10 +15,10 @@ describe('commonAuditFields', () => {
     });
 
     it('each field value is a Drizzle column builder (has a columnType property)', () => {
-        // Drizzle column builders have a `columnType` accessor on their config
+        // Drizzle column builder 的 columnType 在 col.config.columnType 上（非实例直接属性）
         for (const [key, col] of Object.entries(commonAuditFields)) {
             expect(col, `field "${key}" should be a drizzle column`).toBeDefined();
-            expect(typeof col).toBe('object');
+            expect(col).toHaveProperty('config.columnType');
         }
     });
 });

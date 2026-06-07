@@ -76,14 +76,16 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const res = await GET(makeRequest(), makeContext());
         const body = await res.json();
 
+        // 成功响应为 BaseResponse 包装：{ status: 200, message: 'Success', data: {...} }
         expect(res.status).toBe(200);
-        expect(body.currentPhase).toBe(2);
-        expect(body.currentSubProblemIndex).toBe(1);
+        expect(body.status).toBe(200);
+        expect(body.data.currentPhase).toBe(2);
+        expect(body.data.currentSubProblemIndex).toBe(1);
         // totalSubProblems 是 subProblems.length
-        expect(body.totalSubProblems).toBe(2);
+        expect(body.data.totalSubProblems).toBe(2);
         // insightPoints 来自 subProblems[currentSubProblemIndex]
-        expect(body.insightPoints).toEqual(['洞察B', '洞察C']);
-        expect(body.hasResolved).toBe(true);
+        expect(body.data.insightPoints).toEqual(['洞察B', '洞察C']);
+        expect(body.data.hasResolved).toBe(true);
     });
 
     it('insightPoints 取当前 currentSubProblemIndex 对应子问题的 insightPoints', async () => {
@@ -103,7 +105,7 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const res = await GET(makeRequest(), makeContext());
         const body = await res.json();
 
-        expect(body.insightPoints).toEqual(['洞察X', '洞察Y']);
+        expect(body.data.insightPoints).toEqual(['洞察X', '洞察Y']);
     });
 
     it('totalSubProblems 是 subProblems 数组长度', async () => {
@@ -124,7 +126,7 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const res = await GET(makeRequest(), makeContext());
         const body = await res.json();
 
-        expect(body.totalSubProblems).toBe(3);
+        expect(body.data.totalSubProblems).toBe(3);
     });
 
     // --------------------------------------------------
@@ -136,8 +138,10 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const res = await GET(makeRequest(), makeContext());
         const body = await res.json();
 
+        // 成功响应为 BaseResponse 包装
         expect(res.status).toBe(200);
-        expect(body).toEqual({
+        expect(body.status).toBe(200);
+        expect(body.data).toEqual({
             currentPhase: 0,
             currentSubProblemIndex: 0,
             totalSubProblems: 0,
@@ -158,8 +162,10 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const res = await GET(makeRequest(), makeContext());
         const body = await res.json();
 
+        // 成功响应为 BaseResponse 包装
         expect(res.status).toBe(200);
-        expect(body).toEqual({
+        expect(body.status).toBe(200);
+        expect(body.data).toEqual({
             currentPhase: 0,
             currentSubProblemIndex: 0,
             totalSubProblems: 0,
@@ -175,8 +181,8 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const body = await res.json();
 
         expect(res.status).toBe(200);
-        expect(body.currentPhase).toBe(0);
-        expect(body.hasResolved).toBe(false);
+        expect(body.data.currentPhase).toBe(0);
+        expect(body.data.hasResolved).toBe(false);
     });
 
     // --------------------------------------------------
@@ -222,8 +228,9 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const res = await GET(makeRequest(), makeContext());
         const body = await res.json();
 
+        // 错误响应为 BaseResponse 包装：{ status: -1, message: '...', data: null }
         expect(res.status).toBe(500);
-        expect(body.error).toBe('数据库连接失败');
+        expect(body.message).toBe('数据库连接失败');
     });
 
     it('getState 抛非 Error 对象时使用默认错误消息', async () => {
@@ -233,7 +240,7 @@ describe('GET /api/conversation/[conversationId]/state', () => {
         const body = await res.json();
 
         expect(res.status).toBe(500);
-        expect(body.error).toBe('获取会话状态失败，请重试');
+        expect(body.message).toBe('获取会话状态失败，请重试');
     });
 
     // --------------------------------------------------
