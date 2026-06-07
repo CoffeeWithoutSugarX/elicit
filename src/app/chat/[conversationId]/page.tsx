@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { use } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { PolyaTopBar } from '@/features/chat/components/PolyaTopBar';
 import { ChatBubble, AgentBubbleShell } from '@/features/chat/components/ChatBubble';
@@ -37,6 +38,8 @@ export default function ConversationPage({ params }: PageProps) {
     const currentInsightPoints = useConversation(state => state.currentInsightPoints);
     const pendingQuestions = useConversation(state => state.pendingQuestions);
     const hasResolved = useConversation(state => state.hasResolved);
+
+    const router = useRouter();
 
     const listRef = useRef<HTMLDivElement>(null);
 
@@ -143,7 +146,11 @@ export default function ConversationPage({ params }: PageProps) {
                                 <div key={msg.id} className="my-6">
                                     <KnowledgeCard
                                         data={card}
-                                        onRetry={resetForNewConversation}
+                                        // 再来一题 = 等价于侧边栏新对话：清会话态并回 hero 新会话页
+                                        onRetry={() => {
+                                            setCurrentConversationId('');
+                                            router.push('/chat');
+                                        }}
                                     />
                                 </div>
                             );
