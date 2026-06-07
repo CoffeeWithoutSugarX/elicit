@@ -1,17 +1,16 @@
 import {OssUploadSignInfo} from "@/types/response/OssUploadSignInfo";
 import {BaseResponse} from "@/types/response/BaseResponse";
-import {supabase} from "@/db/supabase/supabase";
+import { getAuthHeaders } from "@/services/api-client/getAuthHeaders";
 
 
 class OssRequest {
 
 
     uploadImageToOss = async (imageFile: File, conversationId: string): Promise<string> => {
-        const {data: {session}} = await supabase.auth.getSession();
         const response: BaseResponse<OssUploadSignInfo> = await fetch(`/api/oss/sign-for-upload/${conversationId}`, {
             method: "GET",
             headers: {
-                'Authorization': `Bearer ${session?.access_token}`
+                ...await getAuthHeaders(),
             }
         })
             .then((response) => {
@@ -48,12 +47,11 @@ class OssRequest {
 
     signImageForPreview = async (url: string): Promise<string> => {
         console.log('Signing OSS preview url for', url)
-        const {data: {session}} = await supabase.auth.getSession();
         const response: BaseResponse<string> = await fetch("/api/oss/sign-for-preview", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                'Authorization': `Bearer ${session?.access_token}`
+                ...await getAuthHeaders(),
             },
             body: JSON.stringify({url})
         }).then((response) => {

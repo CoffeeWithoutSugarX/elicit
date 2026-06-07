@@ -1,9 +1,6 @@
 import { withAuth } from '@/lib/auth';
 import { NextResponse } from 'next/server';
-
-// 管理员邮箱白名单（逗号分隔，不区分大小写）
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '').split(',').map(e => e.trim().toLowerCase());
-const isAdmin = (email: string) => ADMIN_EMAILS.includes(email.toLowerCase());
+import { isAdmin } from '@/lib/adminAuth';
 
 export const GET = withAuth(async (_req, { user }) => {
     if (!user.email || !isAdmin(user.email)) {

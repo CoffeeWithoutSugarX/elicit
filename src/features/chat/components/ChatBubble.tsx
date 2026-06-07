@@ -18,7 +18,7 @@
  * KaTeX CSS：由 globals.css 的 @import 'katex/dist/katex.min.css' 全局引入，
  * 同时兼顾 LatexRender（user 分支）和 rehype-katex（assistant 分支）的样式需求。
  */
-import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Image from 'next/image'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -26,13 +26,14 @@ import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
 import { cn } from '@/lib/utils'
-import { parseLatexSegments, normalizeLatexDelimiters } from '@/lib/katexHelpers'
-import { LatexRender } from '@/components/LatexRender'
+import { normalizeLatexDelimiters } from '@/lib/katexHelpers'
+import { renderMixed } from '@/features/chat/components/renderMixed'
 import { markdownComponents } from '@/lib/markdownComponents'
 import { PHASE_LABEL } from '@/lib/theme'
 import type { PolyaPhase } from '@/lib/theme'
 import { ossRequest } from '@/services/api-client/OssRequest'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { formatRelativeTime } from '@/lib/relativeTime'
 
 
 interface Props {
@@ -42,62 +43,6 @@ interface Props {
   phaseLabel?: string
   timestamp?: Date
   isStreaming?: boolean
-}
-
-/** 将一段含 LaTeX 的字符串渲染为 React 节点序列 */
-function renderContent(content: string) {
-  const segments = parseLatexSegments(content)
-  return segments.map((seg, idx) => {
-    if (seg.type === 'latex-block') {
-      return <LatexRender key={idx} tex={seg.content} display="block" />
-    }
-    if (seg.type === 'latex-inline') {
-      return <LatexRender key={idx} tex={seg.content} display="inline" />
-    }
-    // 普通文本：保留换行
-    return (
-      <Fragment key={idx}>
-        {seg.content.split('\n').map((line, i, arr) => (
-          <Fragment key={i}>
-            {line}
-            {i < arr.length - 1 ? <br /> : null}
-          </Fragment>
-        ))}
-      </Fragment>
-    )
-  })
-}
-
-/** 将 Date 格式化为中文相对时间描述 */
-function formatTimestamp(date: Date): string {
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMin = Math.floor(diffMs / 60_000)
-  const diffDays = Math.floor(diffMs / 86_400_000)
-
-  if (diffMin < 1) return '刚才'
-  if (diffMin < 60) return `${diffMin} 分钟前`
-
-  // 同一天（按本地日期判断）
-  const isSameDay =
-    date.getFullYear() === now.getFullYear() &&
-    date.getMonth() === now.getMonth() &&
-    date.getDate() === now.getDate()
-
-  if (isSameDay) {
-    const hh = String(date.getHours()).padStart(2, '0')
-    const mm = String(date.getMinutes()).padStart(2, '0')
-    return `今天 ${hh}:${mm}`
-  }
-
-  if (diffDays < 7) return `${diffDays} 天前`
-
-  // 超过 7 天：MM-DD HH:mm
-  const mo = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-  const hh = String(date.getHours()).padStart(2, '0')
-  const mm = String(date.getMinutes()).padStart(2, '0')
-  return `${mo}-${dd} ${hh}:${mm}`
 }
 
 /** agent 气泡顶部阶段 badge（可选） */
@@ -199,7 +144,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
   }
 
   const isUser = role === 'user'
-  const timestampStr = timestamp ? formatTimestamp(timestamp) : ''
+  const timestampStr = formatRelativeTime(timestamp?.toISOString())
 
   // 从 PHASE_LABEL 解析阶段标签（支持传入已解析的 phaseLabel 或原始 PolyaPhase key）
   const resolvedPhaseLabel = phaseLabel
@@ -243,7 +188,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
               </div>
             ) : null}
             <div className="break-words">
-              {renderContent(content)}
+              {renderMixed(content)}
             </div>
           </div>
           {/* hover 时右下角显示时间戳 */}

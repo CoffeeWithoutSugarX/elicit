@@ -20,6 +20,29 @@ export const insertChatMessageRequest = async (message: ChatMessageProps) => {
     return true;
 };
 
+/**
+ * 批量落库多条消息（一次 upsert，减少 N+1 往返）。
+ * 空数组时直接返回 true，单条可复用此函数。
+ */
+export const insertChatMessagesRequest = async (messages: ChatMessageProps[]): Promise<boolean> => {
+    if (messages.length === 0) return true;
+    const rows = messages.map(m => ({
+        message_id:      m.id,
+        conversation_id: m.conversationId,
+        role:            m.role,
+        content:         m.message,
+        type:            m.type,
+        img_url:         m.imgUrl,
+    }));
+    const { error } = await supabase.from('elicit_messages')
+        .upsert(rows, { onConflict: 'conversation_id,message_id', ignoreDuplicates: true });
+    if (error) {
+        console.error("Failed to batch insert chat messages:", error);
+        return false;
+    }
+    return true;
+};
+
 export const loadChatMessagesByConversationIdRequest = async (conversationId: string) => {
     const { data, error } = await supabase.from('elicit_messages')
         .select(`

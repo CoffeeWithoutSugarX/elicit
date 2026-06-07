@@ -3,14 +3,17 @@ import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
 import { ChatMessageRole } from "@/types/enums/chatMessageRole.enum";
 import ChatConversationProps from "@/features/chat/props/ChatConversationProps";
 import {loadAllChatConversation} from "@/db/models/ChatConversation";
-import {insertChatMessageRequest, loadChatMessagesByConversationIdRequest} from "@/db/models/ChatMessage";
+import {insertChatMessageRequest, insertChatMessagesRequest, loadChatMessagesByConversationIdRequest} from "@/db/models/ChatMessage";
 import { ChatMessageType } from "@/types/enums/chatMessageType.enum";
 import {generateId} from "@/lib/utils";
 import {chatRequest} from "@/services/api-client/ChatRequest";
 import {streamIterator} from "@/lib/utils";
 import {supabase} from "@/db/supabase/supabase";
 import type { SanitizedQuestion } from "@/agents/schemas/OcrSchema";
-import type { CustomChunk } from "@/types/sse/ChunkTypes";
+import type { CustomChunk, ChunkMessage } from "@/types/sse/ChunkTypes";
+
+// re-export 供历史 importer（@/stores/useConversation）保持兼容
+export type { ChunkMessage };
 
 type ConversationStore = {
     chatMessages: ChatMessageProps[];
@@ -39,14 +42,6 @@ type ConversationStore = {
     confirmSelectedQuestion: (index: number) => Promise<void>;
     resetForNewConversation: () => void;
     clearSendError: () => void;                                // 清除错误
-}
-
-export type ChunkMessage = {
-    id: string;
-    type: string;
-    delta: string;
-    data?: Record<string, unknown>;
-    errorText?: string;
 }
 
 export const useConversation = create<ConversationStore>((set, get) => {
@@ -136,10 +131,11 @@ export const useConversation = create<ConversationStore>((set, get) => {
 
     // 向 chatMessages 追加或追加内容到最后一条消息（SSE 文本增量）
     const upsetChatMessage = (message: ChunkMessage) => {
-        const lastChatMessage = get().chatMessages[get().chatMessages.length - 1];
+        const msgs = get().chatMessages;
+        const lastChatMessage = msgs[msgs.length - 1];
         if (lastChatMessage.id === message.id) {
             lastChatMessage.message += message.delta;
-            set(state => ({chatMessages: [...state.chatMessages.slice(0, get().chatMessages.length - 1), lastChatMessage]}));
+            set(state => ({chatMessages: [...state.chatMessages.slice(0, state.chatMessages.length - 1), lastChatMessage]}));
         } else {
             set(state => ({chatMessages: [...state.chatMessages, new ChatMessageProps(message.id, get().currentConversationId, ChatMessageRole.ASSISTANT, message.delta, ChatMessageType.TEXT)]}));
         }
@@ -244,9 +240,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
             m.role === ChatMessageRole.ASSISTANT &&
             (m.type === ChatMessageType.TEXT || m.type === ChatMessageType.KNOWLEDGE_CARD)
         );
-        for (const m of newMsgs) {
-            await insertChatMessageRequest(m);
-        }
+        await insertChatMessagesRequest(newMsgs);
     };
 
     const sendMessage = async (message: ChatMessageProps) => {

@@ -8,6 +8,7 @@ import type { ChunkMessage } from '@/stores/useConversation';
 // ---- Mocks (must be declared before imports that use them) ----
 
 const mockInsertChatMessageRequest = vi.fn();
+const mockInsertChatMessagesRequest = vi.fn();
 const mockLoadChatMessagesByConversationIdRequest = vi.fn();
 const mockLoadAllChatConversation = vi.fn();
 const mockGetRawResponse = vi.fn();
@@ -16,6 +17,7 @@ const mockFetch = vi.fn();
 
 vi.mock('@/db/models/ChatMessage', () => ({
     insertChatMessageRequest: (...args: unknown[]) => mockInsertChatMessageRequest(...args),
+    insertChatMessagesRequest: (...args: unknown[]) => mockInsertChatMessagesRequest(...args),
     loadChatMessagesByConversationIdRequest: (...args: unknown[]) => mockLoadChatMessagesByConversationIdRequest(...args),
 }));
 
@@ -116,6 +118,8 @@ describe('useConversation', () => {
         vi.clearAllMocks();
         vi.resetAllMocks();  // 重置 mock 返回值队列，防止 mockReturnValueOnce 泄漏到下一个测试
         resetStore();
+        // 批量落库接口默认返回 true，避免每个用例都需要单独 mock
+        mockInsertChatMessagesRequest.mockResolvedValue(true);
     });
 
     // --------------------------------------------------
@@ -823,13 +827,14 @@ describe('useConversation', () => {
             };
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([kcChunk]));
-            mockInsertChatMessageRequest.mockResolvedValue(true);
 
             await useConversation.getState().sendMessage(makeUserMsg('msg-kc3', 'conv-kc3'));
 
-            // 批量落库：知识卡消息（type=4）应被 insertChatMessageRequest 落库
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ type: ChatMessageType.KNOWLEDGE_CARD })
+            // 批量落库：知识卡消息（type=4）应被 insertChatMessagesRequest 批量落库
+            expect(mockInsertChatMessagesRequest).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({ type: ChatMessageType.KNOWLEDGE_CARD }),
+                ])
             );
         });
     });
@@ -1186,19 +1191,23 @@ describe('useConversation', () => {
             const aiChunk: ChunkMessage = { id: 'g-msg', type: 'text', delta: 'AI 回复' };
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([aiChunk]));
             mockInsertChatMessageRequest.mockResolvedValue(true);
+            mockInsertChatMessagesRequest.mockResolvedValue(true);
 
             await useConversation.getState().confirmSelectedQuestion(0);
 
-            // 应落库：确认卡（type=3，单独 insert）和妹妹 TEXT 消息（批量落库）
+            // 确认卡通过单条接口落库（OCR_CARD 在 confirmSelectedQuestion 中单独 insert）
             expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
                 expect.objectContaining({ type: ChatMessageType.OCR_CARD })
             );
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ role: ChatMessageRole.ASSISTANT, type: ChatMessageType.TEXT })
+            // 流中产生的 TEXT 消息通过批量接口落库
+            expect(mockInsertChatMessagesRequest).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({ role: ChatMessageRole.ASSISTANT, type: ChatMessageType.TEXT }),
+                ])
             );
         });
 
-        it('流结束后无 ASSISTANT 消息时：仅 OCR_CARD 落库（批量落库 slice 为空）', async () => {
+        it('流结束后无 ASSISTANT 消息时：仅 OCR_CARD 落库（批量落库 slice 为空数组）', async () => {
             // 初始状态有一条用户消息作为最后一条（流未产出 ASSISTANT 消息）
             const userMsg = makeUserMsg('u-last', 'conv-guard2');
             const mockQuestion = { index: 0, topic: '数学', latexFull: 'x+1=2', givenConditions: [], implicitConditions: [], goal: '求x', milestones: [], visualFeaturesNeeded: false, visualDescription: '', subProblems: [{ index: 0, goal: '求x', givenConditions: [], milestones: [] }] };
@@ -1215,15 +1224,16 @@ describe('useConversation', () => {
             // 空流，不追加任何 AI TEXT 消息
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
             mockInsertChatMessageRequest.mockResolvedValue(true);
+            mockInsertChatMessagesRequest.mockResolvedValue(true);
 
             await useConversation.getState().confirmSelectedQuestion(0);
 
-            // 确认卡应落库（type=3），批量落库 slice 为空（无新 ASSISTANT 消息）
+            // 确认卡应通过单条接口落库（type=3）
             expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
                 expect.objectContaining({ type: ChatMessageType.OCR_CARD })
             );
-            // insertChatMessageRequest 调用次数恰好 1 次（仅确认卡）
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledTimes(1);
+            // 批量接口被调用，传入空数组（无新 ASSISTANT 消息）
+            expect(mockInsertChatMessagesRequest).toHaveBeenCalledWith([]);
         });
 
         it('确认成功后 chatMessages 中有一条 type=OCR_CARD 消息且 message 可解析出 question', async () => {
@@ -1538,7 +1548,7 @@ describe('useConversation', () => {
     // 流结束后批量落库 assistant 消息（sendMessage 路径）
     // --------------------------------------------------
     describe('流结束后批量落库 assistant 消息', () => {
-        it('流中一条 TEXT assistant 消息：insert 被调用一次', async () => {
+        it('流中一条 TEXT assistant 消息：insertChatMessagesRequest 被调用（批量版）', async () => {
             useConversation.setState({ currentConversationId: 'conv-persist', chatConversation: [] });
 
             const aiChunks: ChunkMessage[] = [
@@ -1546,32 +1556,34 @@ describe('useConversation', () => {
             ];
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream(aiChunks));
-            mockInsertChatMessageRequest.mockResolvedValue(true);
+            mockInsertChatMessagesRequest.mockResolvedValue(true);
 
             const userMsg = makeUserMsg('u-persist', 'conv-persist');
             await useConversation.getState().sendMessage(userMsg);
 
-            // 流中产生的 assistant TEXT 消息应被落库
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ id: 'ai-final', role: ChatMessageRole.ASSISTANT })
+            // 流中产生的 assistant TEXT 消息应被批量落库（insertChatMessagesRequest 接受数组）
+            expect(mockInsertChatMessagesRequest).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({ id: 'ai-final', role: ChatMessageRole.ASSISTANT }),
+                ])
             );
         });
 
-        it('流结束时若没有 AI 消息生成，不调用 insertChatMessageRequest', async () => {
+        it('流结束时若没有 AI 消息生成，insertChatMessagesRequest 仍被调用（空数组）', async () => {
             useConversation.setState({ currentConversationId: 'conv-nopersist', chatConversation: [] });
 
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream([]));
-            mockInsertChatMessageRequest.mockResolvedValue(true);
+            mockInsertChatMessagesRequest.mockResolvedValue(true);
 
             const userMsg = makeUserMsg('u-nopersist', 'conv-nopersist');
             await useConversation.getState().sendMessage(userMsg);
 
-            // 没有新 assistant 消息 → 不调用 insert
-            expect(mockInsertChatMessageRequest).not.toHaveBeenCalled();
+            // 批量落库函数被调用，但传入空数组（函数内部对空数组直接返回 true）
+            expect(mockInsertChatMessagesRequest).toHaveBeenCalledWith([]);
         });
 
-        it('一轮流中两条 assistant_message + 一条 knowledge_card：三条均被落库', async () => {
+        it('一轮流中两条 assistant_message + 一条 knowledge_card：三条均被批量落库', async () => {
             // 模拟 ExecuteNode 收尾 + ReviewNode 总结 + 知识卡三者同在一轮流的场景
             useConversation.setState({ currentConversationId: 'conv-multi-persist', chatConversation: [] });
 
@@ -1592,25 +1604,27 @@ describe('useConversation', () => {
             ];
             mockGetRawResponse.mockResolvedValueOnce(makeOkResponse());
             mockStreamIterator.mockReturnValueOnce(makeChunkStream(chunks));
-            mockInsertChatMessageRequest.mockResolvedValue(true);
+            mockInsertChatMessagesRequest.mockResolvedValue(true);
 
             const userMsg = makeUserMsg('u-multi', 'conv-multi-persist');
             await useConversation.getState().sendMessage(userMsg);
 
-            // 三条消息（2 TEXT + 1 KNOWLEDGE_CARD）均应被落库
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledTimes(3);
+            // 批量落库一次调用，数组包含三条消息（2 TEXT + 1 KNOWLEDGE_CARD）
+            expect(mockInsertChatMessagesRequest).toHaveBeenCalledTimes(1);
+            const [batchArg] = mockInsertChatMessagesRequest.mock.calls[0] as [typeof Array.prototype];
+            expect(batchArg).toHaveLength(3);
             // 第一条 assistant_message
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ message: '本小问分析完毕', type: ChatMessageType.TEXT })
-            );
+            expect(batchArg).toEqual(expect.arrayContaining([
+                expect.objectContaining({ message: '本小问分析完毕', type: ChatMessageType.TEXT }),
+            ]));
             // 第二条 assistant_message
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ message: '整体思路总结如下', type: ChatMessageType.TEXT })
-            );
+            expect(batchArg).toEqual(expect.arrayContaining([
+                expect.objectContaining({ message: '整体思路总结如下', type: ChatMessageType.TEXT }),
+            ]));
             // 知识卡（type=4）
-            expect(mockInsertChatMessageRequest).toHaveBeenCalledWith(
-                expect.objectContaining({ type: ChatMessageType.KNOWLEDGE_CARD })
-            );
+            expect(batchArg).toEqual(expect.arrayContaining([
+                expect.objectContaining({ type: ChatMessageType.KNOWLEDGE_CARD }),
+            ]));
         });
     });
 

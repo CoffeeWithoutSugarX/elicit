@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockState, makeSubProblem } from '@/__tests__/helpers/mockState';
+import { createMockState, makeSubProblem, makeSolvableOcrResult } from '@/__tests__/helpers/mockState';
 import type { OcrResult } from '@/agents/schemas/OcrSchema';
 import { PolyaPhase } from '@/types/enums/polyaPhase.enum';
 
@@ -32,44 +32,6 @@ import { runGuardChain } from '@/agents/nodes/guards/runGuardChain';
 import { HumanMessage, AIMessage } from '@langchain/core/messages';
 
 const mockRunGuardChain = vi.mocked(runGuardChain);
-
-// ——— 辅助：构建单道可解题目的 ocrResult ———
-function makeSolvableOcrResult(overrides: Partial<{
-    topic: string;
-    latexFull: string;
-    goal: string;
-}> = {}): OcrResult {
-    return {
-        isSolvable: true,
-        subject: 'math',
-        grade: '初中',
-        questions: [
-            {
-                index: 0,
-                topic: overrides.topic ?? '一元二次方程',
-                latexFull: overrides.latexFull ?? '解方程 $x^2 - 4x + 3 = 0$',
-                givenConditions: ['$x^2 - 4x + 3 = 0$'],
-                implicitConditions: [],
-                goal: overrides.goal ?? '求 x 的值',
-                milestones: ['分解因式', '求根'],
-                visualFeaturesNeeded: false,
-                visualDescription: '',
-                subProblems: [
-                    {
-                        index: 0,
-                        goal: '求 x 的值',
-                        givenConditions: ['$x^2 - 4x + 3 = 0$'],
-                        milestones: ['分解因式', '求根'],
-                    },
-                ],
-            },
-        ],
-        isMulti: false,
-        visualFeaturesNeeded: false,
-        errorReason: null,
-        selectedQuestionIndex: 0,
-    };
-}
 
 describe('understandNode', () => {
     beforeEach(() => {

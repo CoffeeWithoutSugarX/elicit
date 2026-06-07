@@ -16,10 +16,3 @@ export function getAdminSupabase() {
     );
 }
 
-/**
- * 向后兼容的 adminSupabase 导出：调用方直接使用 adminSupabase，
- * 但实际客户端在首次调用 getAdminSupabase() 时才构建。
- *
- * 注意：此文件被导入时不会立即调用 createClient，
- * 仅当 getAdminSupabase() 被调用（即运行时）时才初始化。
- */

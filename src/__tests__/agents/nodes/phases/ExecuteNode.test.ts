@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockState, makeSubProblem } from '@/__tests__/helpers/mockState';
+import { createMockState, makeSubProblem, makeSolvableOcrResult } from '@/__tests__/helpers/mockState';
 import type { OcrResult } from '@/agents/schemas/OcrSchema';
 
 // ——— mock chatModel（禁止真实 DeepSeek 调用）———
@@ -31,40 +31,6 @@ import { PolyaPhase } from '@/types/enums/polyaPhase.enum';
 import { runGuardChain } from '@/agents/nodes/guards/runGuardChain';
 
 const mockRunGuardChain = vi.mocked(runGuardChain);
-
-// ——— 辅助：构建一道可解题目的 ocrResult ———
-function makeSolvableOcrResult(): OcrResult {
-    return {
-        isSolvable: true,
-        subject: 'math',
-        grade: '初中',
-        questions: [
-            {
-                index: 0,
-                topic: '一元二次方程',
-                latexFull: '解 $x^2 - 4x + 3 = 0$',
-                givenConditions: ['$x^2 - 4x + 3 = 0$'],
-                implicitConditions: [],
-                goal: '求 x 的值',
-                milestones: ['分解因式', '求根'],
-                visualFeaturesNeeded: false,
-                visualDescription: '',
-                subProblems: [
-                    {
-                        index: 0,
-                        goal: '求 x 的值',
-                        givenConditions: ['$x^2 - 4x + 3 = 0$'],
-                        milestones: ['分解因式', '求根'],
-                    },
-                ],
-            },
-        ],
-        isMulti: false,
-        visualFeaturesNeeded: false,
-        errorReason: null,
-        selectedQuestionIndex: 0,
-    };
-}
 
 // ——— 辅助：构建模型返回值（末尾追加信号行）———
 function makeModelResponse(signal: string, extras = ''): { content: string } {

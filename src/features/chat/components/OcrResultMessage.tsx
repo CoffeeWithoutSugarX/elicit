@@ -23,10 +23,9 @@
  *   组件挂载后调用 ossRequest.signImageForPreview(key) 获取签名 URL，
  *   签名完成前显示占位（避免裂图闪烁）。防竞态 guard 模式与 ChatBubble 一致。
  */
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
-import { LatexRender } from '@/components/LatexRender'
-import { parseLatexSegments } from '@/lib/katexHelpers'
+import { renderMixed } from '@/features/chat/components/renderMixed'
 import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema'
 import {
   Dialog,
@@ -47,24 +46,6 @@ interface Props {
   onOcrError?: () => void
 }
 
-/** 渲染含 LaTeX 的混合文本 */
-function renderMixed(content: string) {
-  const segments = parseLatexSegments(content)
-  return segments.map((seg, idx) => {
-    if (seg.type === 'latex-block') return <LatexRender key={idx} tex={seg.content} display="block" />
-    if (seg.type === 'latex-inline') return <LatexRender key={idx} tex={seg.content} display="inline" />
-    return (
-      <Fragment key={idx}>
-        {seg.content.split('\n').map((line, i, arr) => (
-          <Fragment key={i}>
-            {line}
-            {i < arr.length - 1 ? <br /> : null}
-          </Fragment>
-        ))}
-      </Fragment>
-    )
-  })
-}
 
 export function OcrResultMessage({
   originalImageUrl,

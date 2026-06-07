@@ -2,6 +2,7 @@ import { ElicitGraphState, SubProblemState } from "@/agents/schemas/ElicitGraphS
 import { chatModel } from "@/agents/models/deepseek-model";
 import { systemPrompt, userPromptTemplate, outputContract } from "@/agents/prompts/phases/classifyNode.prompt";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
+import { extractJsonText } from "@/agents/nodes/algorithm/extractJsonText";
 
 export const classifyNodeName = 'classifyNode';
 
@@ -47,17 +48,15 @@ export const classifyNode = async (state: ElicitGraphState) => {
 
         const responseText = typeof response.content === 'string' ? response.content : '';
 
-        // 提取 JSON（支持 ```json 围栏 或裸 JSON）
-        const jsonMatch =
-            responseText.match(/```json\s*([\s\S]*?)\s*```/) ??
-            responseText.match(/(\{[\s\S]*\})/);
-
+        // 提取 JSON（支持 ```json 围栏 或裸 JSON，遵循 Postel 宽容解析原则）
         let problemType = 3; // 默认兜底：OTHER
-        if (jsonMatch) {
-            const rawJson = jsonMatch[1] ?? jsonMatch[0];
+        try {
+            const rawJson = extractJsonText(responseText);
             const parsed = JSON.parse(rawJson);
             const validated = outputContract.parse(parsed);
             problemType = validated.problemType;
+        } catch {
+            // 解析失败兜底为 OTHER，外层 try/catch 仍负责模型异常
         }
 
         const subProblems = buildSubProblems();

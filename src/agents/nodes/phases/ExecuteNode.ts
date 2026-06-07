@@ -10,6 +10,7 @@ import {
 } from "@/agents/prompts/phases/executeNode.prompt";
 import { PolyaPhase } from "@/types/enums/polyaPhase.enum";
 import { runGuardChain } from "@/agents/nodes/guards/runGuardChain";
+import { handleTerminalGuard } from "@/agents/nodes/guards/handleTerminalGuard";
 import { applySignalSideEffects } from "@/agents/state/applySignalSideEffects";
 
 export const executeNodeName = 'executeNode';
@@ -57,23 +58,11 @@ export const executeNode = async (state: ElicitGraphState) => {
     const guardAction = runGuardChain(state);
     let guardInjection = '';
     if (guardAction) {
-        if (guardAction.kind === 'VISION_FAILURE') {
-            console.log('ExecuteNode guard fired: VISION_FAILURE');
-            const visionFailText = '（图片识别失败，无法继续引导，请重新上传清晰的题目图片）';
-            // nostream 模式下前端收不到 messages 流，需主动推干净正文
-            getWriter()?.({ kind: 'assistant_message', text: visionFailText });
-            return { messages: [new AIMessage(visionFailText)] };
-        }
-        if (guardAction.kind === 'OUT_OF_SCOPE') {
-            console.log('ExecuteNode guard fired: OUT_OF_SCOPE');
-            const outOfScopeText = '（这道题超出了初中数学的范围，我只能帮你解决初中数学题哦）';
-            // nostream 模式下前端收不到 messages 流，需主动推干净正文
-            getWriter()?.({ kind: 'assistant_message', text: outOfScopeText });
-            return { messages: [new AIMessage(outOfScopeText)] };
-        }
+        const terminal = handleTerminalGuard(guardAction, 'ExecuteNode');
+        if (terminal) return terminal;
         // PULL_BACK / PROBE_5Q / KNOWLEDGE_FALLBACK — 注入 prompt，继续调用 LLM
         console.log('ExecuteNode guard fired:', guardAction.kind);
-        guardInjection = guardAction.injectPrompt ?? '';
+        guardInjection = ('injectPrompt' in guardAction ? guardAction.injectPrompt : undefined) ?? '';
     }
 
     // ——— 构建 few-shot messages ———

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMockState } from '@/__tests__/helpers/mockState';
+import { createMockState, makeSolvableOcrResult } from '@/__tests__/helpers/mockState';
 import type { OcrResult } from '@/agents/schemas/OcrSchema';
 
 // ——— mock chatModel（禁止真实 DeepSeek 调用）———
@@ -11,46 +11,6 @@ vi.mock('@/agents/models/deepseek-model', () => ({
 
 import { classifyNode, classifyNodeName } from '@/agents/nodes/phases/ClassifyNode';
 import { chatModel } from '@/agents/models/deepseek-model';
-
-// ——— 辅助：构建单道可解题目的 ocrResult ———
-function makeSolvableOcrResult(overrides: Partial<{
-    topic: string;
-    latexFull: string;
-    goal: string;
-    visualFeaturesNeeded: boolean;
-    visualDescription: string;
-}> = {}): OcrResult {
-    return {
-        isSolvable: true,
-        subject: 'math',
-        grade: '初中',
-        questions: [
-            {
-                index: 0,
-                topic: overrides.topic ?? '一元二次方程',
-                latexFull: overrides.latexFull ?? '求方程 $x^2 - 4x + 3 = 0$ 的根',
-                givenConditions: ['$x^2 - 4x + 3 = 0$'],
-                implicitConditions: [],
-                goal: overrides.goal ?? '求 x 的值',
-                milestones: ['分解因式', '求根'],
-                visualFeaturesNeeded: overrides.visualFeaturesNeeded ?? false,
-                visualDescription: overrides.visualDescription ?? '',
-                subProblems: [
-                    {
-                        index: 0,
-                        goal: '求 x 的值',
-                        givenConditions: ['$x^2 - 4x + 3 = 0$'],
-                        milestones: ['分解因式', '求根'],
-                    },
-                ],
-            },
-        ],
-        isMulti: false,
-        visualFeaturesNeeded: false,
-        errorReason: null,
-        selectedQuestionIndex: 0,
-    };
-}
 
 // ——— 辅助：构建 chatModel 返回值 ———
 function makeModelResponse(problemType: 0 | 1 | 2 | 3, reason = '分类理由') {

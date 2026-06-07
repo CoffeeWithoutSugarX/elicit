@@ -9,9 +9,7 @@
  */
 import { CheckCircle2, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Fragment } from 'react'
-import { LatexRender } from '@/components/LatexRender'
-import { parseLatexSegments } from '@/lib/katexHelpers'
+import { renderMixed } from '@/features/chat/components/renderMixed'
 import { toRoman } from '@/lib/numerals'
 import type { KnowledgeCard } from '@/agents/schemas/KnowledgeCardSchema'
 import { MethodCategoryEnum } from '@/types/enums/methodCategory.enum'
@@ -28,29 +26,6 @@ import { Badge } from '@/components/ui/badge'
 interface Props {
   data: KnowledgeCard
   onRetry?: () => void
-}
-
-/** 渲染含 LaTeX 的混合文本 */
-function renderMixed(content: string) {
-  const segments = parseLatexSegments(content)
-  return segments.map((seg, idx) => {
-    if (seg.type === 'latex-block') {
-      return <LatexRender key={idx} tex={seg.content} display="block" />
-    }
-    if (seg.type === 'latex-inline') {
-      return <LatexRender key={idx} tex={seg.content} display="inline" />
-    }
-    return (
-      <Fragment key={idx}>
-        {seg.content.split('\n').map((line, i, arr) => (
-          <Fragment key={i}>
-            {line}
-            {i < arr.length - 1 ? <br /> : null}
-          </Fragment>
-        ))}
-      </Fragment>
-    )
-  })
 }
 
 /** Fraunces small caps 区块标题 */

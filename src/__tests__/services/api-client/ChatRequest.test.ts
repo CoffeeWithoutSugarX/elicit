@@ -19,6 +19,7 @@ const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 import { chatRequest } from '@/services/api-client/ChatRequest';
+import { streamIterator } from '@/lib/utils';
 import ChatMessageProps from '@/features/chat/props/ChatMessageProps';
 import { ChatMessageRole } from '@/types/enums/chatMessageRole.enum';
 import { ChatMessageType } from '@/types/enums/chatMessageType.enum';
@@ -138,16 +139,17 @@ describe('ChatRequest', () => {
         });
     });
 
-    // ── getChatResponse ──────────────────────────────────────────────────────
+    // ── getRawResponse + streamIterator 组合（原 getChatResponse 等价行为）────
 
-    describe('getChatResponse', () => {
-        it('返回 streamIterator 的 AsyncGenerator', async () => {
+    describe('getRawResponse + streamIterator', () => {
+        it('返回 streamIterator 的 AsyncGenerator，yield 出正确 chunk', async () => {
             const msgData = { id: '1', type: 'text', delta: 'hello', data: {} };
             const fakeBody = makeReadableStream(`data: ${JSON.stringify(msgData)}\n`);
             mockFetch.mockResolvedValue(new Response(fakeBody, { status: 200 }));
 
             const msg = makeSampleMessage();
-            const iterator = await chatRequest.getChatResponse(msg);
+            const response = await chatRequest.getRawResponse(msg);
+            const iterator = streamIterator(response);
 
             // 消费 generator
             const items: unknown[] = [];
@@ -159,11 +161,11 @@ describe('ChatRequest', () => {
             expect(items[0]).toEqual(msgData);
         });
 
-        it('getRawResponse 抛出异常 → getChatResponse 也抛出', async () => {
+        it('getRawResponse 抛出异常 → await getRawResponse 也抛出', async () => {
             mockFetch.mockResolvedValue(new Response(null, { status: 401 }));
 
             const msg = makeSampleMessage();
-            await expect(chatRequest.getChatResponse(msg)).rejects.toThrow(
+            await expect(chatRequest.getRawResponse(msg)).rejects.toThrow(
                 'Failed to get chat response',
             );
         });

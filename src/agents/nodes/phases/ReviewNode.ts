@@ -13,22 +13,14 @@ import { filterKnowledgePointsCsvByGradeTerm } from "@/agents/data/loadKnowledge
 import { studentGradeTerm } from "@/agents/data/studentProfile";
 import { conversationMapper } from "@/db/mappers/ConversationMapper";
 import { PolyaPhase } from "@/types/enums/polyaPhase.enum";
+import { extractJsonText } from "@/agents/nodes/algorithm/extractJsonText";
 
 export const reviewNodeName = 'reviewNode';
 
-/**
- * 从模型输出中提取 ```json``` 围栏内的 JSON 字符串。
- * 返回解析后的对象，若无围栏或解析失败则返回 undefined。
- */
-function extractJsonFence(text: string): unknown | undefined {
-    const match = text.match(/```json\s*([\s\S]*?)\s*```/);
-    if (!match) return undefined;
-    try {
-        return JSON.parse(match[1]);
-    } catch {
-        return undefined;
-    }
-}
+// P-001 学情过滤：只注入妹妹已学（≤ 当前学期）的知识点，生成端硬约束。
+// studentGradeTerm 是进程级静态值，过滤结果提升为模块级 const，避免每次 invoke 重算。
+const filteredKnowledgePointsCsv = filterKnowledgePointsCsvByGradeTerm(studentGradeTerm);
+
 
 export const reviewNode = async (state: ElicitGraphState) => {
     console.log('ReviewNode invoked with', { conversationId: state.conversationId, currentPhase: state.currentPhase });
@@ -54,8 +46,7 @@ export const reviewNode = async (state: ElicitGraphState) => {
     ]);
 
     // ——— 构建用户 prompt（ReviewNode 汇总所有 subProblems，不局限于当前）———
-    // P-001 学情过滤：只注入妹妹已学（≤ 当前学期）的知识点，生成端硬约束
-    const filteredKnowledgePointsCsv = filterKnowledgePointsCsvByGradeTerm(studentGradeTerm);
+    // filteredKnowledgePointsCsv 已在模块顶层计算（静态值，无需每次 invoke 重算）
     const recentMessages = state.messages.slice(-16);
     const userContent = userPromptTemplate({
         selectedQuestion,
@@ -87,8 +78,15 @@ export const reviewNode = async (state: ElicitGraphState) => {
 
         // ——— 提取知识卡片 JSON ———
         // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
+        // extractJsonText 兼容 ```json 围栏与裸 JSON（Postel 宽容解析），
+        // 但本节点仍保留 JSON.parse try/catch 以隔离解析失败
         const writer = getWriter();
-        const rawJson = extractJsonFence(rawContent);
+        let rawJson: unknown | undefined;
+        try {
+            rawJson = JSON.parse(extractJsonText(rawContent));
+        } catch {
+            rawJson = undefined;
+        }
 
         if (rawJson !== undefined) {
             const cardResult = KnowledgeCardSchema.safeParse(rawJson);
@@ -102,7 +100,7 @@ export const reviewNode = async (state: ElicitGraphState) => {
                 console.log('ReviewNode: knowledge card validation failed', cardResult.error.issues);
             }
         } else {
-            console.log('ReviewNode: no ```json``` fence found in response');
+            console.log('ReviewNode: no valid JSON found in response');
         }
 
         // ——— 推送 phase_changed → DONE SSE chunk ———

@@ -3,11 +3,8 @@ import { conversationNodeName, shouldCreateConversation } from "@/agents/nodes/f
 import { ocrNodeName, shouldOcr } from "@/agents/nodes/flow/OcrNode";
 import { classifyNodeName } from "@/agents/nodes/phases/ClassifyNode";
 import { understandNodeName } from "@/agents/nodes/phases/UnderstandNode";
-import { planNodeName } from "@/agents/nodes/phases/PlanNode";
-import { executeNodeName } from "@/agents/nodes/phases/ExecuteNode";
-import { reviewNodeName } from "@/agents/nodes/phases/ReviewNode";
-import { PolyaPhase } from "@/types/enums/polyaPhase.enum";
 import { reconcileHasResolved } from "@/agents/state/reconcileHasResolved";
+import { phaseRouter } from "@/agents/nodes/flow/phaseRouter";
 
 
 export const startFinOutNode = async (state: ElicitGraphState) => {
@@ -44,24 +41,9 @@ export const startFinOutNode = async (state: ElicitGraphState) => {
 
     // 后续 invoke：根据 currentPhase 路由到对应阶段节点
     if (state.hasResolved && state.problemType !== undefined) {
-        return [phaseRouter(state)];
+        return [phaseRouter(state.currentPhase)];
     }
 
     // 兜底：无图片的纯文字首次消息，路由到理解节点
     return [understandNodeName];
 };
-
-function phaseRouter(state: ElicitGraphState): string {
-    switch (state.currentPhase) {
-        case PolyaPhase.UNDERSTAND:
-            return understandNodeName;
-        case PolyaPhase.PLAN:
-            return planNodeName;
-        case PolyaPhase.EXECUTE:
-            return executeNodeName;
-        case PolyaPhase.REVIEW:
-            return reviewNodeName;
-        default:
-            return understandNodeName;
-    }
-}

@@ -1,4 +1,4 @@
-import { supabase } from '@/db/supabase/supabase';
+import { getAuthHeaders } from '@/services/api-client/getAuthHeaders';
 
 // ── 响应类型（与 /api/admin/conversations 和 /api/admin/conversations/[id] 对齐） ──
 
@@ -36,11 +36,10 @@ export class AdminUnauthorizedError extends Error {
 class AdminRequest {
     /** 拉取所有会话列表（GET /api/admin/conversations） */
     getConversations = async (): Promise<AdminConversation[]> => {
-        const { data: { session } } = await supabase.auth.getSession();
         const response = await fetch('/api/admin/conversations', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${session?.access_token}`,
+                ...await getAuthHeaders(),
             },
         });
 
@@ -58,11 +57,10 @@ class AdminRequest {
 
     /** 拉取单条会话详情（GET /api/admin/conversations/[conversationId]） */
     getConversationDetail = async (conversationId: string): Promise<AdminConversationDetail> => {
-        const { data: { session } } = await supabase.auth.getSession();
         const response = await fetch(`/api/admin/conversations/${conversationId}`, {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${session?.access_token}`,
+                ...await getAuthHeaders(),
             },
         });
 
