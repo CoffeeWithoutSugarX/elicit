@@ -26,7 +26,7 @@ import remarkMath from 'remark-math'
 import remarkBreaks from 'remark-breaks'
 import rehypeKatex from 'rehype-katex'
 import { cn } from '@/lib/utils'
-import { parseLatexSegments } from '@/lib/katexHelpers'
+import { parseLatexSegments, normalizeLatexDelimiters } from '@/lib/katexHelpers'
 import { LatexRender } from '@/components/LatexRender'
 import { markdownComponents } from '@/lib/markdownComponents'
 import { PHASE_LABEL } from '@/lib/theme'
@@ -295,7 +295,7 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
               rehypePlugins={[rehypeKatex]}
               components={markdownComponents}
             >
-              {content}
+              {normalizeLatexDelimiters(content)}
             </Markdown>
             {isStreaming ? (
               // 块状光标，foreground 色闪烁，Markdown 的兄弟节点

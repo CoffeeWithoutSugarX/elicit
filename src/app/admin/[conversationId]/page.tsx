@@ -12,6 +12,7 @@ import remarkMath from 'remark-math';
 import remarkBreaks from 'remark-breaks';
 import rehypeKatex from 'rehype-katex';
 import { markdownComponents } from '@/lib/markdownComponents';
+import { normalizeLatexDelimiters } from '@/lib/katexHelpers';
 import { ChatMessageType } from '@/types/enums/chatMessageType.enum';
 import { ossRequest } from '@/services/api-client/OssRequest';
 import {
@@ -171,7 +172,7 @@ export default function AdminConversationDetailPage({ params }: PageProps) {
                                                 rehypePlugins={[rehypeKatex]}
                                                 components={markdownComponents}
                                             >
-                                                {question.latexFull}
+                                                {normalizeLatexDelimiters(question.latexFull)}
                                             </Markdown>
                                         </div>
                                         {/* 时间戳 */}
@@ -267,7 +268,7 @@ export default function AdminConversationDetailPage({ params }: PageProps) {
                                             rehypePlugins={[rehypeKatex]}
                                             components={markdownComponents}
                                         >
-                                            {msg.content}
+                                            {normalizeLatexDelimiters(msg.content)}
                                         </Markdown>
                                     </div>
                                 )}

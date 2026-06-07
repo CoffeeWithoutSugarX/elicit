@@ -27,7 +27,24 @@ export interface TextSegment {
   content: string
 }
 
+/**
+ * 将 LaTeX 的 \(...\) / \[...\] 分隔符归一化为 remark-math 能识别的 $...$ / $$...$$。
+ * 宽容解析原则（Postel 法则）：在渲染层做一次性转换，覆盖 user 气泡、Sidebar 标题等所有路径。
+ *
+ * 注意：JS String.replace 的替换串中 $ 是特殊字符（如 $& 表示整个匹配、$$ 表示字面 $），
+ * 必须用函数式 replacer 避免意外展开。
+ */
+export function normalizeLatexDelimiters(text: string): string {
+  if (!text) return text
+  // 先替换块级 \[...\]（允许跨行），再替换行内 \(...\)，顺序不能颠倒
+  let result = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, inner: string) => `$$${inner}$$`)
+  result = result.replace(/\\\(([\s\S]*?)\\\)/g, (_, inner: string) => `$${inner}$`)
+  return result
+}
+
 export function parseLatexSegments(text: string): TextSegment[] {
+  // 入口先归一化，\(...\) / \[...\] 统一转为 $...$ / $$...$$
+  text = normalizeLatexDelimiters(text)
   const segments: TextSegment[] = []
   // 先匹配 $$...$$（块级），再匹配 $...$（行内）
   const re = /\$\$([^$]+?)\$\$|\$([^$\n]+?)\$/g

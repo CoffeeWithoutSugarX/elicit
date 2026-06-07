@@ -111,7 +111,7 @@ export default function ConversationPage({ params }: PageProps) {
             {/* 消息列表区 */}
             <div
                 ref={listRef}
-                className="flex-1 overflow-y-auto px-4 py-2 max-w-2xl mx-auto w-full"
+                className="flex-1 overflow-y-auto px-4 py-2 max-w-2xl mx-auto w-full scrollbar-hide"
             >
                 {chatMessages.map(msg => {
                     // type=3 OCR_CARD：渲染静态已确认题目卡（只读，无按钮）

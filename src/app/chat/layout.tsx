@@ -23,7 +23,7 @@ export default function ChatLayout({ children }: { children: React.ReactNode }) 
                     id: c.id,
                     title: c.title,
                     isActive: c.id === currentConversationId,
-                    createdAt: new Date().toISOString(), // ChatConversationProps 不含 createdAt，用当前时间兜底
+                    createdAt: c.createdAt,
                 }))}
                 activeId={currentConversationId}
                 onSelectConversation={(id) => {

@@ -142,7 +142,7 @@ export default function ChatNewPage() {
             />
 
             {/* 消息列表区：乐观气泡 + 思考中 */}
-            <div className="flex-1 overflow-y-auto px-4 py-2 max-w-2xl mx-auto w-full">
+            <div className="flex-1 overflow-y-auto px-4 py-2 max-w-2xl mx-auto w-full scrollbar-hide">
                 {chatMessages.map(msg => (
                     <ChatBubble
                         key={msg.id}

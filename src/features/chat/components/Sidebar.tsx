@@ -181,7 +181,7 @@ export function Sidebar({
 
       {/* 会话列表区 */}
       <nav
-        className="flex-1 overflow-y-auto px-2 py-2"
+        className="flex-1 overflow-y-auto px-2 py-2 scrollbar-hide"
       >
         {conversations.length === 0 ? (
           <p

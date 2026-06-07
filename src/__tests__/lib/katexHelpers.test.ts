@@ -9,7 +9,7 @@ vi.mock('katex', () => ({
   },
 }));
 
-import { parseLatexSegments, renderTexToString, type TextSegment } from '@/lib/katexHelpers';
+import { parseLatexSegments, renderTexToString, normalizeLatexDelimiters, type TextSegment } from '@/lib/katexHelpers';
 
 describe('renderTexToString', () => {
   it('行内模式 → 调用 katex.renderToString 且 displayMode=false', () => {
@@ -92,5 +92,50 @@ describe('parseLatexSegments', () => {
     expect(result).toEqual<TextSegment[]>([
       { type: 'latex-inline', content: 'x+1' },
     ]);
+  });
+
+  it('对 \\(AO \\perp BC\\) 输入能切出 latex-inline segment', () => {
+    // normalizeLatexDelimiters 会在入口把 \(...\) 转为 $...$，所以能正确切分
+    const result = parseLatexSegments('\\(AO \\perp BC\\)');
+    const inlineSegments = result.filter(s => s.type === 'latex-inline');
+    expect(inlineSegments.length).toBeGreaterThanOrEqual(1);
+    expect(inlineSegments[0].content).toBe('AO \\perp BC');
+  });
+});
+
+describe('normalizeLatexDelimiters', () => {
+  it('行内 \\(...\\) → 转换为 $...$', () => {
+    expect(normalizeLatexDelimiters('\\(AO \\perp BC\\)')).toBe('$AO \\perp BC$');
+  });
+
+  it('块级 \\[...\\] → 转换为 $$...$$', () => {
+    expect(normalizeLatexDelimiters('\\[E = mc^2\\]')).toBe('$$E = mc^2$$');
+  });
+
+  it('混合文本：部分 \\(...\\) 部分普通文本', () => {
+    expect(normalizeLatexDelimiters('如果 \\(x > 0\\) 成立')).toBe('如果 $x > 0$ 成立');
+  });
+
+  it('已是 $...$ 的内容保持不变', () => {
+    expect(normalizeLatexDelimiters('$x^2$')).toBe('$x^2$');
+  });
+
+  it('纯文本无数学内容 → 原样返回', () => {
+    expect(normalizeLatexDelimiters('Hello world')).toBe('Hello world');
+  });
+
+  it('真实回归样例：DB 原文含多处 \\(...\\)', () => {
+    const input = '如果我们要证明 \\(AO \\perp BC\\)，你觉得 \\(AO\\) 需要先成为等腰三角形 \\(ABC\\) 的哪条线';
+    const result = normalizeLatexDelimiters(input);
+    expect(result).toContain('$AO \\perp BC$');
+  });
+
+  it('空字符串 → 返回空字符串', () => {
+    expect(normalizeLatexDelimiters('')).toBe('');
+  });
+
+  it('跨行块级 \\[...\\] → 正确转换', () => {
+    const input = '\\[\na + b\n= c\n\\]';
+    expect(normalizeLatexDelimiters(input)).toBe('$$\na + b\n= c\n$$');
   });
 });

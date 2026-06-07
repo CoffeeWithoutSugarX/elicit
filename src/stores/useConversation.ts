@@ -156,7 +156,8 @@ export const useConversation = create<ConversationStore>((set, get) => {
             case 'conversation_created':
                 // 新会话已在服务端创建，将其插入侧边栏列表最前面
                 if (custom.conversationId === get().currentConversationId) {
-                    set({chatConversation: [new ChatConversationProps(custom.conversationId, custom.title), ...get().chatConversation]});
+                    // 新会话刚创建，用当前时间作为 createdAt（与服务端插入时间几乎一致）
+                    set({chatConversation: [new ChatConversationProps(custom.conversationId, custom.title, new Date().toISOString()), ...get().chatConversation]});
                     const userMsg = get().chatMessages.find(
                         m => m.role === ChatMessageRole.USER && m.conversationId === custom.conversationId
                     );
@@ -329,7 +330,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
                 ? {
                     chatConversation: state.chatConversation.map(c =>
                         c.id === conversationId
-                            ? new ChatConversationProps(c.id, confirmedQuestion.topic)
+                            ? new ChatConversationProps(c.id, confirmedQuestion.topic, c.createdAt)
                             : c
                     ),
                 }
@@ -373,7 +374,7 @@ export const useConversation = create<ConversationStore>((set, get) => {
                     ? {
                         chatConversation: state.chatConversation.map(c =>
                             c.id === conversationId
-                                ? new ChatConversationProps(c.id, prevConversationTitle)
+                                ? new ChatConversationProps(c.id, prevConversationTitle, c.createdAt)
                                 : c
                         ),
                     }
