@@ -1,8 +1,17 @@
 import { z } from 'zod';
 import { OcrSchema } from '@/agents/schemas/OcrSchema';
+import { buildStudentContext } from '@/agents/prompts/studentContext';
+import { studentGradeTerm } from '@/agents/data/studentProfile';
 
 // ——— 系统提示词 ———
-export const systemPrompt = `你是一个数学题图片识别助手。任务：
+// P-001 学情知识边界：注入学情块 + 解题路线知识边界硬约束
+const _studentCtx = buildStudentContext(studentGradeTerm);
+
+export const systemPrompt = `${_studentCtx}
+
+【解题路线知识边界 — 硬约束】拆分 subProblems 设计 goal/milestones 时，解题路线必须以【已学完/正在学】清单内的知识可完成为目标设计；存在多条路线时必须选已学知识路线，禁止采用依赖未学定理的路线。
+
+你是一个数学题图片识别助手。任务：
 
 1. 识别图中**所有**数学题（最多 5 题），按从上到下、从左到右出现的顺序排列。
 2. 对每道题提取：题目文本（含 LaTeX 公式）+ 已知条件 + 隐含条件 + 求解目标 + 粗粒度解题里程碑（最多 4 个，不给具体步骤数值）。

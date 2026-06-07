@@ -21,10 +21,18 @@ vi.mock('@/db/mappers/ConversationMapper', () => ({
     },
 }));
 
+// ——— mock studentProfile（P-001 新增，避免读取真实 env）———
+vi.mock('@/agents/data/studentProfile', () => ({
+    studentGradeTerm: '7B',
+}));
+
 // ——— mock loadKnowledgePoints（避免读取真实文件系统）———
+// P-001 新增：filterKnowledgePointsCsvByGradeTerm 也需加入 mock
 vi.mock('@/agents/data/loadKnowledgePoints', () => ({
-    knowledgePointsCsv: '一元二次方程根的判别式,北师大八年级上 §5.3\n判别式分类讨论,北师大八年级上 §5.3',
+    knowledgePointsCsv: 'ID,知识点,别名,年级,出处\nKP-011,全等三角形,SSS/SAS/ASA/AAS,七下,七下 §4.2-4.3',
     knowledgePoints: [],
+    filterKnowledgePointsCsvByGradeTerm: () =>
+        'ID,知识点,别名,年级,出处\nKP-011,全等三角形,SSS/SAS/ASA/AAS,七下,七下 §4.2-4.3',
 }));
 
 import { reviewNode, reviewNodeName } from '@/agents/nodes/phases/ReviewNode';

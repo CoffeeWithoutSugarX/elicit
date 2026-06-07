@@ -9,7 +9,8 @@ import {
     fewShots,
 } from "@/agents/prompts/phases/reviewNode.prompt";
 import { KnowledgeCardSchema } from "@/agents/schemas/KnowledgeCardSchema";
-import { knowledgePointsCsv } from "@/agents/data/loadKnowledgePoints";
+import { filterKnowledgePointsCsvByGradeTerm } from "@/agents/data/loadKnowledgePoints";
+import { studentGradeTerm } from "@/agents/data/studentProfile";
 import { conversationMapper } from "@/db/mappers/ConversationMapper";
 import { PolyaPhase } from "@/types/enums/polyaPhase.enum";
 
@@ -53,12 +54,14 @@ export const reviewNode = async (state: ElicitGraphState) => {
     ]);
 
     // ——— 构建用户 prompt（ReviewNode 汇总所有 subProblems，不局限于当前）———
+    // P-001 学情过滤：只注入妹妹已学（≤ 当前学期）的知识点，生成端硬约束
+    const filteredKnowledgePointsCsv = filterKnowledgePointsCsvByGradeTerm(studentGradeTerm);
     const recentMessages = state.messages.slice(-16);
     const userContent = userPromptTemplate({
         selectedQuestion,
         state,
         recentMessages,
-        knowledgePointsCsv,
+        knowledgePointsCsv: filteredKnowledgePointsCsv,
     });
 
     try {

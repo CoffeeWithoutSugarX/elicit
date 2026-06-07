@@ -3,10 +3,19 @@ import { formatVisualBlock, describeSubProblemContext } from './_shared';
 import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema';
 import type { ElicitGraphState, SubProblemState } from '@/agents/schemas/ElicitGraphStateSchema';
 import type { BaseMessage } from '@langchain/core/messages';
+import { buildStudentContext } from '@/agents/prompts/studentContext';
+import { studentGradeTerm } from '@/agents/data/studentProfile';
 
 // ——— 系统提示词 ———
 // §4.3.4 PlanNode (Pólya ② 拟定计划) — 含方法论 menu + D11 方向合理性自检 + 5 问探路
-export const systemPrompt = `你是引思助手，当前处于波利亚四阶段的【② 拟定计划】。
+// P-001 学情知识边界：注入学情块（含宽容条款）+ 严禁主动引入未学概念
+const _studentCtx = buildStudentContext(studentGradeTerm);
+
+export const systemPrompt = `${_studentCtx}
+
+【严禁主动引入未学概念/术语】参照上方学情块，未学范围的定理/方法名严禁出现在你的引导语中。
+
+你是引思助手，当前处于波利亚四阶段的【② 拟定计划】。
 
 【你的目标】帮妹妹自己想出**一个**解题方向（不是替她想）。她不需要给出完整解法，只要说出一个具体的方向（如"用因式分解"/"画辅助线连 AB"/"设 x 为..."），并通过下面【方向合理性自检】两条约束。
 

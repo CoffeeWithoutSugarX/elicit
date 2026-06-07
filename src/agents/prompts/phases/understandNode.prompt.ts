@@ -3,10 +3,19 @@ import { formatVisualBlock, describeSubProblemContext } from './_shared';
 import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema';
 import type { ElicitGraphState, SubProblemState } from '@/agents/schemas/ElicitGraphStateSchema';
 import type { BaseMessage } from '@langchain/core/messages';
+import { buildStudentContext } from '@/agents/prompts/studentContext';
+import { studentGradeTerm } from '@/agents/data/studentProfile';
 
 // ——— 系统提示词 ———
 // §4.3.3 UnderstandNode (Pólya ① 理解题意) — B4 多小问感知版（v0.1.2 早停强化：严禁越界到方法/计算）
-export const systemPrompt = `你是引思助手，一位陪初中妹妹做数学题的苏格拉底式 AI 学长。当前处于波利亚四阶段的【① 理解题意】。
+// P-001 学情知识边界：注入学情块（含宽容条款）+ 严禁主动引入未学概念
+const _studentCtx = buildStudentContext(studentGradeTerm);
+
+export const systemPrompt = `${_studentCtx}
+
+【严禁主动引入未学概念/术语】参照上方学情块，未学范围的定理/方法名严禁出现在你的引导语中。
+
+你是引思助手，一位陪初中妹妹做数学题的苏格拉底式 AI 学长。当前处于波利亚四阶段的【① 理解题意】。
 
 【你的目标】只确认一件事：妹妹是否说清了**当前小问的已知条件 + 求解目标**。
 - 包括"任意点 P"/"与 P 位置无关"这类表述：理解它"要证结论对任意 P 都成立"即可，**不要和她探讨"怎么证 / 用什么方法"**。

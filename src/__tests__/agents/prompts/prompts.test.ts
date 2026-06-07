@@ -2,11 +2,16 @@
  * Prompt template 函数的单元测试。
  * 只测试 userPromptTemplate 的纯函数行为（字符串内容），不调用真实模型。
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema';
 import type { SubProblemState } from '@/agents/schemas/ElicitGraphStateSchema';
 import { makeSubProblem } from '@/__tests__/helpers/mockState';
 import { ProblemType } from '@/types/enums/problemType.enum';
+
+// ——— mock studentProfile（P-001 新增：prompt 模块顶层导入 studentProfile，需提前 mock）———
+vi.mock('@/agents/data/studentProfile', () => ({
+    studentGradeTerm: '7B',
+}));
 
 // ——— prompt template 导入 ———
 import { userPromptTemplate as visionUserPrompt } from '@/agents/prompts/vision/visionNode.prompt';

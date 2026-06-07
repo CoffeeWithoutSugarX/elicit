@@ -19,6 +19,11 @@ vi.mock('@/agents/nodes/guards/runGuardChain', () => ({
     runGuardChain: vi.fn(() => null),
 }));
 
+// ——— mock studentProfile（P-001 新增，避免读取真实 env）———
+vi.mock('@/agents/data/studentProfile', () => ({
+    studentGradeTerm: '7B',
+}));
+
 import { executeNode, executeNodeName } from '@/agents/nodes/phases/ExecuteNode';
 import { chatModel } from '@/agents/models/deepseek-model';
 import { getWriter } from '@langchain/langgraph';

@@ -109,3 +109,5 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 - `src/__tests__/app/api/` — Next.js API 路由单元测试（chat、oss、conversation、admin，镜像 `src/app/api/` 路径）
 - `src/__tests__/integration/` — Wire 形状集成护栏测试（真实 `toUIMessageStream` + `streamIterator` → store 全链路；防止 mock 形状漂移复发）
 - `src/__tests__/services/api-client/` — api-client 请求层单元测试（AdminRequest 等）
+- `src/__tests__/agents/data/` — P-001 数据层单元测试（bsdMathCatalog、studentProfile、loadKnowledgePoints 过滤函数）
+- `src/__tests__/agents/prompts/` — P-001 prompt 注入单元测试（buildStudentContext、5 个 systemPrompt 含学情块断言、reviewNode few-shots 口径验证）

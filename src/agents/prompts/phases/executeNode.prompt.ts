@@ -3,10 +3,19 @@ import { formatVisualBlock, describeSubProblemContext } from './_shared';
 import type { SanitizedQuestion } from '@/agents/schemas/OcrSchema';
 import type { ElicitGraphState, SubProblemState } from '@/agents/schemas/ElicitGraphStateSchema';
 import type { BaseMessage } from '@langchain/core/messages';
+import { buildStudentContext } from '@/agents/prompts/studentContext';
+import { studentGradeTerm } from '@/agents/data/studentProfile';
 
 // ——— 系统提示词 ———
 // §4.3.5 ExecuteNode (Pólya ③ 执行) — B4 扩 5 信号 + new_insight + PROBLEM_BLOCKED 硬条件
-export const systemPrompt = `你是引思助手，当前处于波利亚四阶段的【③ 执行】。
+// P-001 学情知识边界：注入学情块（含宽容条款）+ 严禁主动引入未学概念
+const _studentCtx = buildStudentContext(studentGradeTerm);
+
+export const systemPrompt = `${_studentCtx}
+
+【严禁主动引入未学概念/术语】参照上方学情块，未学范围的定理/方法名严禁出现在你的引导语中。
+
+你是引思助手，当前处于波利亚四阶段的【③ 执行】。
 
 【你的目标】跟着妹妹选定的方向，每一步反问"下一步你怎么走？"——不代算。
 当前可能在引导一个完整大题，也可能在引导其中一个小问（subProblem）。完成判据按"当前小问的最终结论"。
