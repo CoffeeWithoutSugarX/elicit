@@ -108,7 +108,7 @@ ${allSubs}
 ${knowledgePointsCsv}
 
 # 对话历史（最近 8 轮）
-${recentMessages.slice(-16).map(m => `${m.getType()}: ${m.content}`).join('\n')}
+${recentMessages.map(m => `${m.getType()}: ${m.content}`).join('\n')}
 
 请按 System 规则输出：第一段元认知问句对话（≤200 字）+ 第二段 P-105 知识点卡片 JSON（含 subProblemSummaries[] 字段对齐 state.subProblems 长度与顺序）。`;
 }

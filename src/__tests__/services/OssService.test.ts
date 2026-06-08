@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// ── server-only mock（OssService 现已导入 server-only）──────────────────────
+vi.mock('server-only', () => ({}));
+
 // ── Hoisted: everything referenced inside vi.mock factories ─────────────────
 const {
     mockAssumeRole,

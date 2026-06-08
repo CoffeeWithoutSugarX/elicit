@@ -1,9 +1,6 @@
-export type PhaseSignal =
-  | 'COMPLETED'
-  | 'STAY'
-  | 'ESCALATE'
-  | 'SUB_PROBLEM_DONE'
-  | 'PROBLEM_BLOCKED';
+// PhaseSignal 类型统一从枚举模块导入；此处再导出保持 agents 内现有 import 路径不变
+import type { PhaseSignal } from '@/types/enums/phaseSignal.enum';
+export type { PhaseSignal };
 
 export interface PhaseSignalParseResult {
   signal: PhaseSignal;

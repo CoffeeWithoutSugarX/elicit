@@ -496,11 +496,52 @@ describe('planNode', () => {
         const result = await planNode(state);
 
         expect(chatModel.invoke).toHaveBeenCalledOnce();
-        // 取 HumanMessage（SystemMessage 之后的第二个参数）
+        // 消息顺序：SystemMessage → few-shot pairs → 真实 HumanMessage
+        // planNode.prompt.ts fewShots 共 3 组 → 6 条 few-shot 消息
         const callArgs = vi.mocked(chatModel.invoke).mock.calls[0][0] as Array<{ content: string }>;
-        const humanMsg = callArgs[1];
-        expect(humanMsg).toBeDefined();
-        expect(String(humanMsg.content)).not.toContain('[系统提示] 妹妹同阶段');
+        const lastHumanMsg = callArgs[callArgs.length - 1];
+        expect(lastHumanMsg).toBeDefined();
+        expect(String(lastHumanMsg.content)).not.toContain('[系统提示] 妹妹同阶段');
         expect(result.messages).toHaveLength(1);
+    });
+
+    // ── 20. few-shot 消息正确注入（顺序 System → few-shots → 真实用户消息）───────
+    it('few-shot 消息已注入且顺序正确：System → few-shots → 真实 HumanMessage', async () => {
+        vi.mocked(getWriter).mockReturnValue(vi.fn());
+        vi.mocked(chatModel.invoke).mockResolvedValue({
+            content: '你觉得这道题应该用什么方法？\nphase_signal: "STAY"',
+        } as never);
+
+        const ocrResult = makeSolvableOcrResult();
+        const state = createMockState({
+            ocrResult,
+            hasResolved: true,
+            currentPhase: PolyaPhase.PLAN,
+            problemType: 0,
+            subProblems: [makeSubProblem()],
+            currentSubProblemIndex: 0,
+            messages: [new HumanMessage('用因式分解')],
+        });
+
+        await planNode(state);
+
+        expect(chatModel.invoke).toHaveBeenCalledOnce();
+        const callArgs = vi.mocked(chatModel.invoke).mock.calls[0][0] as Array<{ content: unknown; getType?: () => string }>;
+
+        // planNode.prompt.ts 中 fewShots 有 3 组 → 6 条 few-shot 消息
+        // 消息布局：[0]=SystemMessage, [1..6]=few-shots(Human/AI 交替), [7]=真实 HumanMessage
+        expect(callArgs.length).toBeGreaterThanOrEqual(8);
+
+        // index 0 必须是 SystemMessage（内容含 "拟定计划"）
+        const systemMsg = callArgs[0];
+        expect(String(systemMsg.content)).toContain('拟定计划');
+
+        // index 1 应是第一个 few-shot HumanMessage（内容含 "题型 code"）
+        const firstFewShotHuman = callArgs[1];
+        expect(String(firstFewShotHuman.content)).toContain('题型 code');
+
+        // 倒数第一条应是真实用户消息（含 "请按 System 规则"）
+        const lastMsg = callArgs[callArgs.length - 1];
+        expect(String(lastMsg.content)).toContain('请按 System 规则');
     });
 });

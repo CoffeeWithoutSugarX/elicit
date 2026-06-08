@@ -29,8 +29,7 @@ import { cn } from '@/lib/utils'
 import { normalizeLatexDelimiters } from '@/lib/katexHelpers'
 import { renderMixed } from '@/features/chat/components/renderMixed'
 import { markdownComponents } from '@/lib/markdownComponents'
-import { PHASE_LABEL } from '@/lib/theme'
-import type { PolyaPhase } from '@/lib/theme'
+import { polyaPhaseLabel } from '@/types/enums/polyaPhase.enum'
 import { ossRequest } from '@/services/api-client/OssRequest'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { formatRelativeTime } from '@/lib/relativeTime'
@@ -146,9 +145,9 @@ export function ChatBubble({ role, content, imgUrl, phaseLabel, timestamp, isStr
   const isUser = role === 'user'
   const timestampStr = formatRelativeTime(timestamp?.toISOString())
 
-  // 从 PHASE_LABEL 解析阶段标签（支持传入已解析的 phaseLabel 或原始 PolyaPhase key）
+  // 从枚举解析阶段标签（支持传入 PolyaPhaseName key，找不到则原样透传）
   const resolvedPhaseLabel = phaseLabel
-    ? (PHASE_LABEL[phaseLabel as PolyaPhase] ?? phaseLabel)
+    ? polyaPhaseLabel(phaseLabel)
     : undefined
 
   if (isUser) {

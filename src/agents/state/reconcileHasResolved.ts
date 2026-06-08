@@ -7,9 +7,9 @@ export async function reconcileHasResolved(
 ): Promise<void> {
     try {
         const dbRecord = await conversationMapper.findById(conversationId);
-        if (!dbRecord) return; // No DB record yet — nothing to reconcile
+        if (!dbRecord) return; // 数据库记录不存在 — 无需对齐
 
-        // If graph says resolved but DB doesn't, update DB
+        // 若 graph 标记已解决但 DB 未更新，则补写 DB
         if (state.hasResolved && !dbRecord.hasResolved) {
             await conversationMapper.update(conversationId, {
                 hasResolved: true,
@@ -19,8 +19,7 @@ export async function reconcileHasResolved(
             console.log('reconcileHasResolved: DB updated to match graph state', { conversationId });
         }
 
-        // If DB says resolved but graph doesn't — trust the graph (checkpoint is authoritative)
-        // This case shouldn't happen in normal flow, just log it
+        // DB 已标记解决但 graph 未更新 — 以 checkpoint 为准（正常流程不应出现，仅记录日志）
         if (dbRecord.hasResolved && !state.hasResolved) {
             console.log('reconcileHasResolved: DB ahead of graph (unusual)', { conversationId });
         }

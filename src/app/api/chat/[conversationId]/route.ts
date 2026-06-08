@@ -1,4 +1,4 @@
-import {ChatMessageRequest} from "@/types/request/ChatMessageRequest";
+import { z } from "zod";
 import {createUIMessageStreamResponse} from "ai";
 import {toUIMessageStream} from "@ai-sdk/langchain";
 import {compiledElicitGraph} from "@/agents/graphs/ChatGraph";
@@ -7,15 +7,32 @@ import {withAuth} from "@/lib/auth";
 import {ossService} from "@/services/OssService";
 import {BaseResponse} from "@/types/response/BaseResponse";
 
+// chat 请求体 Zod schema（对应 ChatMessageRequest 字段）
+const chatBodySchema = z.object({
+    role: z.number().int(),
+    message: z.string().min(1, '消息内容不能为空'),
+    imgUrl: z.string().optional().nullable(),
+});
+
 
 export const POST = withAuth(async (request, {params, user}) => {
-    const body = (await request.json()) as ChatMessageRequest;
+    const rawBody = await request.json();
     const { conversationId } = (await params) as { conversationId: string };
+
+    // 校验入参：message 必须为非空字符串
+    const parseResult = chatBodySchema.safeParse(rawBody);
+    if (!parseResult.success) {
+        return Response.json(
+            BaseResponse.ofError('请求参数非法：message 不能为空'),
+            { status: 400 },
+        );
+    }
+    const body = parseResult.data;
     console.log(body);
 
     try {
         // OSS object key → 预签名 URL，供 VisionNode / OcrNode 访问
-        let questionImgUrl = body.imgUrl;
+        let questionImgUrl = body.imgUrl ?? undefined;
         if (questionImgUrl) {
             questionImgUrl = await ossService.getSignedUrl(questionImgUrl);
         }

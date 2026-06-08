@@ -1,3 +1,5 @@
+import 'server-only';
+import { z } from "zod";
 import { createUIMessageStreamResponse } from "ai";
 import { toUIMessageStream } from "@ai-sdk/langchain";
 import { compiledElicitGraph } from "@/agents/graphs/ChatGraph";
@@ -5,12 +7,24 @@ import { withAuth } from "@/lib/auth";
 import { conversationMapper } from "@/db/mappers/ConversationMapper";
 import { BaseResponse } from "@/types/response/BaseResponse";
 
+// resolve 请求体 Zod schema
+const resolveBodySchema = z.object({
+    selectedQuestionIndex: z.number().int().min(0).optional().default(0),
+});
+
 export const POST = withAuth(async (request, { params, user }) => {
-    const body = await request.json();
+    const rawBody = await request.json();
     const { conversationId } = await params as { conversationId: string };
 
-    // selectedQuestionIndex 未传时默认 0（单题自动选中）
-    const selectedQuestionIndex: number = body.selectedQuestionIndex ?? 0;
+    // 校验入参：selectedQuestionIndex 必须为非负整数（不传时默认 0）
+    const parseResult = resolveBodySchema.safeParse(rawBody);
+    if (!parseResult.success) {
+        return Response.json(
+            BaseResponse.ofError('请求参数非法：selectedQuestionIndex 须为非负整数'),
+            { status: 400 },
+        );
+    }
+    const { selectedQuestionIndex } = parseResult.data;
 
     console.log('Resolve route invoked', { conversationId, selectedQuestionIndex, userId: user.id });
 

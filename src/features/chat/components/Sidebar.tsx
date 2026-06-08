@@ -10,8 +10,8 @@ import type React from 'react'
 import { Plus, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatRelativeTime } from '@/lib/relativeTime'
-import { PHASE_LABEL } from '@/lib/theme'
-import type { PolyaPhase } from '@/lib/theme'
+import { polyaPhaseLabel } from '@/types/enums/polyaPhase.enum'
+import type { PolyaPhaseName } from '@/types/enums/polyaPhase.enum'
 import { parseLatexSegments } from '@/lib/katexHelpers'
 import { LatexRender } from '@/components/LatexRender'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -26,8 +26,8 @@ interface ConversationListItem {
   title: string
   isActive: boolean
   createdAt: string
-  /** 可选，用于副标题显示阶段标签 */
-  currentPhase?: PolyaPhase
+  /** 可选，用于副标题显示阶段标签（字符串 key，如 'UNDERSTAND'） */
+  currentPhase?: PolyaPhaseName
 }
 
 interface Props {
@@ -212,7 +212,7 @@ export function Sidebar({
                     const active = c.isActive || c.id === activeId
                     // 副标题：有阶段显示阶段，否则相对时间
                     const subtitle = c.currentPhase
-                      ? PHASE_LABEL[c.currentPhase]
+                      ? polyaPhaseLabel(c.currentPhase)
                       : formatRelativeTime(c.createdAt)
 
                     return (

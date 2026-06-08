@@ -3,6 +3,7 @@ import {ElicitGraphState} from "@/agents/schemas/ElicitGraphStateSchema";
 import {conversationMapper} from "@/db/mappers/ConversationMapper";
 import {getWriter} from "@langchain/langgraph";
 
+export const conversationNodeName = 'conversationNode';
 
 export const shouldCreateConversation = async (state: ElicitGraphState): Promise<string[]> => {
     const conversation = await conversationMapper.findById(state.conversationId);
@@ -32,5 +33,3 @@ export const createConversationNode = async (state: ElicitGraphState) => {
         conversationId: conversation.conversationId
     };
 }
-
-export const conversationNodeName = 'conversationNode'

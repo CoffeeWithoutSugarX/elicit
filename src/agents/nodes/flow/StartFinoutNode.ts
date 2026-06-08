@@ -8,6 +8,7 @@ import { phaseRouter } from "@/agents/nodes/flow/phaseRouter";
 
 
 export const startFinOutNode = async (state: ElicitGraphState) => {
+    console.log('StartFinOutNode invoked with', { conversationId: state.conversationId, hasResolved: state.hasResolved });
     // C9 reconcile on entry
     await reconcileHasResolved(state.conversationId, {
         hasResolved: state.hasResolved,

@@ -1,9 +1,10 @@
 import { ElicitGraphState } from "@/agents/schemas/ElicitGraphStateSchema";
 import { OcrSchema } from "@/agents/schemas/OcrSchema";
 import { visionModel } from "@/agents/models/qwen-vl-model";
-import { systemPrompt, userPromptTemplate } from "@/agents/prompts/vision/visionNode.prompt";
+import { systemPrompt, userPromptTemplate, fewShots } from "@/agents/prompts/vision/visionNode.prompt";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getWriter } from "@langchain/langgraph";
+import { buildFewShotMessages, toStringContent } from "@/agents/prompts/phases/_shared";
 
 export const visionNodeName = 'visionNode';
 
@@ -30,11 +31,17 @@ export const visionNode = async (state: ElicitGraphState) => {
 
         const userContent = userPromptTemplate({ imgUrl: state.questionImgUrl, userText });
 
+        // ——— 构建 few-shot messages ———
+        // VisionNode 的 few-shot 是纯文本对（模拟 OCR JSON 输出），
+        // 插在 SystemMessage 之后、含图片的真实 HumanMessage 之前。
+        const fewShotMessages = buildFewShotMessages(fewShots);
+
         // 调用 Qwen VL，图片以 image_url 方式传入
         // 加 "langsmith:nostream" tag：让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit，
         // 避免 OCR 输出的机器可读 JSON 被当作妹妹回复推送到前端文本流（参见 @langchain/langgraph StreamMessagesHandler）
         const response = await visionModel.invoke([
             new SystemMessage(systemPrompt),
+            ...fewShotMessages,
             new HumanMessage({
                 content: [
                     { type: "image_url", image_url: { url: state.questionImgUrl } },
@@ -44,9 +51,7 @@ export const visionNode = async (state: ElicitGraphState) => {
         ], { tags: ["langsmith:nostream"] });
 
         // 提取响应文本
-        const responseText = typeof response.content === 'string'
-            ? response.content
-            : '';
+        const responseText = toStringContent(response.content);
 
         // 从响应中提取 JSON（可能被 ```json``` 围栏包裹）
         const jsonMatch = responseText.match(/```json\s*([\s\S]*?)\s*```/)

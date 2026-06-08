@@ -269,6 +269,34 @@ describe('POST /api/conversation/[conversationId]/resolve', () => {
         expect(configArg.configurable.thread_id).toBe('conv-123');
     });
 
+    it('selectedQuestionIndex 为负数时返回 400 + BaseResponse.ofError 形状', async () => {
+        const req = makeRequest({ selectedQuestionIndex: -1 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
+
+        const res = await POST(req, context);
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        // BaseResponse.ofError 形状
+        expect(body).toHaveProperty('message');
+        expect(typeof body.message).toBe('string');
+        // 校验失败时不应进入业务逻辑
+        expect(mockGetState).not.toHaveBeenCalled();
+        expect(mockConversationUpdate).not.toHaveBeenCalled();
+    });
+
+    it('selectedQuestionIndex 为非整数（浮点数）时返回 400', async () => {
+        const req = makeRequest({ selectedQuestionIndex: 1.5 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
+
+        const res = await POST(req, context);
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body).toHaveProperty('message');
+        expect(mockGraphStream).not.toHaveBeenCalled();
+    });
+
     it('返回 createUIMessageStreamResponse 的结果', async () => {
         const req = makeRequest({ selectedQuestionIndex: 0 });
         const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };

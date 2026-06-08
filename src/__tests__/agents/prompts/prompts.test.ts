@@ -389,20 +389,25 @@ describe('reviewNode.userPromptTemplate', () => {
     expect(result).toContain('一次函数');
   });
 
-  it('recentMessages → 取最近 16 条（slice(-16)）写入对话历史', () => {
+  it('recentMessages → 调用方 slice(-16) 后传入 template，template 渲染全部传入条目', () => {
+    // F4 修复：template 内部不再 slice，由调用方（ReviewNode.ts）统一切片后传入。
+    // 本测试模拟调用方已切片（传入 16 条），验证 template 完整渲染所有传入条目。
     const sub = makeSubProblem({ status: 'done' });
     const msgs = Array.from({ length: 20 }, (_, i) =>
       makeMessageMock('human', `消息${i}`)
     );
+    // 模拟调用方切片：只传入最近 16 条（index 4-19）
+    const slicedMsgs = msgs.slice(-16);
     const result = reviewUserPrompt({
       selectedQuestion: baseQ,
       state: { subProblems: [sub], currentSubProblemIndex: 0, problemType: ProblemType.ALGEBRA },
-      recentMessages: msgs,
+      recentMessages: slicedMsgs,
       knowledgePointsCsv: '',
     });
-    // 最早 4 条（0-3）不应出现，最近 16 条（4-19）应出现
+    // 最早 4 条（0-3）不在传入 slice 内，不应出现
     expect(result).not.toContain('消息0');
     expect(result).not.toContain('消息3');
+    // 最近 16 条（4-19）应全部出现
     expect(result).toContain('消息4');
     expect(result).toContain('消息19');
   });

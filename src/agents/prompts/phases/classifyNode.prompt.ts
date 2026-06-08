@@ -88,8 +88,12 @@ LaTeX：已知抛物线 $y = x^2 - 2x - 3$ 与 $x$ 轴交于点 $A$、$B$，顶�
 ] as const;
 
 // ——— 模型参数 ———
+// F1：ClassifyNode 使用 DeepSeek（OpenAI 兼容接口），在 invoke 时通过 chatModel.bind 注入
+// response_format: { type: 'json_object' }（见 ClassifyNode.ts）。
+// DeepSeek json mode 要求 prompt 含 "json" 字样——systemPrompt 的"按以下 JSON 输出"已满足。
 export const modelParams = {
     temperature: 0.0,
     max_tokens: 256,
     streaming: false,
+    response_format: { type: 'json_object' as const },
 } as const;

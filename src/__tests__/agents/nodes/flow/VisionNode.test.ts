@@ -295,6 +295,39 @@ describe('visionNode', () => {
         }
     });
 
+    // ── 13. few-shot 消息正确注入（顺序 System → few-shots → 含图 HumanMessage）────
+    it('few-shot 消息已注入且顺序正确：System → few-shots → 含图 HumanMessage', async () => {
+        const mockWriter = vi.fn();
+        vi.mocked(getWriter).mockReturnValue(mockWriter);
+        vi.mocked(visionModel.invoke).mockResolvedValue({
+            content: makeSolvableJson(),
+        } as never);
+
+        const state = createMockState({ questionImgUrl: TEST_IMG_URL, hasResolved: false });
+        await visionNode(state);
+
+        expect(visionModel.invoke).toHaveBeenCalledOnce();
+        const callArgs = vi.mocked(visionModel.invoke).mock.calls[0][0] as Array<{ content: unknown }>;
+
+        // visionNode.prompt.ts fewShots 有 3 组 → 6 条 few-shot 消息
+        // 消息布局：[0]=SystemMessage, [1..6]=few-shots(Human/AI 交替), [7]=含图 HumanMessage
+        expect(callArgs.length).toBeGreaterThanOrEqual(8);
+
+        // index 0 必须是 SystemMessage（内容含 "识别助手" 或 "数学题图片"）
+        const systemMsg = callArgs[0];
+        expect(String(systemMsg.content)).toContain('识别助手');
+
+        // index 1 应是第一个 few-shot HumanMessage（visionNode few-shot 1 含 "algebra-only"）
+        const firstFewShotHuman = callArgs[1];
+        expect(String(firstFewShotHuman.content)).toContain('algebra-only');
+
+        // 倒数第一条应是含图片的真实 HumanMessage（content 为数组，含 image_url）
+        const lastMsg = callArgs[callArgs.length - 1] as { content: unknown };
+        expect(Array.isArray(lastMsg.content)).toBe(true);
+        const contentArr = lastMsg.content as Array<{ type: string }>;
+        expect(contentArr.some(item => item.type === 'image_url')).toBe(true);
+    });
+
     // ── 12. isSolvable=false + errorReason=INCOMPLETE → 推"被截到了一半"话术 ──────
     it('INCOMPLETE → 推专属"被截到了一半"话术 assistant_message', async () => {
         const mockWriter = vi.fn();

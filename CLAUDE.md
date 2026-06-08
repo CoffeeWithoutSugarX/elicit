@@ -47,7 +47,7 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 ### 模型 (`src/agents/models/`)
 
 - `deepseek-model.ts` — `chatModel`（通过 OpenAI 兼容协议调用 deepseek-chat），是 `chatNode` 实际调用的模型。
-- `qianwen-model.ts` — `qwen-vl-ocr-latest`，用于图片 OCR。**注意**：当前文件在模块顶层调用了 `main()` 且 URL 是硬编码的，属于实验/示例代码，尚未接入到 `ocrNode`。如需在应用代码中导入，先移除顶层调用。
+- `qwen-vl-model.ts` — `visionModel`（`qwen-vl-ocr-latest`，OpenAI 兼容协议调 DashScope），`VisionNode` 使用的视觉模型单例。
 
 ### 同一个 Postgres 下的两条持久化路径
 
@@ -104,6 +104,7 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 ### 已登记的测试目录
 
 - `src/__tests__/` — L3 单元测试（Phase 2 起启用，vitest + `@/` 别名）
+- `src/__tests__/agents/nodes/` — 顶层节点单元测试（ChatNode 等；phases/flow/guards 子目录见下）
 - `src/__tests__/agents/nodes/phases/` — Phase 节点单元测试（ClassifyNode 等）
 - `src/__tests__/agents/graphs/` — Graph 不变量测试（checkpointStatePersistence 等）
 - `src/__tests__/stores/` — Zustand store 单元测试（useConversation、useUserInfo、useHistoryConversation、useShowWelcome、useThemeFlag）

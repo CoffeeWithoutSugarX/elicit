@@ -59,26 +59,14 @@ export function deviationGuard(state: ElicitGraphState): DeviationAction | null 
     };
   }
 
-  // 检查 giveAnswer — 仅在 UNDERSTAND(0) 和 PLAN(1) 阶段触发
-  if (phase === PolyaPhase.UNDERSTAND || phase === PolyaPhase.PLAN) {
-    const isGivingAnswer = GIVE_ANSWER_KEYWORDS.some(kw => text.includes(kw));
-    if (isGivingAnswer) {
-      const phaseLabel = PolyaPhaseEnum.getLabel(phase);
-      const snippet = text.slice(0, 20);
-      return {
-        kind:           'PULL_BACK',
-        injectPrompt:   `[系统提示] 等等，我们先停一下。我们刚才在【${phaseLabel}】这一步，你刚才说的【${snippet}】是怎么想到的？`,
-        pulledFromPhase: phase,
-      };
-    }
-  }
-
-  // 检查 crossPhasePatterns — 仅在 UNDERSTAND(0) 和 PLAN(1) 阶段触发
+  // 检查 giveAnswer 与 crossPhasePatterns — 仅在 UNDERSTAND(0) 和 PLAN(1) 阶段触发
+  // SIM-04：isGivingAnswer / isCrossPhase 两分支的 return 块完全相同，合并为单个 if。
   // 详设 §5.4：CROSS_PHASE = 当前 currentPhase ≤ PLAN 但 user 给出 EXECUTE 阶段才该有的内容
   // 在 EXECUTE/REVIEW 阶段，用户输入算式属于正常行为，不应拦截
   if (phase === PolyaPhase.UNDERSTAND || phase === PolyaPhase.PLAN) {
+    const isGivingAnswer = GIVE_ANSWER_KEYWORDS.some(kw => text.includes(kw));
     const isCrossPhase = CROSS_PHASE_PATTERNS.some(re => re.test(text));
-    if (isCrossPhase) {
+    if (isGivingAnswer || isCrossPhase) {
       const phaseLabel = PolyaPhaseEnum.getLabel(phase);
       const snippet = text.slice(0, 20);
       return {

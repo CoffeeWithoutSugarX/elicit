@@ -1,8 +1,9 @@
 import { ElicitGraphState, SubProblemState } from "@/agents/schemas/ElicitGraphStateSchema";
 import { chatModel } from "@/agents/models/deepseek-model";
-import { systemPrompt, userPromptTemplate, outputContract } from "@/agents/prompts/phases/classifyNode.prompt";
+import { systemPrompt, userPromptTemplate, outputContract, fewShots } from "@/agents/prompts/phases/classifyNode.prompt";
 import { SystemMessage, HumanMessage } from "@langchain/core/messages";
 import { extractJsonText } from "@/agents/nodes/algorithm/extractJsonText";
+import { buildFewShotMessages, toStringContent } from "@/agents/prompts/phases/_shared";
 
 export const classifyNodeName = 'classifyNode';
 
@@ -40,13 +41,22 @@ export const classifyNode = async (state: ElicitGraphState) => {
         // 调用 DeepSeek 分类（不流式，JSON 输出；temperature 在 chatModel 构造时配置）
         // 加 "langsmith:nostream" tag：纯 JSON 分类输出不应泄漏到前端文本流，
         // 让 LangGraph StreamMessagesHandler 跳过本次调用的 token emit（参见 @langchain/langgraph StreamMessagesHandler）
+        // F1：启用 response_format json_object — DeepSeek 兼容 OpenAI json mode，
+        // 要求 prompt 中含 "json" 字样（systemPrompt 的"按以下 JSON 输出"已满足）。
+        // response_format 作为 invoke call option 传入（BaseChatOpenAICallOptions 支持此字段），
+        // 避免污染全局构造参数。
         const userContent = userPromptTemplate({ selectedQuestion });
+        const fewShotMessages = buildFewShotMessages(fewShots);
         const response = await chatModel.invoke([
             new SystemMessage(systemPrompt),
+            ...fewShotMessages,
             new HumanMessage(userContent),
-        ], { tags: ["langsmith:nostream"] });
+        ], {
+            tags: ["langsmith:nostream"],
+            response_format: { type: 'json_object' },
+        });
 
-        const responseText = typeof response.content === 'string' ? response.content : '';
+        const responseText = toStringContent(response.content);
 
         // 提取 JSON（支持 ```json 围栏 或裸 JSON，遵循 Postel 宽容解析原则）
         let problemType = 3; // 默认兜底：OTHER

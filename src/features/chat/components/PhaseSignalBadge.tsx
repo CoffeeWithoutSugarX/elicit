@@ -11,21 +11,11 @@
  */
 import { CheckCircle2, Clock, TrendingUp, Sparkles, AlertTriangle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { SIGNAL_LABEL } from '@/lib/theme'
-import type { PhaseSignal } from '@/agents/nodes/algorithm/phaseSignalParse'
+import type { PhaseSignal } from '@/types/enums/phaseSignal.enum'
+import { PhaseSignalEnum } from '@/types/enums/phaseSignal.enum'
 
 interface Props {
   signal: PhaseSignal
-}
-
-// SIGNAL_LABEL 中 key 是 AgentSignal（含 DONE / BLOCKED）；
-// PhaseSignal 用 SUB_PROBLEM_DONE / PROBLEM_BLOCKED，单独映射。
-const PHASE_SIGNAL_DISPLAY: Record<PhaseSignal, string> = {
-  COMPLETED:        SIGNAL_LABEL.COMPLETED,
-  STAY:             SIGNAL_LABEL.STAY,
-  ESCALATE:         SIGNAL_LABEL.ESCALATE,
-  SUB_PROBLEM_DONE: SIGNAL_LABEL.DONE,
-  PROBLEM_BLOCKED:  SIGNAL_LABEL.BLOCKED,
 }
 
 /** 信号 → shadcn Badge variant（全灰阶，无彩色） */
@@ -52,7 +42,7 @@ export function PhaseSignalBadge({ signal }: Props) {
   return (
     <Badge variant={SIGNAL_VARIANT[signal]}>
       <Icon size={10} aria-hidden />
-      {PHASE_SIGNAL_DISPLAY[signal]}
+      {PhaseSignalEnum.getLabel(signal)}
     </Badge>
   )
 }

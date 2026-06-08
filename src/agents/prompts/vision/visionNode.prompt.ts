@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { OcrSchema } from '@/agents/schemas/OcrSchema';
 import { buildStudentContext } from '@/agents/prompts/studentContext';
 import { studentGradeTerm } from '@/agents/data/studentProfile';
@@ -215,6 +214,11 @@ export const fewShots: ReadonlyArray<{ user: string; assistant: string }> = [
 
 // ——— 模型参数 ———
 // 使用 qwen3-vl-plus（Qwen3-VL 代视觉模型），不用 DeepSeek
+// F1 response_format 查证结论：qwen-vl-ocr-latest（Qwen VL 系列视觉模型）通过阿里 DashScope
+// compatible-mode 接入，官方文档未列出对 response_format: json_object 的支持（截至 2026-06）。
+// 实际测试中启用该参数会返回 400 BadRequest。
+// 决策：不加 response_format，继续依赖 VisionNode.ts 中 extractJsonText 的宽容解析。
+// 如需强制 JSON 输出，后续可评估升级至支持 json_object 的 VL 模型版本后再启用。
 export const modelParams = {
     temperature: 0.0,
     max_tokens: 1024,

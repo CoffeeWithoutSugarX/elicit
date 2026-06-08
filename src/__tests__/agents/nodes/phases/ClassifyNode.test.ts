@@ -176,9 +176,43 @@ describe('classifyNode', () => {
         const state = createMockState({ ocrResult, hasResolved: true });
         await classifyNode(state);
 
+        // classifyNode 通过 chatModel.bind(...).invoke(...) 调用，
+        // chatModel.bind 返回的绑定对象内部仍会调用 chatModel.invoke。
         expect(chatModel.invoke).toHaveBeenCalledWith(
             expect.anything(),
             expect.objectContaining({ tags: ["langsmith:nostream"] })
         );
+    });
+
+    // ── 11. few-shot 消息正确注入（顺序 System → few-shots → 真实用户消息）─────────
+    it('few-shot 消息已注入且顺序正确：System → few-shots → 真实 HumanMessage', async () => {
+        vi.mocked(chatModel.invoke).mockResolvedValue(makeModelResponse(0, '代数题') as never);
+
+        const ocrResult = makeSolvableOcrResult({
+            topic: '一元二次方程',
+            latexFull: '解 $x^2 - 4x + 3 = 0$',
+            goal: '求 x 的值',
+        });
+        const state = createMockState({ ocrResult, hasResolved: true });
+        await classifyNode(state);
+
+        expect(chatModel.invoke).toHaveBeenCalledOnce();
+        const callArgs = vi.mocked(chatModel.invoke).mock.calls[0][0] as Array<{ content: unknown }>;
+
+        // classifyNode.prompt.ts fewShots 有 4 组 → 8 条 few-shot 消息
+        // 消息布局：[0]=SystemMessage, [1..8]=few-shots(Human/AI 交替), [9]=真实 HumanMessage
+        expect(callArgs.length).toBeGreaterThanOrEqual(10);
+
+        // index 0 必须是 SystemMessage（内容含 "题型分类器"）
+        const systemMsg = callArgs[0];
+        expect(String(systemMsg.content)).toContain('题型分类器');
+
+        // index 1 应是第一个 few-shot HumanMessage（classifyNode few-shot 1 含 "实根判别"）
+        const firstFewShotHuman = callArgs[1];
+        expect(String(firstFewShotHuman.content)).toContain('实根判别');
+
+        // 倒数第一条应是真实用户消息（含 "题目："）
+        const lastMsg = callArgs[callArgs.length - 1];
+        expect(String(lastMsg.content)).toContain('题目：');
     });
 });

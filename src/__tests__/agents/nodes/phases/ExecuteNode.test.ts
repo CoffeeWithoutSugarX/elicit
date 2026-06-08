@@ -65,7 +65,7 @@ describe('executeNode', () => {
         expect(result.messages).toHaveLength(1);
         expect(result.messages![0].getType()).toBe('ai');
         // subProblems 状态不变（STAY）
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].status).toBe('pending');
         // STAY 不推 phase_changed（kind 字段新契约）
         expect(mockWriter).not.toHaveBeenCalledWith(
@@ -94,7 +94,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].status).toBe('done');
         // 推送 phase_changed chunk（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
@@ -119,7 +119,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].status).toBe('blocked');
         // 推送 phase_changed chunk（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
@@ -145,7 +145,7 @@ describe('executeNode', () => {
         const result = await executeNode(state);
 
         // status 保持不变
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].status).toBe('pending');
         // 推送 PLAN 信号（kind 字段新契约）
         expect(mockWriter).toHaveBeenCalledWith(
@@ -176,7 +176,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         const updatedSp = result.subProblems![0];
         // 原来有 1 个，追加后应有 2 个
         expect(updatedSp.insightPoints).toHaveLength(2);
@@ -206,7 +206,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].probedQuestionIdsPerPhase.execute).toContain(2);
         // 原来的 id=1 仍保留
         expect(result.subProblems![0].probedQuestionIdsPerPhase.execute).toContain(1);
@@ -492,7 +492,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].status).toBe('done');
     });
 
@@ -531,7 +531,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].status).toBe('blocked');
     });
 
@@ -594,7 +594,7 @@ describe('executeNode', () => {
 
         const result = await executeNode(state);
 
-        expect(result.subProblems).toBeDefined();
+        expect(result.subProblems).toHaveLength(1);
         expect(result.subProblems![0].stuckCountPerPhase.execute).toBe(1);
     });
 

@@ -425,14 +425,53 @@ describe('understandNode', () => {
         const result = await understandNode(state);
 
         expect(chatModel.invoke).toHaveBeenCalledOnce();
-        // 取 HumanMessage（invoke 第二个参数）——SystemMessage 本身含"[系统提示]"字样，不检查
+        // 消息顺序：SystemMessage → few-shot pairs → 真实 HumanMessage
+        // fewShots 共 3 组，占 6 条消息；因此真实 HumanMessage 在 index 7（0-based）
         const callArgs = vi.mocked(chatModel.invoke).mock.calls[0][0] as Array<{ content: string; _getType?: () => string }>;
-        // HumanMessage 在 SystemMessage 之后
-        const humanMsg = callArgs[1];
-        expect(humanMsg).toBeDefined();
-        // guard 未注入时 HumanMessage 不应有"[系统提示] 妹妹同阶段"等 guard 注入前缀
-        expect(String(humanMsg.content)).not.toContain('[系统提示] 妹妹同阶段');
+        const lastHumanMsg = callArgs[callArgs.length - 1];
+        expect(lastHumanMsg).toBeDefined();
+        // guard 未注入时最后一条 HumanMessage 不应有"[系统提示] 妹妹同阶段"等 guard 注入前缀
+        expect(String(lastHumanMsg.content)).not.toContain('[系统提示] 妹妹同阶段');
         expect(result.messages).toHaveLength(1);
+    });
+
+    // ── 20. few-shot 消息正确注入（顺序 System → few-shots → 真实用户消息）───────
+    it('few-shot 消息已注入且顺序正确：System → few-shots → 真实 HumanMessage', async () => {
+        vi.mocked(getWriter).mockReturnValue(vi.fn());
+        vi.mocked(chatModel.invoke).mockResolvedValue({
+            content: '你能说说题目让你求什么吗？\nphase_signal: "STAY"',
+        } as never);
+
+        const ocrResult = makeSolvableOcrResult();
+        const state = createMockState({
+            ocrResult,
+            hasResolved: true,
+            subProblems: [makeSubProblem()],
+            currentSubProblemIndex: 0,
+            messages: [new HumanMessage('这个题我不会')],
+        });
+
+        await understandNode(state);
+
+        expect(chatModel.invoke).toHaveBeenCalledOnce();
+        const callArgs = vi.mocked(chatModel.invoke).mock.calls[0][0] as Array<{ content: unknown; getType?: () => string }>;
+
+        // understandNode.prompt.ts 中 fewShots 有 3 组 → 6 条 few-shot 消息
+        // 消息布局：[0]=SystemMessage, [1..6]=few-shots(Human/AI 交替), [7]=真实 HumanMessage
+        expect(callArgs.length).toBeGreaterThanOrEqual(8);
+
+        // index 0 必须是 SystemMessage（内容含 "理解题意"）
+        const systemMsg = callArgs[0];
+        expect(String(systemMsg.content)).toContain('理解题意');
+
+        // index 1 应是第一个 few-shot HumanMessage（内容含 "单一目标题"）
+        const firstFewShotHuman = callArgs[1];
+        expect(String(firstFewShotHuman.content)).toContain('单一目标题');
+
+        // 倒数第一条应是真实用户消息（不含 few-shot 关键字"phase_signal"）
+        const lastMsg = callArgs[callArgs.length - 1];
+        // 真实 user prompt 由 userPromptTemplate 生成，含"请按 System 规则"
+        expect(String(lastMsg.content)).toContain('请按 System 规则');
     });
 
     // ── 18. 进入理解阶段时 emit sub_problem_changed（A1 修复验证）────────────────

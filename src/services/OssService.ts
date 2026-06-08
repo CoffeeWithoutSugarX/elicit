@@ -1,3 +1,4 @@
+import 'server-only';
 import {OssUploadSignInfo} from "@/types/response/OssUploadSignInfo";
 import OSS, {Credentials} from 'ali-oss';
 import {getStandardRegion} from "ali-oss/lib/common/utils/getStandardRegion";

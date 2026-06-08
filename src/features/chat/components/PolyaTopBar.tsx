@@ -10,8 +10,8 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { PHASE_LABEL } from '@/lib/theme'
-import type { PolyaPhase } from '@/lib/theme'
+import { polyaPhaseLabel, polyaPhaseShortLabel } from '@/types/enums/polyaPhase.enum'
+import type { PolyaPhaseName } from '@/types/enums/polyaPhase.enum'
 import { toRoman } from '@/lib/numerals'
 import {
   Tooltip,
@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/tooltip'
 
 interface Props {
-  currentPhase: number            // 0=UNDERSTAND,1=PLAN,2=EXECUTE,3=REVIEW（或直接传 PolyaPhase 字符串）
+  currentPhase: number            // 0=UNDERSTAND,1=PLAN,2=EXECUTE,3=REVIEW,4=DONE
   totalSubProblems: number
   currentSubProblemIndex: number
   insightPointCount: number
@@ -28,17 +28,8 @@ interface Props {
   showLongWarning?: boolean
 }
 
-/** 4 阶段有序列表 */
-const PHASE_ORDER: PolyaPhase[] = ['UNDERSTAND', 'PLAN', 'EXECUTE', 'REVIEW']
-
-/** 阶段 → 简短中文标签（stepper 用，比 PHASE_LABEL 更紧凑） */
-const PHASE_SHORT_LABEL: Record<PolyaPhase, string> = {
-  UNDERSTAND: '理解',
-  PLAN:       '规划',
-  EXECUTE:    '执行',
-  REVIEW:     '回顾',
-  DONE:       '完成',  // 终态不作为第五个 stepper 圆圈渲染，仅满足类型约束
-}
+/** 4 阶段有序列表（stepper 展示用，不含 DONE 终态） */
+const PHASE_ORDER: PolyaPhaseName[] = ['UNDERSTAND', 'PLAN', 'EXECUTE', 'REVIEW']
 
 /**
  * 阶段圆圈 stepper 颜色说明（全灰阶，不使用彩色 phase token）：
@@ -258,7 +249,7 @@ export function PolyaTopBar({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {PHASE_SHORT_LABEL[phase]}
+                  {polyaPhaseShortLabel(phase)}
                 </span>
               </div>
 
@@ -308,7 +299,7 @@ export function PolyaTopBar({
           className="text-sm text-foreground"
           style={{ fontFamily: 'var(--font-display)' }}
         >
-          阶段 │ {PHASE_LABEL[currentPolyaPhase]}
+          阶段 │ {polyaPhaseLabel(currentPolyaPhase)}
         </span>
       </div>
 

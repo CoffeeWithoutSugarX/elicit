@@ -8,6 +8,7 @@ import {
     userPromptTemplate,
     fewShots,
 } from "@/agents/prompts/phases/executeNode.prompt";
+import { buildFewShotMessages, resolveGuardInjection, toStringContent } from "@/agents/prompts/phases/_shared";
 import { PolyaPhase } from "@/types/enums/polyaPhase.enum";
 import { runGuardChain } from "@/agents/nodes/guards/runGuardChain";
 import { handleTerminalGuard } from "@/agents/nodes/guards/handleTerminalGuard";
@@ -55,21 +56,15 @@ export const executeNode = async (state: ElicitGraphState) => {
 
     // ——— Guard Chain ———
     // 优先级：visionFailure > outOfScope > deviation > stuck
-    const guardAction = runGuardChain(state);
-    let guardInjection = '';
-    if (guardAction) {
-        const terminal = handleTerminalGuard(guardAction, 'ExecuteNode');
-        if (terminal) return terminal;
-        // PULL_BACK / PROBE_5Q / KNOWLEDGE_FALLBACK — 注入 prompt，继续调用 LLM
-        console.log('ExecuteNode guard fired:', guardAction.kind);
-        guardInjection = ('injectPrompt' in guardAction ? guardAction.injectPrompt : undefined) ?? '';
-    }
+    const { terminal: guardTerminal, injection: guardInjection } = resolveGuardInjection(
+        runGuardChain(state),
+        handleTerminalGuard,
+        'ExecuteNode',
+    );
+    if (guardTerminal) return guardTerminal;
 
     // ——— 构建 few-shot messages ———
-    const fewShotMessages = fewShots.flatMap(({ user, assistant }) => [
-        new HumanMessage(user),
-        new AIMessage(assistant),
-    ]);
+    const fewShotMessages = buildFewShotMessages(fewShots);
 
     // ——— 构建用户 prompt（若有 guard 注入则追加）———
     const recentMessages = state.messages.slice(-16);
@@ -94,7 +89,7 @@ export const executeNode = async (state: ElicitGraphState) => {
             new HumanMessage(userContent),
         ], { tags: ["langsmith:nostream"] });
 
-        const rawContent = typeof response.content === 'string' ? response.content : '';
+        const rawContent = toStringContent(response.content);
 
         // ——— 解析 phase 信号 ———
         const { signal, newInsight, probedQuestionId, cleanContent } = phaseSignalParse(rawContent);

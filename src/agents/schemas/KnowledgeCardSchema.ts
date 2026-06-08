@@ -32,7 +32,11 @@ export const KnowledgeCardSchema = z.object({
     knowledgePoints: z.array(KnowledgePointSchema).min(1).max(3),
     methods: z.array(MethodSchema).min(1).max(2),
     insight: z.string().min(1).max(150),
-    subProblemSummaries: z.array(SubProblemSummarySchema).optional(),
+    // F2：从 .optional() 改为必填 .min(1)，对齐 reviewNode prompt 三处要求的
+    // "subProblemSummaries 长度 = state.subProblems.length"。
+    // ReviewNode.ts 中的解析路径已做 safeParse 兜底（parse 失败时不发卡片、记日志），
+    // 确保 LLM 真省略该字段时对话不挂。
+    subProblemSummaries: z.array(SubProblemSummarySchema).min(1),
 });
 
 export type KnowledgeCard = z.infer<typeof KnowledgeCardSchema>;

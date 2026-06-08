@@ -88,7 +88,7 @@ describe('POST /api/chat/[conversationId]', () => {
     });
 
     it('成功处理无 imgUrl 的请求，调用 graph.stream 并返回 UI stream 响应', async () => {
-        const req = makeRequest({ message: 'hello', role: 'user' });
+        const req = makeRequest({ message: 'hello', role: 0 });
         const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
 
         const res = await POST(req, context);
@@ -121,7 +121,7 @@ describe('POST /api/chat/[conversationId]', () => {
 
         const req = makeRequest({
             message: 'check this image',
-            role: 'user',
+            role: 0,
             imgUrl: 'conv-123/2026-01-01/image.png',
         });
         const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
@@ -136,7 +136,7 @@ describe('POST /api/chat/[conversationId]', () => {
     });
 
     it('graph.stream 使用正确的 streamMode 和 thread_id 配置', async () => {
-        const req = makeRequest({ message: 'hi', role: 'user' });
+        const req = makeRequest({ message: 'hi', role: 0 });
         const context = { params: Promise.resolve({ conversationId: 'conv-abc' }) };
 
         await POST(req, context);
@@ -147,7 +147,7 @@ describe('POST /api/chat/[conversationId]', () => {
     });
 
     it('HumanMessage 以请求体中的 message 内容构建', async () => {
-        const req = makeRequest({ message: 'what is 2+2?', role: 'user' });
+        const req = makeRequest({ message: 'what is 2+2?', role: 0 });
         const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
 
         await POST(req, context);
@@ -160,7 +160,7 @@ describe('POST /api/chat/[conversationId]', () => {
 
     it('imgUrl 为 null 时传给 graph.stream 的 questionImgUrl 是 undefined 而非 null（ZodError 修复）', async () => {
         // 后续消息无图片时 body.imgUrl === null，schema z.string().optional() 拒绝 null，修复后转 undefined
-        const req = makeRequest({ message: '继续解题', role: 'user', imgUrl: null });
+        const req = makeRequest({ message: '继续解题', role: 0, imgUrl: null });
         const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
 
         await POST(req, context);
@@ -170,11 +170,39 @@ describe('POST /api/chat/[conversationId]', () => {
         expect(stateArg.questionImgUrl).toBeUndefined();
     });
 
+    it('message 为空字符串时返回 400 + BaseResponse.ofError 形状', async () => {
+        const req = makeRequest({ message: '', role: 0 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
+
+        const res = await POST(req, context);
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        // BaseResponse.ofError 形状
+        expect(body).toHaveProperty('message');
+        expect(typeof body.message).toBe('string');
+        // 未进入 try 块，graph.stream 不应被调用
+        expect(mockGraphStream).not.toHaveBeenCalled();
+    });
+
+    it('body 缺少 message 字段时返回 400 + BaseResponse.ofError 形状', async () => {
+        const req = makeRequest({ role: 0 });
+        const context = { params: Promise.resolve({ conversationId: 'conv-123' }) };
+
+        const res = await POST(req, context);
+
+        expect(res.status).toBe(400);
+        const body = await res.json();
+        expect(body).toHaveProperty('message');
+        expect(typeof body.message).toBe('string');
+        expect(mockGraphStream).not.toHaveBeenCalled();
+    });
+
     it('graph.stream 同步抛出错误时返回 BaseResponse 包装的 500 JSON', async () => {
         // 模拟 stream 同步抛出（如 ZodError）
         mockGraphStream.mockRejectedValueOnce(new Error('ZodError: expected string, received null'));
 
-        const req = makeRequest({ message: 'hello', role: 'user' });
+        const req = makeRequest({ message: 'hello', role: 0 });
         const context = { params: Promise.resolve({ conversationId: 'conv-err' }) };
 
         const res = await POST(req, context);

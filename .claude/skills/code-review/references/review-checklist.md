@@ -41,7 +41,7 @@
 | A-01 | `grep -n "from\s\+['\"]\\.\\./" {file}` | 全部 .ts/.tsx | 🔴 | 判读 | 禁止跨目录相对导入；同目录 `./` 允许 |
 | A-02 | `grep -n "from\s\+['\"]@/db/mappers\|from\s\+['\"]@/db/index" {file}` 且文件内无 `import.*server-only` | 消费 DB 的文件 | 🔴 | auto | 使用服务端模块但缺 `server-only` 导入 |
 | A-03 | 文件含 `"use client"` 且 `grep -n "from\s\+['\"]@/db/mappers\|from\s\+['\"]@/db/index" {file}` 有命中 | .tsx | 🔴 | auto | 客户端文件导入服务端模块 |
-| A-04 | `grep -n "createClient" {file}` | 全部（豁免 `src/db/supabase/supabase.ts`、`src/lib/auth.ts`） | 🔴 | auto | Supabase 客户端必须用单例，禁止分散实例化 |
+| A-04 | `grep -n "createClient" {file}` | 全部（豁免 `src/db/supabase/supabase.ts`、`src/lib/auth.ts`、`src/lib/adminDb.ts`——service-role 懒单例 + server-only） | 🔴 | auto | Supabase 客户端必须用单例，禁止分散实例化 |
 
 ### B — TypeScript 合规
 
@@ -61,7 +61,7 @@
 
 | ID | 检查方式 | 范围 | 严重度 | 判定 | 说明 |
 |----|----------|------|--------|------|------|
-| C-01 | 文件名非 kebab-case（含大写字母或下划线，`_common.ts` 惯例豁免） | features/ components/ | 🟡 | auto | 组件文件须 kebab-case |
+| C-01 | 业务组件文件名非 PascalCase（`_common.ts` 等下划线惯例豁免；`src/components/ui/` shadcn 件保持 kebab-case 不报） | features/ components/ | 🟡 | auto | 业务组件文件须 PascalCase（2026-06 约定，与 CLAUDE.md 对齐） |
 | C-02 | enum 文件名非 `camelCase.enum.ts` 格式 | types/enums/ | 🟡 | auto | 枚举文件命名规范 |
 | C-03 | store 文件名缺 `use` 前缀 | stores/ | 🟡 | auto | Store 文件须 `useXxx.ts` |
 | C-04 | Props 类名缺 `Props` 后缀 | features/props/ | 🟡 | 判读 | Props 类须 `XxxProps` |
@@ -135,7 +135,7 @@
 | S-02 | 单组件 `useState` 调用 > 5 次 | 🟡 | 计数 `useState` 出现次数 |
 | S-03 | 组件函数体内定义 `function use*` 或 `const use* =` | 🔴 | 自定义 hook 必须提取到独立文件 |
 | S-04 | 使用 hooks / 事件处理器 / 浏览器 API 但缺 `"use client"` 指令 | 🔴 | 检查首行是否有 `"use client"` |
-| S-05 | 组件未使用 `export default` | 🔴 | 检查导出方式 |
+| S-05 | 组件未使用 `export default`（仅适用 `src/app/**` page/layout——Next.js 要求；`src/features/**/components/` 与 `src/components/` 业务组件统一命名导出，不报） | 🔴 | 检查导出方式 |
 | S-06 | JSX return 嵌套 > 5 层 | 🟡 | 读取 JSX 结构 |
 
 ### Store 文件 (stores/*.ts)

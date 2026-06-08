@@ -88,22 +88,21 @@ describe('runGuardChain', () => {
   // ── Deviation（第 3 优先级）──────────────────────────────────────────────
 
   it('DeviationGuard 命中 → 返回 { kind: "PULL_BACK" }', () => {
-    // '帮我算' 是 give-answer 关键词之一，UNDERSTAND 阶段触发 deviation
+    // '答案是' 是 giveAnswer 关键词，UNDERSTAND 阶段无冷却期 → 必然触发 deviation
     const state = createMockState({
       currentPhase: PolyaPhase.UNDERSTAND,
-      messages: [new HumanMessage('帮我算一下这道题')],
+      messages: [new HumanMessage('答案是 42')],
       lastDeviationAt: null,
     });
     const action = runGuardChain(state);
-    // 若命中则为 PULL_BACK；若关键词不在测试 fixtures 里则为 null
-    if (action !== null) {
-      expect(action.kind).toBe('PULL_BACK');
-    }
+    expect(action).not.toBeNull();
+    expect(action!.kind).toBe('PULL_BACK');
   });
 
   // ── Stuck（第 4 优先级）──────────────────────────────────────────────────
 
-  it('StuckGuard 命中 → 返回 PROBE_5Q 或 KNOWLEDGE_FALLBACK', () => {
+  it('StuckGuard 命中（5 问未用尽）→ 返回 PROBE_5Q + injectPrompt + nextQuestionId', () => {
+    // probedQuestionIdsPerPhase.understand 为空 → 尚有未用 5 问 → PROBE_5Q
     const state = createMockState({
       currentPhase: PolyaPhase.UNDERSTAND,
       messages: makeStuckMessages(),
@@ -113,7 +112,25 @@ describe('runGuardChain', () => {
       })],
     });
     const action = runGuardChain(state);
-    expect(['PROBE_5Q', 'KNOWLEDGE_FALLBACK']).toContain(action?.kind);
+    expect(action).not.toBeNull();
+    expect(action!.kind).toBe('PROBE_5Q');
+    expect((action as { kind: 'PROBE_5Q'; injectPrompt: string; nextQuestionId: number }).injectPrompt).toBeTruthy();
+    expect([1, 2, 3, 4, 5]).toContain((action as { kind: 'PROBE_5Q'; injectPrompt: string; nextQuestionId: number }).nextQuestionId);
+  });
+
+  it('StuckGuard 命中（5 问已全部用尽）→ 返回 KNOWLEDGE_FALLBACK', () => {
+    // probedQuestionIdsPerPhase.understand 已含 1-5 → 5 问耗尽 → KNOWLEDGE_FALLBACK
+    const state = createMockState({
+      currentPhase: PolyaPhase.UNDERSTAND,
+      messages: makeStuckMessages(),
+      subProblems: [makeSubProblem({
+        stuckCountPerPhase: { understand: 3, plan: 0, execute: 0, review: 0 },
+        probedQuestionIdsPerPhase: { understand: [1, 2, 3, 4, 5], plan: [], execute: [], review: [] },
+      })],
+    });
+    const action = runGuardChain(state);
+    expect(action).not.toBeNull();
+    expect(action!.kind).toBe('KNOWLEDGE_FALLBACK');
   });
 
   // ── 优先级验证：stuck 命中但 visionFailure 也命中 → visionFailure 优先 ────
@@ -132,21 +149,4 @@ describe('runGuardChain', () => {
     expect(action?.kind).toBe('VISION_FAILURE');
   });
 
-  // ── injectPrompt 字段存在性 ────────────────────────────────────────────────
-
-  it('StuckGuard PROBE_5Q 返回值携带 injectPrompt 和 nextQuestionId', () => {
-    const state = createMockState({
-      currentPhase: PolyaPhase.UNDERSTAND,
-      messages: makeStuckMessages(),
-      subProblems: [makeSubProblem({
-        stuckCountPerPhase: { understand: 3, plan: 0, execute: 0, review: 0 },
-        probedQuestionIdsPerPhase: { understand: [], plan: [], execute: [], review: [] },
-      })],
-    });
-    const action = runGuardChain(state);
-    if (action?.kind === 'PROBE_5Q') {
-      expect(action.injectPrompt).toBeTruthy();
-      expect([1, 2, 3, 4, 5]).toContain(action.nextQuestionId);
-    }
-  });
 });

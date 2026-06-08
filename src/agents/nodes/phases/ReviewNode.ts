@@ -9,6 +9,7 @@ import {
     userPromptTemplate,
     fewShots,
 } from "@/agents/prompts/phases/reviewNode.prompt";
+import { buildFewShotMessages, toStringContent } from "@/agents/prompts/phases/_shared";
 import { KnowledgeCardSchema } from "@/agents/schemas/KnowledgeCardSchema";
 import { filterKnowledgePointsCsvByGradeTerm } from "@/agents/data/loadKnowledgePoints";
 import { studentGradeTerm } from "@/agents/data/studentProfile";
@@ -41,13 +42,11 @@ export const reviewNode = async (state: ElicitGraphState) => {
     }
 
     // ——— 构建 few-shot messages ———
-    const fewShotMessages = fewShots.flatMap(({ user, assistant }) => [
-        new HumanMessage(user),
-        new AIMessage(assistant),
-    ]);
+    const fewShotMessages = buildFewShotMessages(fewShots);
 
     // ——— 构建用户 prompt（ReviewNode 汇总所有 subProblems，不局限于当前）———
     // filteredKnowledgePointsCsv 已在模块顶层计算（静态值，无需每次 invoke 重算）
+    // F4：调用方统一切片（slice(-16)），template 内部不再重复 slice，对齐其他节点风格
     const recentMessages = state.messages.slice(-16);
     const userContent = userPromptTemplate({
         selectedQuestion,
@@ -68,7 +67,7 @@ export const reviewNode = async (state: ElicitGraphState) => {
             new HumanMessage(userContent),
         ], { tags: ["langsmith:nostream"] });
 
-        const rawContent = typeof response.content === 'string' ? response.content : '';
+        const rawContent = toStringContent(response.content);
 
         // ——— 解析 phase 信号（COMPLETED）———
         const { cleanContent } = phaseSignalParse(rawContent);
