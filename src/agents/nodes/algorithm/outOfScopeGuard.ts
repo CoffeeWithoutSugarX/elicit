@@ -5,7 +5,7 @@ import { type ElicitGraphState } from '@/agents/schemas/ElicitGraphStateSchema';
 
 // ---------- 关键词加载 ----------
 const _outOfScopeJson = JSON.parse(
-  readFileSync(join(__dirname, '../../data/out-of-scope-keywords.json'), 'utf-8'),
+  readFileSync(join(process.cwd(), 'src', 'agents', 'data', 'out-of-scope-keywords.json'), 'utf-8'),
 ) as { nonMathSubjects: string[] };
 
 const NON_MATH_SUBJECTS: ReadonlyArray<string> = _outOfScopeJson.nonMathSubjects;

@@ -1,16 +1,14 @@
-import {ElicitGraphState} from "@/agents/schemas/ElicitGraphStateSchema";
+import { ElicitGraphState } from "@/agents/schemas/ElicitGraphStateSchema";
+import { visionNode, visionNodeName } from "@/agents/nodes/flow/VisionNode";
 
-export const shouldOcr =  (state: ElicitGraphState): string[] => {
-    if (state.hasResolved) {
+// shouldOcr: 当 hasResolved=false 且存在 questionImgUrl 时才跑 OCR 节点
+export const shouldOcr = (state: ElicitGraphState): string[] => {
+    if (state.hasResolved || !state.questionImgUrl) {
         return [];
     }
     return [ocrNodeName];
 }
 
-export const ocrNodeName = 'ocrNode'
-
-export const ocrNode = async (state: ElicitGraphState) => {
-    return {
-
-    }
-}
+// 保持与 ChatGraph.ts 的向后兼容——名字与实现均委托给 VisionNode
+export const ocrNodeName = visionNodeName;
+export const ocrNode = visionNode;

@@ -1,7 +1,7 @@
 import {clsx, type ClassValue} from "clsx"
 import {twMerge} from "tailwind-merge"
 import {v4 as uuid} from "uuid";
-import {ChunkMessage} from "@/stores/useConversation";
+import type { ChunkMessage } from "@/types/sse/ChunkTypes";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))

@@ -6,7 +6,8 @@ export const loadAllChatConversation = async () => {
         .from('elicit_conversations')
         .select(`
             conversation_id,
-            title
+            title,
+            created_at
         `)
         .order('created_at', { ascending: false });
 
@@ -16,6 +17,6 @@ export const loadAllChatConversation = async () => {
     }
 
     return data?.map((conversation) =>
-        new ChatConversationProps(conversation.conversation_id, conversation.title ?? '')
+        new ChatConversationProps(conversation.conversation_id, conversation.title ?? '', conversation.created_at)
     ) ?? [];
 };

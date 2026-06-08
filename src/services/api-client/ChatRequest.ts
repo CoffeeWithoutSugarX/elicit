@@ -1,26 +1,27 @@
 import ChatMessageProps from "@/features/chat/props/ChatMessageProps";
-import {supabase} from "@/db/supabase/supabase";
-import {streamIterator} from "@/lib/utils";
+import { getAuthHeaders } from "@/services/api-client/getAuthHeaders";
 
 
 class ChatRequest {
 
-    getChatResponse = async (message: ChatMessageProps) => {
-        const {data: {session}} = await supabase.auth.getSession();
+    // 返回原始 Response，供调用方自行驱动 processStream（推荐路径）
+    getRawResponse = async (message: ChatMessageProps): Promise<Response> => {
         const response = await fetch(`/api/chat/${message.conversationId}`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${session?.access_token}`
+                'Content-Type': 'application/json',
+                ...await getAuthHeaders(),
             },
             body: JSON.stringify(message)
-        })
+        });
 
-        if (!response.body) {
+        if (!response.ok || !response.body) {
             throw new Error("Failed to get chat response");
         }
 
-        return streamIterator(response);
+        return response;
     }
+
 }
 
 export const chatRequest = new ChatRequest();

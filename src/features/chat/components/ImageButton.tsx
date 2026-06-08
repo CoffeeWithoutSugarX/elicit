@@ -1,0 +1,58 @@
+'use client'
+
+/**
+ * 图片按钮三态：
+ * - active：可点击，灰色图标 + hover 浅底
+ * - swap-confirm：可点击但会触发换题浮层（深墨色 + hover tooltip）
+ * - disabled：灰化 + 不可点
+ *
+ * 纸面调性：圆形小图标，无 border，无朱砂色，融入新盒子容器风格。
+ * 图标 Camera size 16，圆形 w-8 h-8，hover 浅底灰色。
+ */
+import { Camera } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
+interface Props {
+  state: 'active' | 'swap-confirm' | 'disabled'
+  onClick?: () => void
+}
+
+export function ImageButton({ state, onClick }: Props) {
+  const isDisabled = state === 'disabled'
+  const tooltipText =
+    state === 'swap-confirm'
+      ? '已有题目——点击将进入换题确认'
+      : state === 'disabled'
+      ? '当前无法上传图片'
+      : '上传题目（拍照 / 相册）'
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={isDisabled ? undefined : onClick}
+          disabled={isDisabled}
+          aria-label={tooltipText}
+          className={cn(
+            'w-8 h-8 rounded-full inline-flex items-center justify-center',
+            'bg-transparent transition-colors',
+            state === 'disabled'
+              ? 'text-muted-foreground opacity-40 cursor-not-allowed'
+              : state === 'swap-confirm'
+              ? 'text-primary hover:bg-muted cursor-pointer'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer',
+          )}
+        >
+          <Camera size={16} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent>{tooltipText}</TooltipContent>
+    </Tooltip>
+  )
+}

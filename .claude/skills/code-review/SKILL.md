@@ -194,7 +194,7 @@ findings_simplify = [
 
 | ID | 规则 | 严重度 |
 |----|------|--------|
-| C-01 | 组件文件须 kebab-case（如 `chat-message.tsx`） | 🟡 |
+| C-01 | 业务组件文件须 PascalCase（如 `ChatBubble.tsx`，2026-06 约定）；`src/components/ui/` shadcn 生成件保持 kebab-case | 🟡 |
 | C-02 | 枚举文件须 `camelCase.enum.ts`（如 `chatMessageRole.enum.ts`） | 🟡 |
 | C-03 | Store 文件须 `use` 前缀（如 `useConversation.ts`） | 🟡 |
 | C-04 | Props 类须 `XxxProps` 后缀（如 `ChatMessageProps`） | 🟡 |
@@ -277,3 +277,5 @@ findings_simplify = [
 - **`globals.css` 内的 oklch/hex 值** — CSS 变量定义区允许直接写颜色值
 - **中文 console.log** — 日志消息可以是中文
 - **`export const` 导出工具函数** — `lib/` 下的工具函数使用 named export 而非 default export
+- **业务组件统一命名导出** — `src/features/**/components/` 与 `src/components/` 下组件无 `export default`（2026-06 组件化重构起惯例）；S-05 仅适用于 `src/app/**` 的 page/layout（Next.js 要求 default export）
+- **`src/lib/adminDb.ts` 的 service-role `createClient`** — server-only + 懒单例，是 A-04 的正当豁免点，与浏览器端 anon 单例天然不可复用

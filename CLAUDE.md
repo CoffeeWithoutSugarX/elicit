@@ -20,7 +20,7 @@
 - `pnpm integration` / `pnpm smoke` — L5 集成 / 冒烟测试（Phase 3）
 - `pnpm evals` — L6 Agent 行为评测，**不阻断 PR**（Phase 3）
 - `pnpm check` — L1+L2+L3+lint 全绿（单测层）
-- `pnpm verify` — L1–L5 全工程验证；**subagent 完成代码落地前必须跑这个全绿才返回**
+- `pnpm verify` — L1–L5 全工程验证；**subagent 完成代码落地前必须跑这个全绿才返回**。注意：当前 `verify` 实际等于 `check`（仅 L1–L3），L4/L5（`demo:chat` / `integration` / `smoke`）为 Phase 3 占位，接入后须更新此脚本。
 
 ## 架构
 
@@ -47,7 +47,7 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 ### 模型 (`src/agents/models/`)
 
 - `deepseek-model.ts` — `chatModel`（通过 OpenAI 兼容协议调用 deepseek-chat），是 `chatNode` 实际调用的模型。
-- `qianwen-model.ts` — `qwen-vl-ocr-latest`，用于图片 OCR。**注意**：当前文件在模块顶层调用了 `main()` 且 URL 是硬编码的，属于实验/示例代码，尚未接入到 `ocrNode`。如需在应用代码中导入，先移除顶层调用。
+- `qwen-vl-model.ts` — `visionModel`（`qwen-vl-ocr-latest`，OpenAI 兼容协议调 DashScope），`VisionNode` 使用的视觉模型单例。
 
 ### 同一个 Postgres 下的两条持久化路径
 
@@ -81,6 +81,7 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 - Graph 节点统一使用 `console.log('NodeName invoked with ...')` 的日志格式，便于 grep，请保持一致。
 - 代码中大量使用中文注释——编辑已有代码时请保留这些注释。
 - 启用了 React Compiler（devDeps 里的 `babel-plugin-react-compiler`），除非性能分析显示有需要，否则不要手动写 `useMemo` / `useCallback`。
+- **组件文件命名**：`src/features/**/components/` 与 `src/components/` 下的业务组件文件用 **PascalCase**（如 `ChatBubble.tsx`，2026-06 组件化重构起的约定）；`src/components/ui/` 下的 shadcn 生成件保持上游 kebab-case，不要混用。
 - **新版本 API 先查 context7**：本项目用的 LangGraph 1.x / LangChain 1.x / AI SDK v6 / Next.js 16 / React 19 都是 2025 末才稳的版本，训练数据可能滞后。涉及这些库的 API 用法（如 `getWriter()` / `PostgresSaver` / `toUIMessageStream` / `data-custom` chunk / Server Actions / React Compiler 行为）**先调 `mcp__claude_ai_Context7__query-docs` 查权威文档**，不要凭记忆写。
 
 ## 测试与验证体系
@@ -103,3 +104,23 @@ Checkpointing 使用 `PostgresSaver.fromConnString(POSTGRES_URL)`。**`checkpoin
 ### 已登记的测试目录
 
 - `src/__tests__/` — L3 单元测试（Phase 2 起启用，vitest + `@/` 别名）
+- `src/__tests__/agents/nodes/` — 顶层节点单元测试（ChatNode 等；phases/flow/guards 子目录见下）
+- `src/__tests__/agents/nodes/phases/` — Phase 节点单元测试（ClassifyNode 等）
+- `src/__tests__/agents/graphs/` — Graph 不变量测试（checkpointStatePersistence 等）
+- `src/__tests__/stores/` — Zustand store 单元测试（useConversation、useUserInfo、useHistoryConversation、useShowWelcome、useThemeFlag）
+- `src/__tests__/app/api/` — Next.js API 路由单元测试（chat、oss、conversation、admin，镜像 `src/app/api/` 路径）
+- `src/__tests__/integration/` — Wire 形状集成护栏测试（真实 `toUIMessageStream` + `streamIterator` → store 全链路；防止 mock 形状漂移复发）
+- `src/__tests__/services/api-client/` — api-client 请求层单元测试（AdminRequest 等）
+- `src/__tests__/agents/data/` — P-001 数据层单元测试（bsdMathCatalog、studentProfile、loadKnowledgePoints 过滤函数）
+- `src/__tests__/agents/prompts/` — P-001 prompt 注入单元测试（buildStudentContext、5 个 systemPrompt 含学情块断言、reviewNode few-shots 口径验证）
+- `src/__tests__/agents/algorithm/` — 纯算法层单元测试（phaseSignalParse、各 guard：deviation/outOfScope/stuck/visionFailure）
+- `src/__tests__/agents/schemas/` — Graph state / OCR Zod schema 测试（ElicitGraphStateSchema、OcrSchema）
+- `src/__tests__/agents/state/` — state 副作用纯函数测试（applySignalSideEffects、reconcileHasResolved）
+- `src/__tests__/agents/nodes/flow/` — flow 节点与路由测试（ConversationNode、OcrNode、StartFinoutNode、VisionNode、executeRouter、phaseRouter）
+- `src/__tests__/agents/nodes/guards/` — guard 链测试（runGuardChain）
+- `src/__tests__/db/` — DB 双通道测试（mappers/、models/、schema/ 三个子目录）
+- `src/__tests__/lib/` — lib 工具函数测试（auth、date、katexHelpers、numerals、relativeTime、textUtils、theme、utils）
+- `src/__tests__/types/` — 类型与枚举测试（enums/、features/、request/、response/）
+- `src/__tests__/services/` — 服务层测试（OssService；api-client/ 子目录见上）
+- `src/__tests__/features/` — feature 层纯函数/工具测试（chatPageUtils 等）
+- `src/__tests__/helpers/` — 共享测试工具（mockState 等，非测试文件）

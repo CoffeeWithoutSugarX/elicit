@@ -1,13 +1,15 @@
+import 'server-only';
 import {ElicitGraphState} from "@/agents/schemas/ElicitGraphStateSchema";
 import {conversationMapper} from "@/db/mappers/ConversationMapper";
 import {getWriter} from "@langchain/langgraph";
-import {chatNodeName} from "@/agents/nodes/ChatNode";
 
+export const conversationNodeName = 'conversationNode';
 
 export const shouldCreateConversation = async (state: ElicitGraphState): Promise<string[]> => {
     const conversation = await conversationMapper.findById(state.conversationId);
     console.log('shouldCreateConversation invoked with conversation:', conversation)
-    return conversation ? [chatNodeName] : [conversationNodeName];
+    // 返回空数组表示会话已存在，StartFinoutNode 会处理后续路由
+    return conversation ? [] : [conversationNodeName];
 
 }
 
@@ -20,9 +22,10 @@ export const createConversationNode = async (state: ElicitGraphState) => {
     }
     const conversation = await conversationMapper.create(state.conversationId, state.userId, title);
 
+    // 使用 kind 字段区分（不用 type），让外层 SSE part 名始终为 data-custom
     const writer = getWriter();
     if (writer) {
-        writer({conversationId: conversation.conversationId, title: conversation.title})
+        writer({ kind: 'conversation_created', conversationId: conversation.conversationId, title: conversation.title })
     }
 
     console.log('createConversationNode created conversation:', conversation)
@@ -30,5 +33,3 @@ export const createConversationNode = async (state: ElicitGraphState) => {
         conversationId: conversation.conversationId
     };
 }
-
-export const conversationNodeName = 'conversationNode'

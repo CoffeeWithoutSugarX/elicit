@@ -24,6 +24,20 @@ class ConversationMapper {
         return result[0];
     }
 
+    async update(conversationId: string, data: {
+        hasResolved?: boolean;
+        currentPhase?: number;
+        problemType?: number;
+        title?: string;
+    }) {
+        console.log('ConversationMapper.update invoked with conversationId:', conversationId, 'data:', data)
+        const result = await db.update(elicitConversations)
+            .set(data)
+            .where(eq(elicitConversations.conversationId, conversationId))
+            .returning();
+        return result;
+    }
+
 }
 
 

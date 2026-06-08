@@ -69,4 +69,16 @@ describe('visionFailureGuard', () => {
     });
     expect(visionFailureGuard(state)).toBe(true);
   });
+
+  it('ocrResult.isSolvable=false + errorReason="INCOMPLETE" → 返回 true', () => {
+    const state = createMockState({
+      ocrResult: {
+        isSolvable: false,
+        subject: 'math',
+        questions: [],
+        errorReason: 'INCOMPLETE',
+      },
+    });
+    expect(visionFailureGuard(state)).toBe(true);
+  });
 });
